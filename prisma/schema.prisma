@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  OWNER
+}
+
+enum RentalStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  COMPLETED
+  CANCELED
+  RESCHEDULED
+}
+
+enum TrackingStatus {
+  ORDER_RECEIVED
+  RENTAL_ONGOING
+  RETURN_PENDING
+  COMPLETED
+}
+
+enum ReturnCondition {
+  GOOD
+  DAMAGED
+  LOST
+}
+
+enum RescheduleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  phone     String
+
+  // Optional for OWNER
+  businessName    String?
+  businessAddress String?
+
+  Wishlist  Wishlist[]
+  Booking  Booking[]
+  Rental   Rental[]
+  FittingSchedule FittingSchedule[]
+  RescheduleRequest RescheduleRequest[]
+}
+
+model Clothes {
+  id       Int     @id @default(autoincrement())
+  name     String
+  category String
+  size     String?
+  color    String?
+  price    Float
+  stock    Int
+  createdAt DateTime @default(now())
+
+  Wishlist  Wishlist[]
+  Rental    Rental[]
+}
+
+model Wishlist {
+  id         Int     @id @default(autoincrement())
+  user       User    @relation(fields: [userId], references: [id])
+  userId     Int
+  clothes    Clothes @relation(fields: [clothesId], references: [id])
+  clothesId  Int
+  createdAt  DateTime @default(now())
+}
+
+model Booking {
+  id             Int     @id @default(autoincrement())
+  user           User    @relation(fields: [userId], references: [id])
+  userId         Int
+  scheduleDate   DateTime
+  status         BookingStatus @default(PENDING)
+  rescheduleDate DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model Rental {
+  id         Int     @id @default(autoincrement())
+  user       User    @relation(fields: [userId], references: [id])
+  userId     Int
+  clothes    Clothes @relation(fields: [clothesId], references: [id])
+  clothesId  Int
+  startDate  DateTime
+  endDate    DateTime
+  status     RentalStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+
+  Tracking   Tracking[]
+  Return     Return[]
+}
+
+model Tracking {
+  id        Int     @id @default(autoincrement())
+  rental    Rental  @relation(fields: [rentalId], references: [id])
+  rentalId  Int
+  status    TrackingStatus @default(ORDER_RECEIVED)
+  updatedAt DateTime @default(now())
+}
+
+model Return {
+  id         Int     @id @default(autoincrement())
+  rental     Rental  @relation(fields: [rentalId], references: [id])
+  rentalId   Int
+  returnDate DateTime
+  condition  ReturnCondition @default(GOOD)
+  createdAt  DateTime @default(now())
+}
+
+model FittingSchedule {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  date      DateTime
+  status    BookingStatus @default(PENDING) // Confirmation by owner required
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  RescheduleRequest RescheduleRequest[]
+}
+
+model RescheduleRequest {
+  id             Int     @id @default(autoincrement())
+  fitting        FittingSchedule @relation(fields: [fittingId], references: [id])
+  fittingId      Int
+  user           User            @relation(fields: [userId], references: [id])
+  userId         Int
+  requestedDate  DateTime
+  reason         String?
+  status         RescheduleStatus @default(PENDING)
+  createdAt      DateTime @default(now())
+  respondedAt    DateTime?
+}
