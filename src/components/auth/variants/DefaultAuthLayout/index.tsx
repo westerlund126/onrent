@@ -27,14 +27,14 @@ function Default(props: { maincard: JSX.Element }) {
           {maincard}
           <div className="absolute right-0 hidden h-full min-h-screen md:block lg:w-[49vw] 2xl:w-[44vw]">
             <div
-              // style={{ backgroundImage: authImg ? `url(${authImg})` : '' }}
-              className={`absolute flex h-full w-full items-end justify-center bg-gradient-to-br from-main-100 to-brand-500 bg-cover bg-center lg:rounded-bl-[120px] xl:rounded-bl-[200px]`}
+              style={{ backgroundImage: authImg ? `url(${authImg})` : '' }}
+              className={`absolute flex h-full w-full items-end justify-center bg-gradient-to-br from-secondary-500 to-primary-500 bg-cover bg-center lg:rounded-bl-[120px] xl:rounded-bl-[200px]`}
             >
               <div className="relative flex h-full w-full">
-                {/* <div
+                <div
                   style={{ backgroundImage: `url(${authImg.src})` }}
-                  className="flex h-full w-full bg-cover"
-                /> */}
+                  className="flex w-full h-full justify-center bg-cover"
+                />
               </div>
             </div>
           </div>
