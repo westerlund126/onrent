@@ -18,7 +18,7 @@ const Dashboard = () => {
           <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-3">
             <Widget
               icon={<MdInventory className="h-7 w-7" />}
-              title={'Inventory'}
+              title={'Total Stok'}
               subtitle={'$340.5'}
             />
             <Widget
