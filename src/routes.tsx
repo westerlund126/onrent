@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaMoneyBill } from 'react-icons/fa';
 
 // Admin Imports
 
@@ -9,31 +10,32 @@ import {
   MdBarChart,
   MdPerson,
   MdLock,
+  MdOutlineCalendarMonth,
 } from 'react-icons/md';
 
 const routes = [
   {
-    name: 'Main Dashboard',
+    name: 'Menu Utama',
     layout: '/admin',
     path: 'default',
     icon: <MdHome className="h-6 w-6" />,
   },
   {
-    name: 'NFT Marketplace',
+    name: 'Jadwal Fitting',
     layout: '/admin',
     path: 'nft-marketplace',
-    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
+    icon: <MdOutlineCalendarMonth className="h-6 w-6" />,
 
     secondary: true,
   },
   {
-    name: 'Data Tables',
+    name: 'Katalog',
     layout: '/admin',
-    icon: <MdBarChart className="h-6 w-6" />,
+    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
     path: 'data-tables',
   },
   {
-    name: 'Profile',
+    name: 'Profil',
     layout: '/admin',
     path: 'profile',
     icon: <MdPerson className="h-6 w-6" />,
@@ -45,10 +47,10 @@ const routes = [
     icon: <MdLock className="h-6 w-6" />,
   },
   {
-    name: 'RTL Admin',
+    name: 'Transaksi',
     layout: '/rtl',
     path: 'rtl-default',
-    icon: <MdHome className="h-6 w-6" />,
+    icon: <FaMoneyBill className="h-6 w-6" />,
   },
 ];
 export default routes;
