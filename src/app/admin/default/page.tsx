@@ -13,11 +13,8 @@ import tableDataComplex from 'variables/data-tables/tableDataComplex';
 const Dashboard = () => {
   return (
     <div>
-      {/* Main grid container - split into left and right sections */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        {/* Left column - takes 3 of 5 columns on large screens */}
-        <div className="lg:col-span-3 space-y-5">
-          {/* Card widgets */}
+        <div className="space-y-5 lg:col-span-3">
           <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-3">
             <Widget
               icon={<MdInventory className="h-7 w-7" />}
@@ -48,9 +45,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Right column - takes 2 of 5 columns on large screens */}
-        <div className="lg:col-span-2 h-full">
-          {/* Agenda Section (using CheckTable as requested) */}
+        <div className="h-full lg:col-span-2">
           <div className="mt-3 h-full pb-3">
             <CheckTable tableData={tableDataCheck} />
           </div>
