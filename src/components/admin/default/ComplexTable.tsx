@@ -12,6 +12,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { FaCircle } from "react-icons/fa";
 
 type RowObj = {
   name: string;
@@ -31,7 +32,7 @@ export default function ComplexTable(props: { tableData: any }) {
     columnHelper.accessor("name", {
       id: "name",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">NAMA</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -49,11 +50,11 @@ export default function ComplexTable(props: { tableData: any }) {
       cell: (info) => (
         <div className="flex items-center">
           {info.getValue() === "Approved" ? (
-            <MdCheckCircle className="text-green-500 me-1 dark:text-green-300" />
+            <FaCircle className="text-green-500 me-1 dark:text-green-300" />
           ) : info.getValue() === "Disable" ? (
-            <MdCancel className="text-red-500 me-1 dark:text-red-300" />
+            <FaCircle className="text-red-500 me-1 dark:text-red-300" />
           ) : info.getValue() === "Error" ? (
-            <MdOutlineError className="text-amber-500 me-1 dark:text-amber-300" />
+            <FaCircle className="text-amber-500 me-1 dark:text-amber-300" />
           ) : null}
           <p className="text-sm font-bold text-navy-700 dark:text-white">
             {info.getValue()}
@@ -64,7 +65,7 @@ export default function ComplexTable(props: { tableData: any }) {
     columnHelper.accessor("date", {
       id: "date",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">DATE</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">TANGGAL</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -76,7 +77,7 @@ export default function ComplexTable(props: { tableData: any }) {
       id: "progress",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
-          PROGRESS
+          PROGRES
         </p>
       ),
       cell: (info) => (

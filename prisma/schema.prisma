@@ -14,12 +14,11 @@ enum UserRole {
 }
 
 enum RentalStatus {
-  PENDING
   ACTIVE
   COMPLETED
 }
 
-enum BookingStatus {
+enum FittingStatus {
   PENDING
   CONFIRMED
   REJECTED
@@ -55,19 +54,16 @@ model User {
   role      UserRole @default(CUSTOMER)
   createdAt DateTime @default(now())
   phone     String
-
-  // Optional for OWNER
   businessName    String?
   businessAddress String?
 
   Wishlist  Wishlist[]
-  Booking  Booking[]
   Rental   Rental[]
   FittingSchedule FittingSchedule[]
   RescheduleRequest RescheduleRequest[]
 }
 
-model Clothes {
+model Products {
   id       Int     @id @default(autoincrement())
   name     String
   category String
@@ -85,30 +81,20 @@ model Wishlist {
   id         Int     @id @default(autoincrement())
   user       User    @relation(fields: [userId], references: [id])
   userId     Int
-  clothes    Clothes @relation(fields: [clothesId], references: [id])
-  clothesId  Int
+  products    Products @relation(fields: [productsId], references: [id])
+  productsId  Int
   createdAt  DateTime @default(now())
-}
-
-model Booking {
-  id             Int     @id @default(autoincrement())
-  user           User    @relation(fields: [userId], references: [id])
-  userId         Int
-  scheduleDate   DateTime
-  status         BookingStatus @default(PENDING)
-  rescheduleDate DateTime?
-  createdAt      DateTime @default(now())
 }
 
 model Rental {
   id         Int     @id @default(autoincrement())
   user       User    @relation(fields: [userId], references: [id])
   userId     Int
-  clothes    Clothes @relation(fields: [clothesId], references: [id])
-  clothesId  Int
+  products    Products @relation(fields: [productsId], references: [id])
+  productsId  Int
   startDate  DateTime
   endDate    DateTime
-  status     RentalStatus @default(PENDING)
+  status     RentalStatus @default(ACTIVE)
   createdAt  DateTime @default(now())
 
   Tracking   Tracking[]
@@ -137,7 +123,7 @@ model FittingSchedule {
   user      User    @relation(fields: [userId], references: [id])
   userId    Int
   date      DateTime
-  status    BookingStatus @default(PENDING) // Confirmation by owner required
+  status    FittingStatus @default(PENDING) // Confirmation by owner required
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

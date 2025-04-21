@@ -3,7 +3,7 @@
 import { HiX } from 'react-icons/hi';
 import Links from './components/Links';
 
-import SidebarCard from 'components/sidebar/components/SidebarCard';
+// import SidebarCard from 'components/sidebar/components/SidebarCard';
 import {
   renderThumb,
   renderTrack,
@@ -82,7 +82,7 @@ function SidebarHorizon(props: { variant?: string; [x: string]: any }) {
             {/* Free Horizon Card    */}
             <div className="mb-[30px] mt-[28px]">
               <div className="flex justify-center">
-                <SidebarCard />
+                {/* <SidebarCard /> */}
               </div>
               {/* Sidebar profile info */}
               <div className="mt-5 flex items-center justify-center gap-3">
