@@ -49,9 +49,9 @@ const Dashboard = () => {
         </div>
 
         {/* Right column - takes 2 of 5 columns on large screens */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 h-full">
           {/* Agenda Section (using CheckTable as requested) */}
-          <div className="mt-3">
+          <div className="mt-3 h-full pb-3">
             <CheckTable tableData={tableDataCheck} />
           </div>
         </div>
