@@ -15,10 +15,10 @@ import {
 import { FaCircle } from "react-icons/fa";
 
 type RowObj = {
-  name: string;
+  nama: string;
   status: string;
-  date: string;
-  progress: number;
+  tanggal: string;
+  progres: number;
 };
 
 const columnHelper = createColumnHelper<RowObj>();
@@ -29,8 +29,8 @@ export default function ComplexTable(props: { tableData: any }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   let defaultData = tableData;
   const columns = [
-    columnHelper.accessor("name", {
-      id: "name",
+    columnHelper.accessor("nama", {
+      id: "nama",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">NAMA</p>
       ),
@@ -49,10 +49,10 @@ export default function ComplexTable(props: { tableData: any }) {
       ),
       cell: (info) => (
         <div className="flex items-center">
-          {info.getValue() === "Approved" ? (
+          {info.getValue() === "Aktif" ? (
             <FaCircle className="text-green-500 me-1 dark:text-green-300" />
-          ) : info.getValue() === "Disable" ? (
-            <FaCircle className="text-red-500 me-1 dark:text-red-300" />
+          ) : info.getValue() === "Selesai" ? (
+            <FaCircle className="text-blue-500 me-1 dark:text-red-300" />
           ) : info.getValue() === "Error" ? (
             <FaCircle className="text-amber-500 me-1 dark:text-amber-300" />
           ) : null}
@@ -62,8 +62,8 @@ export default function ComplexTable(props: { tableData: any }) {
         </div>
       ),
     }),
-    columnHelper.accessor("date", {
-      id: "date",
+    columnHelper.accessor("tanggal", {
+      id: "tanggal",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">TANGGAL</p>
       ),
@@ -73,8 +73,8 @@ export default function ComplexTable(props: { tableData: any }) {
         </p>
       ),
     }),
-    columnHelper.accessor("progress", {
-      id: "progress",
+    columnHelper.accessor("progres", {
+      id: "progres",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
           PROGRES
