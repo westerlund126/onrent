@@ -3,8 +3,55 @@ import InputField from 'components/fields/InputField';
 import Default from 'components/auth/variants/DefaultAuthLayout';
 import { FcGoogle } from 'react-icons/fc';
 import Checkbox from 'components/checkbox';
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 function SignInDefault() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const router = useRouter();
+
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push('/admin');
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error('Sign-in error:', err);
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/admin' });
+  };
+
   return (
     <Default
       maincard={
@@ -17,7 +64,12 @@ function SignInDefault() {
             <p className="mb-9 ml-1 text-base text-gray-600">
               Enter your email and password to sign in!
             </p>
-            <div className="mb-6 flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-lightPrimary hover:cursor-pointer dark:bg-navy-800 dark:text-white">
+
+            {/* Google Sign In */}
+            <div
+              onClick={handleGoogleSignIn}
+              className="mb-6 flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-lightPrimary hover:cursor-pointer dark:bg-navy-800 dark:text-white"
+            >
               <div className="rounded-full text-xl">
                 <FcGoogle />
               </div>
@@ -25,58 +77,83 @@ function SignInDefault() {
                 Sign In with Google
               </p>
             </div>
-            <div className="mb-6 flex items-center  gap-3">
+
+            <div className="mb-6 flex items-center gap-3">
               <div className="h-px w-full bg-gray-200 dark:!bg-navy-700" />
               <p className="text-base text-gray-600"> or </p>
               <div className="h-px w-full bg-gray-200 dark:!bg-navy-700" />
             </div>
-            {/* Email */}
-            <InputField
-              variant="auth"
-              extra="mb-3"
-              label="Email*"
-              placeholder="mail@simmmple.com"
-              id="email"
-              type="text"
-            />
 
-            {/* Password */}
-            <InputField
-              variant="auth"
-              extra="mb-3"
-              label="Password*"
-              placeholder="Min. 8 characters"
-              id="password"
-              type="password"
-            />
-            {/* Checkbox */}
-            <div className="mb-4 flex items-center justify-between px-2">
-              <div className="mt-2 flex items-center">
-                <Checkbox />
-                <p className="ml-2 text-sm font-medium text-navy-700 dark:text-white">
-                  Keep me logged In
-                </p>
+            {/* Error message */}
+            {error && (
+              <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-600">
+                {error}
               </div>
-              <a
-                className="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
-                href=" "
+            )}
+
+            <form onSubmit={handleSignIn}>
+              {/* Email */}
+              <InputField
+                variant="auth"
+                extra="mb-3"
+                label="Email*"
+                placeholder="mail@simmmple.com"
+                id="email"
+                type="email"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              {/* Password */}
+              <InputField
+                variant="auth"
+                extra="mb-3"
+                label="Password*"
+                placeholder="Min. 8 characters"
+                id="password"
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              {/* Checkbox */}
+              <div className="mb-4 flex items-center justify-between px-2">
+                <div className="mt-2 flex items-center">
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(!rememberMe)}
+                  />
+                  <p className="ml-2 text-sm font-medium text-navy-700 dark:text-white">
+                    Keep me logged In
+                  </p>
+                </div>
+
+                <Link
+                  className="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
+                  href="/auth/forgot-password"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="linear w-full rounded-xl bg-brand-500 py-3 text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
               >
-                Forgot Password?
-              </a>
-            </div>
-            <button className="linear w-full rounded-xl bg-brand-500 py-3 text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
-              Sign In
-            </button>
+                {isLoading ? 'Signing In...' : 'Sign In'}
+              </button>
+            </form>
+
             <div className="mt-4">
               <span className="text-sm font-medium text-navy-700 dark:text-gray-500">
                 Not registered yet?
               </span>
-              <a
-                href="/auth/sign-up/default"
+
+              <Link
+                href="/auth/sign-up"
                 className="ml-1 text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
               >
                 Create an account
-              </a>
+              </Link>
             </div>
           </div>
         </div>
