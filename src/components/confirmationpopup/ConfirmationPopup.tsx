@@ -18,13 +18,13 @@ export const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({
             onClick={onConfirm}
             className="rounded bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
           >
-            Yes
+            Ya
           </button>
           <button
             onClick={onCancel}
             className="rounded bg-gray-200 px-4 py-2 text-gray-800 transition-colors hover:bg-gray-300"
           >
-            No
+            Tidak
           </button>
         </div>
       </div>

@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { signOut } from 'next-auth/react'; 
 import { useRouter } from 'next/navigation';
 import Loader from 'components/loader/Loader'; 
+import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup'; 
 
 const Navbar = (props: {
   onOpenSidenav: () => void;
@@ -28,6 +29,7 @@ const Navbar = (props: {
   );
   const router = useRouter(); 
   const [isLoading, setIsLoading] = useState(false); 
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   const handleLogout = async () => {
     setIsLoading(true); 
@@ -40,9 +42,29 @@ const Navbar = (props: {
     }
   };
 
+    const handleLogoutClick = () => {
+      setShowConfirmPopup(true);
+    };
+
+    const handleConfirmLogout = () => {
+      setShowConfirmPopup(false); 
+      handleLogout(); 
+    };
+
+    const handleCancelLogout = () => {
+      setShowConfirmPopup(false); 
+    };
   return (
     <>
       {isLoading && <Loader />}
+
+      {showConfirmPopup && (
+        <ConfirmationPopup
+          message="Anda yakin ingin keluar?"
+          onConfirm={handleConfirmLogout}
+          onCancel={handleCancelLogout}
+        />
+      )}
 
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
@@ -168,11 +190,11 @@ const Navbar = (props: {
                   Newsletter Settings
                 </a>
                 <button
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   disabled={isLoading}
                   className="mt-3 text-left text-sm font-medium text-red-500 hover:text-red-500"
                 >
-                  Log Out
+                  Keluar
                 </button>
               </div>
             </div>

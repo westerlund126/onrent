@@ -63,10 +63,10 @@ function SignInDefault() {
           {/* Sign in section */}
           <div className="mt-[10vh] w-full max-w-full flex-col items-center md:pl-4 lg:pl-0 xl:max-w-[420px]">
             <h3 className="mb-2.5 text-4xl font-bold text-navy-700 dark:text-white">
-              Sign In
+              Masuk
             </h3>
             <p className="mb-9 ml-1 text-base text-gray-600">
-              Enter your email and password to sign in!
+              Isi Email dan Password Anda untuk Masuk!
             </p>
 
             {/* Google Sign In */}
@@ -78,7 +78,7 @@ function SignInDefault() {
                 <FcGoogle />
               </div>
               <p className="text-sm font-medium text-navy-700 dark:text-white">
-                Sign In with Google
+                Masuk dengan Google
               </p>
             </div>
 
@@ -126,7 +126,7 @@ function SignInDefault() {
                     onChange={() => setRememberMe(!rememberMe)}
                   />
                   <p className="ml-2 text-sm font-medium text-navy-700 dark:text-white">
-                    Keep me logged In
+                    Biarkan saya tetap login
                   </p>
                 </div>
 
@@ -134,7 +134,7 @@ function SignInDefault() {
                   className="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
                   href="/auth/forgot-password"
                 >
-                  Forgot Password?
+                  Lupa Password?
                 </Link>
               </div>
 
@@ -149,14 +149,14 @@ function SignInDefault() {
 
             <div className="mt-4">
               <span className="text-sm font-medium text-navy-700 dark:text-gray-500">
-                Not registered yet?
+                Belum punya akun?
               </span>
 
               <Link
                 href="/auth/sign-up"
                 className="ml-1 text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
               >
-                Create an account
+                Buat akun baru
               </Link>
             </div>
           </div>
