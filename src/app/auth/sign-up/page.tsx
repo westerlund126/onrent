@@ -2,7 +2,6 @@
 import InputField from 'components/fields/InputField';
 import Default from 'components/auth/variants/DefaultAuthLayout';
 import { FcGoogle } from 'react-icons/fc';
-import Checkbox from 'components/checkbox';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -91,7 +90,7 @@ function SignUpDefault() {
         return;
       }
 
-      router.push('/admin'); 
+      router.push('/auth/sign-in'); 
     } catch (err) {
       setError(err.message || 'An unexpected error occurred');
       console.error('Sign-up error:', err);
@@ -217,7 +216,7 @@ function SignUpDefault() {
                 Already have an account?
               </span>
               <Link
-                href="/auth/sign-in/default"
+                href="/auth/sign-in"
                 className="ml-1 text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-white"
               >
                 Sign In

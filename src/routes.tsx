@@ -41,18 +41,6 @@ const routes = [
     icon: <MdPerson className="h-6 w-6" />,
   },
   {
-    name: 'Sign In',
-    layout: '/auth',
-    path: 'sign-in',
-    icon: <MdLock className="h-6 w-6" />,
-  },
-  {
-    name: 'Sign Up',
-    layout: '/auth',
-    path: 'sign-in',
-    icon: <MdLock className="h-6 w-6" />,
-  },
-  {
     name: 'Transaksi',
     layout: '/rtl',
     path: 'rtl-default',
