@@ -28,6 +28,9 @@ yarn-error.log*
 *.pem
 .pnpm-debug.log*
 
+# local env files
+.env*.local
+
 # nextjs
 /.next/
 /out/
