@@ -7,25 +7,25 @@ async function main() {
   console.log('Seeding started...');
 
   const adminExists = await prisma.user.findFirst({
-    where: { role: 'ADMIN' },
+    where: { role: 'OWNER' },
   });
 
   if (!adminExists) {
-    const hashedPassword = await bcrypt.hash('admin1234', 10);
+    const hashedPassword = await bcrypt.hash('pur123456', 10);
 
     await prisma.user.create({
       data: {
-        name: 'Admin1',
-        email: 'admin@gmail.com',
+        name: 'Pur',
+        email: 'pur@gmail.com',
         password: hashedPassword,
-        role: UserRole.ADMIN,
-        phone: '08123456789',
+        role: UserRole.OWNER,
+        phone: '08123456722',
       },
     });
 
-    console.log('✅ Admin user created!');
+    console.log('✅ Owner user created!');
   } else {
-    console.log('ℹ  Admin already exists. Skipping...');
+    console.log('ℹ  Owner already exists. Skipping...');
   }
 }
 
