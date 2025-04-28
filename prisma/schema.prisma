@@ -65,6 +65,8 @@ model User {
   Account Account[]
   Session Session[]
   
+
+  Products Products[]
 }
 
 model Account {
@@ -112,7 +114,10 @@ model Products {
   color    String?
   price    Float
   stock    Int
+  images    String[]
   createdAt DateTime @default(now())
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     Int
 
   Wishlist  Wishlist[]
   Rental    Rental[]
