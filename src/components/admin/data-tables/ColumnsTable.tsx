@@ -20,7 +20,7 @@ type RowObj = {
   stok: number;
   total_sewa: number;
   status: string;
-  specs?: string; // Product specifications
+  specs?: string; 
 };
 
 function ColumnsTable(props: { tableData: any }) {
