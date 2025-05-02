@@ -1,71 +1,85 @@
+// app/api/products/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from 'lib/auth';
+import { PrismaClient } from '@prisma/client';
 
-// GET product by id
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const product = await prisma.products.findUnique({
-    where: { id: Number(params.id) },
-    include: {
-      owner: {
-        select: { id: true, name: true },
-      },
-    },
-  });
+const prisma = new PrismaClient();
 
-  if (!product) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-
-  return NextResponse.json(product);
+interface Params {
+  params: { id: string };
 }
 
-// UPDATE product
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+// GET one product by ID
+export async function GET(_: Request, { params }: Params) {
+  try {
+    const product = await prisma.products.findUnique({
+      where: { id: parseInt(params.id) },
+      include: {
+        VariantProducts: true,
+        owner: { select: { id: true, name: true } },
+      },
+    });
 
-  if (!session || session.user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(product);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
   }
+}
 
-  const body = await req.json();
+// PATCH update product info or availability
+export async function PATCH(req: Request, { params }: Params) {
+  try {
+    const body = await req.json();
+    const { name, category, images, description, isAvailable, variants } = body;
 
-  // Make sure only owner can edit
-  const product = await prisma.products.findUnique({
-    where: { id: Number(params.id) },
-  });
+    const updatedProduct = await prisma.products.update({
+      where: { id: parseInt(params.id) },
+      data: {
+        name,
+        category,
+        images,
+        description,
+        VariantProducts: variants
+          ? {
+              updateMany: variants.map((v: any) => ({
+                where: { id: v.id },
+                data: {
+                  size: v.size,
+                  color: v.color,
+                  price: v.price,
+                  stock: v.stock,
+                  availstock: v.availstock,
+                  rentedstock: v.rentedstock,
+                  isAvailable: v.isAvailable,
+                  bustlength: v.bustlength,
+                  waistlength: v.waistlength,
+                  length: v.length,
+                },
+              })),
+            }
+          : undefined,
+      },
+      include: { VariantProducts: true },
+    });
 
-  if (!product || product.ownerId !== session.user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json(updatedProduct);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
-
-  const updated = await prisma.products.update({
-    where: { id: Number(params.id) },
-    data: body,
-  });
-
-  return NextResponse.json(updated);
 }
 
 // DELETE product
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || session.user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function DELETE(_: Request, { params }: Params) {
+  try {
+    const deleted = await prisma.products.delete({
+      where: { id: parseInt(params.id) },
+    });
+    return NextResponse.json({ success: true, deleted });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
-
-  const product = await prisma.products.findUnique({
-    where: { id: Number(params.id) },
-  });
-
-  if (!product || product.ownerId !== session.user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  await prisma.products.delete({
-    where: { id: Number(params.id) },
-  });
-
-  return NextResponse.json({ message: 'Deleted' });
 }

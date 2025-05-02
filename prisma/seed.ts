@@ -11,15 +11,15 @@ async function main() {
   });
 
   if (!adminExists) {
-    const hashedPassword = await bcrypt.hash('pur123456', 10);
+    const hashedPassword = await bcrypt.hash('nana123456', 10);
 
     await prisma.user.create({
       data: {
-        name: 'Pur',
-        email: 'pur@gmail.com',
+        name: 'Nana',
+        email: 'nana@gmail.com',
         password: hashedPassword,
         role: UserRole.OWNER,
-        phone: '08123456722',
+        phone: '08128856722',
       },
     });
 

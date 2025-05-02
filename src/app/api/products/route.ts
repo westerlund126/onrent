@@ -1,44 +1,60 @@
+// app/api/products/route.ts
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth'; // if you use NextAuth
-import { authOptions } from 'lib/auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 
 // GET all products
 export async function GET() {
-  const products = await prisma.products.findMany({
-    include: {
-      owner: {
-        select: { id: true, name: true },
+  try {
+    const products = await prisma.products.findMany({
+      include: {
+        VariantProducts: true,
+        owner: { select: { id: true, name: true } },
       },
-    },
-  });
-
-  return NextResponse.json(products);
+    });
+    return NextResponse.json(products);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+  }
 }
 
-const MOCK_SESSION = {
-  user: { id: 3, role: 'OWNER' },
-};
-
-// POST create product (Owner Only)
+// POST create product + variants
 export async function POST(req: Request) {
-  const session = MOCK_SESSION;
+  try {
+    const body = await req.json();
+    const { name, category, images, ownerId, description, variants } = body;
 
-  const body = await req.json();
-  const { name, category, size, color, price, stock, images } = body;
+    const newProduct = await prisma.products.create({
+      data: {
+        name,
+        category,
+        images,
+        ownerId,
+        description,
+        VariantProducts: {
+          create: variants.map((v: any) => ({
+            size: v.size,
+            color: v.color,
+            price: v.price,
+            stock: v.stock,
+            availstock: v.stock, // default available = total
+            rentedstock: 0,
+            isAvailable: v.stock > 0,
+            bustlength: v.bustlength,
+            waistlength: v.waistlength,
+            length: v.length,
+          })),
+        },
+      },
+      include: {
+        VariantProducts: true,
+      },
+    });
 
-  const product = await prisma.products.create({
-    data: {
-      name,
-      category,
-      size,
-      color,
-      price,
-      stock,
-      images,
-      ownerId: session.user.id,
-    },
-  });
-
-  return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(newProduct, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  }
 }

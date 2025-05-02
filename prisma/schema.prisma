@@ -47,30 +47,27 @@ enum RescheduleStatus {
 }
 
 model User {
-  id        Int     @id @default(autoincrement())
-  name      String
-  email     String  @unique
-  password  String
-  role      UserRole @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  phone     String
-  businessName    String?
-  businessAddress String?
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String             @unique
+  password         String
+  role             UserRole           @default(CUSTOMER)
+  createdAt        DateTime           @default(now())
+  phone            String
+  businessName     String?
+  businessAddress  String?
 
-  Wishlist  Wishlist[]
-  Rental   Rental[]
-  FittingSchedule FittingSchedule[]
+  Wishlist         Wishlist[]
+  Rental           Rental[]
+  FittingSchedule  FittingSchedule[]
   RescheduleRequest RescheduleRequest[]
-
-  Account Account[]
-  Session Session[]
-  
-
-  Products Products[]
+  Account          Account[]
+  Session          Session[]
+  Products         Products[]
 }
 
 model Account {
-  id                 Int       @id @default(autoincrement())
+  id                 Int      @id @default(autoincrement())
   userId             Int
   type               String
   provider           String
@@ -105,86 +102,106 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-
 model Products {
-  id       Int     @id @default(autoincrement())
-  name     String
-  category String
-  size     String?
-  color    String?
-  price    Float
-  stock    Int
-  images    String[]
-  createdAt DateTime @default(now())
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     Int
+  id             Int               @id @default(autoincrement())
+  name           String
+  category       String
+  images         String[]
+  createdAt      DateTime          @default(now())
+  owner          User              @relation(fields: [ownerId], references: [id])
+  ownerId        Int
+  description    String
 
-  Wishlist  Wishlist[]
-  Rental    Rental[]
+  Wishlist       Wishlist[]
+  Rental         Rental[]
+  VariantProducts VariantProducts[]
+}
+
+model VariantProducts {
+  id            Int       @id @default(autoincrement())
+  size          String?
+  color         String?
+  price         Float
+  stock         Int
+  availstock    Int
+  rentedstock   Int
+  isAvailable   Boolean
+  createdAt     DateTime  @default(now())
+  products      Products  @relation(fields: [productsId], references: [id])
+  productsId    Int
+  bustlength    Float?
+  waistlength   Float?
+  length        Float?
+
+  Rental        Rental[]
+
+  @@unique([size, color, bustlength, waistlength, length, productsId])
 }
 
 model Wishlist {
-  id         Int     @id @default(autoincrement())
-  user       User    @relation(fields: [userId], references: [id])
-  userId     Int
-  products    Products @relation(fields: [productsId], references: [id])
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  products    Products  @relation(fields: [productsId], references: [id])
   productsId  Int
-  createdAt  DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }
 
 model Rental {
-  id         Int     @id @default(autoincrement())
-  user       User    @relation(fields: [userId], references: [id])
-  userId     Int
-  products    Products @relation(fields: [productsId], references: [id])
-  productsId  Int
-  startDate  DateTime
-  endDate    DateTime
-  status     RentalStatus @default(ACTIVE)
-  createdAt  DateTime @default(now())
+  id               Int             @id @default(autoincrement())
+  user             User            @relation(fields: [userId], references: [id])
+  userId           Int
+  products         Products        @relation(fields: [productsId], references: [id])
+  productsId       Int
+  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+  variantProductId Int
+  startDate        DateTime
+  endDate          DateTime
+  status           RentalStatus    @default(ACTIVE)
+  createdAt        DateTime        @default(now())
 
-  Tracking   Tracking[]
-  Return     Return[]
+  Tracking         Tracking[]
+  Return           Return[]
 }
 
 model Tracking {
-  id        Int     @id @default(autoincrement())
-  rental    Rental  @relation(fields: [rentalId], references: [id])
-  rentalId  Int
-  status    TrackingStatus @default(ORDER_RECEIVED)
-  updatedAt DateTime @default(now())
+  id         Int            @id @default(autoincrement())
+  rental     Rental         @relation(fields: [rentalId], references: [id])
+  rentalId   Int
+  status     TrackingStatus @default(ORDER_RECEIVED)
+  updatedAt  DateTime       @default(now())
 }
 
 model Return {
-  id         Int     @id @default(autoincrement())
-  rental     Rental  @relation(fields: [rentalId], references: [id])
-  rentalId   Int
-  returnDate DateTime
-  condition  ReturnCondition @default(GOOD)
-  createdAt  DateTime @default(now())
+  id          Int             @id @default(autoincrement())
+  rental      Rental          @relation(fields: [rentalId], references: [id])
+  rentalId    Int
+  returnDate  DateTime
+  condition   ReturnCondition @default(GOOD)
+  createdAt   DateTime        @default(now())
 }
 
 model FittingSchedule {
-  id        Int     @id @default(autoincrement())
-  user      User    @relation(fields: [userId], references: [id])
-  userId    Int
-  date      DateTime
-  status    FittingStatus @default(PENDING) // Confirmation by owner required
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int              @id @default(autoincrement())
+  user       User             @relation(fields: [userId], references: [id])
+  userId     Int
+  date       DateTime
+  status     FittingStatus    @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   RescheduleRequest RescheduleRequest[]
 }
 
 model RescheduleRequest {
-  id             Int     @id @default(autoincrement())
-  fitting        FittingSchedule @relation(fields: [fittingId], references: [id])
+  id             Int              @id @default(autoincrement())
+  fitting        FittingSchedule  @relation(fields: [fittingId], references: [id])
   fittingId      Int
-  user           User            @relation(fields: [userId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
   userId         Int
   requestedDate  DateTime
   reason         String?
   status         RescheduleStatus @default(PENDING)
-  createdAt      DateTime @default(now())
+  createdAt      DateTime         @default(now())
   respondedAt    DateTime?
 }
