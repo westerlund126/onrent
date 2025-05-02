@@ -19,34 +19,59 @@ import {
   MdKeyboardArrowUp,
 } from 'react-icons/md';
 
-type Product = {
+// Interface to match the actual API response structure based on Prisma schema
+interface ProductVariant {
+  id: number;
+  size: string | null;
+  color: string | null;
+  price: number;
+  stock: number;
+  availstock: number;
+  rentedstock: number;
+  isAvailable: boolean;
+  createdAt: string;
+  productsId: number;
+  bustlength: number | null;
+  waistlength: number | null;
+  length: number | null;
+}
+
+interface Product {
   id: number;
   name: string;
   category: string;
-  size: string;
-  color: string;
-  price: number;
-  stock: number;
   images: string[];
+  description: string;
   createdAt: string;
   ownerId: number;
   owner: {
     id: number;
     name: string;
   };
-  total_sewa?: number;
-  status?: string;
-  specs?: string;
-};
+  VariantProducts: ProductVariant[];
+}
 
+// Table row structure
 type RowObj = {
+  id: number;
   produk: string;
   kategori: string;
   harga: number;
   stok: number;
+  availstock: number;
+  rentedstock: number;
   total_sewa: number;
   status: string;
-  specs?: string;
+  specs: {
+    size: string | null;
+    color: string | null;
+    owner: string;
+    bust: number | null;
+    waist: number | null;
+    length: number | null;
+    description: string;
+  };
+  variantId: number;
 };
 
 function ColumnsTable() {
@@ -59,7 +84,7 @@ function ColumnsTable() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/products');
+        const response = await fetch('/api/products');
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
@@ -79,21 +104,40 @@ function ColumnsTable() {
   }, []);
 
   // Transform the API data to match our table structure
-  const transformedData: RowObj[] = products.map((product) => ({
-    produk: product.name,
-    kategori: product.category,
-    harga: product.price,
-    stok: product.stock,
-    total_sewa: product.total_sewa || 0,
-    status: determineStatus(product.stock),
-    specs: `Size: ${product.size}, Color: ${product.color}, Owner: ${product.owner.name}`,
-  }));
+  const transformedData: RowObj[] = React.useMemo(() => {
+    if (!products.length) return [];
+    
+    // Flatten product data with variants
+    return products.flatMap(product => 
+      product.VariantProducts.map(variant => ({
+        id: product.id,
+        variantId: variant.id,
+        produk: product.name,
+        kategori: product.category,
+        harga: variant.price,
+        stok: variant.stock,
+        availstock: variant.availstock,
+        rentedstock: variant.rentedstock,
+        total_sewa: variant.rentedstock || 0, // Using rentedstock as total rentals
+        status: determineStatus(variant.isAvailable, variant.availstock, variant.rentedstock),
+        specs: {
+          size: variant.size,
+          color: variant.color,
+          owner: product.owner.name,
+          bust: variant.bustlength,
+          waist: variant.waistlength,
+          length: variant.length,
+          description: product.description
+        }
+      }))
+    );
+  }, [products]);
 
-  // Helper function to determine status based on stock
-  function determineStatus(stock: number): string {
-    if (stock > 5) return 'Aktif';
-    if (stock > 0) return 'Disewa';
-    return 'Nonaktif';
+  // Helper function to determine status based on isAvailable flag and stock values
+  function determineStatus(isAvailable: boolean, availStock: number, rentedStock: number): string {
+    if (!isAvailable) return "Nonaktif"; // If product is marked as unavailable
+    if (rentedStock > 0) return "Disewa"; // If product has any rented items
+    return "Aktif"; // Otherwise product is active and available
   }
 
   const columnHelper = createColumnHelper<RowObj>();
@@ -178,7 +222,18 @@ function ColumnsTable() {
     columnHelper.accessor('stok', {
       id: 'stok',
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">Stok</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">Stok Total</p>
+      ),
+      cell: (info) => (
+        <p className="text-sm font-bold text-navy-700 dark:text-white">
+          {info.getValue()}
+        </p>
+      ),
+    }),
+    columnHelper.accessor('availstock', {
+      id: 'availstock',
+      header: () => (
+        <p className="text-sm font-bold text-gray-600 dark:text-white">Stok Tersedia</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -298,48 +353,85 @@ function ColumnsTable() {
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map((row) => {
-                return (
-                  <React.Fragment key={row.id}>
-                    <tr>
-                      {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="min-w-[150px] border-white/0 py-3 pr-4"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                    {row.getIsExpanded() && (
+              {table
+                .getRowModel()
+                .rows.map((row) => {
+                  return (
+                    <React.Fragment key={row.id}>
                       <tr>
-                        <td
-                          colSpan={columns.length}
-                          className="bg-gray-50 p-4 dark:bg-navy-700/50"
-                        >
-                          <div className="text-sm text-navy-700 dark:text-white">
-                            <h4 className="mb-2 font-bold">
-                              Spesifikasi Produk
-                            </h4>
-                            <p>
-                              {row.original.specs ||
-                                'Data spesifikasi tidak tersedia'}
-                            </p>
-                          </div>
-                        </td>
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="min-w-[150px] border-white/0 py-3 pr-4"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </td>
+                        ))}
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
+                      {row.getIsExpanded() && (
+                        <tr>
+                          <td colSpan={columns.length} className="bg-gray-50 dark:bg-navy-700/50 p-4">
+                            <ExpandedRowContent specs={row.original.specs} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
             </tbody>
           </table>
         )}
       </div>
     </Card>
+  );
+}
+
+// Component for expanded row content
+function ExpandedRowContent({ specs }: { specs: RowObj['specs'] }) {
+  return (
+    <div className="text-sm text-navy-700 dark:text-white">
+      <h4 className="font-bold mb-4">Spesifikasi Produk</h4>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div className="mb-2">
+            <span className="font-semibold">Ukuran:</span> {specs.size || 'N/A'}
+          </div>
+          <div className="mb-2">
+            <span className="font-semibold">Warna:</span> {specs.color || 'N/A'}
+          </div>
+          <div className="mb-2">
+            <span className="font-semibold">Pemilik:</span> {specs.owner}
+          </div>
+        </div>
+        
+        <div>
+          {specs.bust && (
+            <div className="mb-2">
+              <span className="font-semibold">Lingkar Dada:</span> {specs.bust} cm
+            </div>
+          )}
+          {specs.waist && (
+            <div className="mb-2">
+              <span className="font-semibold">Lingkar Pinggang:</span> {specs.waist} cm
+            </div>
+          )}
+          {specs.length && (
+            <div className="mb-2">
+              <span className="font-semibold">Panjang:</span> {specs.length} cm
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="mt-4">
+        <span className="font-semibold">Deskripsi:</span>
+        <p className="mt-1">{specs.description}</p>
+      </div>
+    </div>
   );
 }
 
