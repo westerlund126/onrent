@@ -19,7 +19,6 @@ export async function GET() {
   }
 }
 
-// POST create product + variants
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -38,8 +37,7 @@ export async function POST(req: Request) {
             color: v.color,
             price: v.price,
             stock: v.stock,
-            availstock: v.stock, // default available = total
-            rentedstock: 0,
+            availstock: v.stock, 
             isAvailable: v.stock > 0,
             bustlength: v.bustlength,
             waistlength: v.waistlength,
