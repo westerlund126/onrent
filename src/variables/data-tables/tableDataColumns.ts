@@ -5,7 +5,7 @@ type RowObj = {
   stok: number;
   total_sewa: number;
   status: string;
-};
+  specs?: string; };
 
 const tableDataColumns: RowObj[] = [
   {
