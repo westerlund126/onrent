@@ -7,7 +7,6 @@ import FixedPlugin from 'components/fixedPlugin/FixedPlugin';
 interface AuthProps extends PropsWithChildren {}
 
 export default function AuthLayout({ children }: AuthProps) {
-  // states and functions
   if (isWindowAvailable()) document.documentElement.dir = 'ltr';
   return (
     <div>

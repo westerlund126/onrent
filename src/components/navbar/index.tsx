@@ -16,6 +16,7 @@ import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Loader from 'components/loader/Loader'; 
 import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup'; 
+import { UserButton } from '@clerk/nextjs';
 
 const Navbar = (props: {
   onOpenSidenav: () => void;
@@ -58,13 +59,13 @@ const Navbar = (props: {
     <>
       {isLoading && <Loader />}
 
-      {showConfirmPopup && (
+      {/* {showConfirmPopup && (
         <ConfirmationPopup
           message="Anda yakin ingin keluar?"
           onConfirm={handleConfirmLogout}
           onCancel={handleCancelLogout}
         />
-      )}
+      )} */}
 
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
@@ -153,8 +154,16 @@ const Navbar = (props: {
             </div>
           </Dropdown>
 
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonAvatarBox: 'h-10 w-10',
+              },
+            }}
+          />
+          
           {/* Profile & Dropdown */}
-          <Dropdown
+          {/* <Dropdown
             button={
               <Image
                 width="2"
@@ -198,7 +207,7 @@ const Navbar = (props: {
                 </button>
               </div>
             </div>
-          </Dropdown>
+          </Dropdown> */}
         </div>
       </nav>
     </>

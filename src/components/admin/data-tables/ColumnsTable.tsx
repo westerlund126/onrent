@@ -25,7 +25,9 @@ const ProductCatalog = () => {
         const data = await fetchProducts();
         setProducts(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch products');
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch products',
+        );
         console.error('Failed to fetch products:', err);
       } finally {
         setLoading(false);
@@ -143,6 +145,7 @@ const ProductCatalog = () => {
       </Card>
     );
   }
+
 
   return (
     <Card extra="w-full h-full">
