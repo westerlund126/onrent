@@ -46,5 +46,11 @@ const routes = [
     path: 'rtl-default',
     icon: <FaMoneyBill className="h-6 w-6" />,
   },
+  {
+    name: 'Customer Katalog',
+    layout: '/admin',
+    path: 'customer-catalog',
+    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
+  },
 ];
 export default routes;

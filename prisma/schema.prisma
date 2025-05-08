@@ -123,10 +123,8 @@ model VariantProducts {
   size          String?
   color         String?
   price         Float
-  stock         Int
-  availstock    Int
-  rentedstock   Int
-  isAvailable   Boolean
+  isAvailable   Boolean   @default(true)
+  isRented      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   products      Products  @relation(fields: [productsId], references: [id])
   productsId    Int

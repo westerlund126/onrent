@@ -4,13 +4,15 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-interface Params {
-  params: { id: string };
-}
-
 // GET one product by ID
-export async function GET(_: Request, { params }: Params) {
+export async function GET(
+  req: Request, 
+  context: { params: { id: string } }
+) {
   try {
+    // Properly await the params
+    const params = await Promise.resolve(context.params);
+    
     const product = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: {
@@ -30,8 +32,14 @@ export async function GET(_: Request, { params }: Params) {
 }
 
 // PATCH update product info or availability
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(
+  req: Request, 
+  context: { params: { id: string } }
+) {
   try {
+    // Properly await the params
+    const params = await Promise.resolve(context.params);
+    
     const body = await req.json();
     const { name, category, images, description, isAvailable, variants } = body;
 
@@ -50,9 +58,7 @@ export async function PATCH(req: Request, { params }: Params) {
                   size: v.size,
                   color: v.color,
                   price: v.price,
-                  stock: v.stock,
-                  availstock: v.availstock,
-                  rentedstock: v.rentedstock,
+                  isRented: v.isRented,
                   isAvailable: v.isAvailable,
                   bustlength: v.bustlength,
                   waistlength: v.waistlength,
@@ -73,8 +79,14 @@ export async function PATCH(req: Request, { params }: Params) {
 }
 
 // DELETE product
-export async function DELETE(_: Request, { params }: Params) {
+export async function DELETE(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
+    // Properly await the params
+    const params = await Promise.resolve(context.params);
+    
     const deleted = await prisma.products.delete({
       where: { id: parseInt(params.id) },
     });
