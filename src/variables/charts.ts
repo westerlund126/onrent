@@ -82,12 +82,12 @@ export const barChartOptionsDailyTraffic: ApexGeneric = {
         [
           {
             offset: 0,
-            color: '#F24C00',
+            color: '#4318FF',
             opacity: 1,
           },
           {
             offset: 100,
-            color: 'rgba(242, 76, 0, 1)',
+            color: 'rgba(67, 24, 255, 1)',
             opacity: 0.28,
           },
         ],

@@ -5,7 +5,7 @@ import { idID } from '@clerk/localizations';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider localization={idID} afterSignInUrl="/owner/default">
+    <ClerkProvider localization={idID} >
       <html lang="en">
         <body id={'root'}>
           <AppWrappers>{children}</AppWrappers>

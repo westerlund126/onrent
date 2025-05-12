@@ -7,6 +7,122 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                Int                 @id @default(autoincrement())
+  name              String
+  email             String              @unique
+  createdAt         DateTime            @default(now())
+  password          String?
+  businessAddress   String?
+  businessName      String?
+  phone_numbers     String?
+  role              UserRole            @default(CUSTOMER)
+  clerkUserId       String              @unique
+  imageUrl          String?
+  FittingSchedule   FittingSchedule[]
+  Products          Products[]
+  Rental            Rental[]
+  RescheduleRequest RescheduleRequest[]
+  Wishlist          Wishlist[]
+}
+
+model Products {
+  id              Int               @id @default(autoincrement())
+  name            String
+  category        String
+  createdAt       DateTime          @default(now())
+  images          String[]
+  description     String
+  ownerId         Int
+  owner           User              @relation(fields: [ownerId], references: [id])
+  Rental          Rental[]
+  VariantProducts VariantProducts[]
+  Wishlist        Wishlist[]
+}
+
+model VariantProducts {
+  id          Int      @id @default(autoincrement())
+  size        String?
+  color       String?
+  price       Float
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  productsId  Int
+  bustlength  Float?
+  waistlength Float?
+  length      Float?
+  isRented    Boolean  @default(false)
+  Rental      Rental[]
+  products    Products @relation(fields: [productsId], references: [id])
+
+  @@unique([size, color, bustlength, waistlength, length, productsId])
+}
+
+model Wishlist {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  createdAt  DateTime @default(now())
+  productsId Int
+  products   Products @relation(fields: [productsId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Rental {
+  id               Int             @id @default(autoincrement())
+  userId           Int
+  startDate        DateTime
+  endDate          DateTime
+  status           RentalStatus    @default(ACTIVE)
+  createdAt        DateTime        @default(now())
+  productsId       Int
+  variantProductId Int
+  products         Products        @relation(fields: [productsId], references: [id])
+  user             User            @relation(fields: [userId], references: [id])
+  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+  Return           Return[]
+  Tracking         Tracking[]
+}
+
+model Tracking {
+  id        Int            @id @default(autoincrement())
+  rentalId  Int
+  status    TrackingStatus @default(ORDER_RECEIVED)
+  updatedAt DateTime       @default(now())
+  rental    Rental         @relation(fields: [rentalId], references: [id])
+}
+
+model Return {
+  id         Int             @id @default(autoincrement())
+  rentalId   Int
+  returnDate DateTime
+  condition  ReturnCondition @default(GOOD)
+  createdAt  DateTime        @default(now())
+  rental     Rental          @relation(fields: [rentalId], references: [id])
+}
+
+model FittingSchedule {
+  id                Int                 @id @default(autoincrement())
+  userId            Int
+  date              DateTime
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  status            FittingStatus       @default(PENDING)
+  user              User                @relation(fields: [userId], references: [id])
+  RescheduleRequest RescheduleRequest[]
+}
+
+model RescheduleRequest {
+  id            Int              @id @default(autoincrement())
+  fittingId     Int
+  userId        Int
+  requestedDate DateTime
+  reason        String?
+  status        RescheduleStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  respondedAt   DateTime?
+  fitting       FittingSchedule  @relation(fields: [fittingId], references: [id])
+  user          User             @relation(fields: [userId], references: [id])
+}
 
 enum UserRole {
   CUSTOMER
@@ -45,125 +161,4 @@ enum RescheduleStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model User {
-  id               Int                @id @default(autoincrement())
-  name             String
-  email            String             @unique
-  password         String?
-  imageUrl    String?
-  clerkUserId String   @unique
-  createdAt        DateTime           @default(now())
-  // phone_numbers            String?
-  role             UserRole          @default(CUSTOMER)
-  businessName     String?
-  businessAddress  String?
-
-  Wishlist         Wishlist[]
-  Rental           Rental[]
-  FittingSchedule  FittingSchedule[]
-  RescheduleRequest RescheduleRequest[]
-  Products         Products[]
-}
-
-model Products {
-  id             Int     @id @default(autoincrement())
-  name           String
-  category       String
-  images         String[]
-  createdAt      DateTime @default(now())
-  owner          User    @relation(fields: [ownerId], references: [id])
-  ownerId        Int
-  description    String
-  Wishlist       Wishlist[]
-  Rental         Rental[]
-  VariantProducts VariantProducts[]
-}
-
-model  VariantProducts {
-  id            Int       @id @default(autoincrement())
-  size          String?
-  color         String?
-  price         Float
-  isAvailable   Boolean   @default(true)
-  isRented      Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  products      Products  @relation(fields: [productsId], references: [id])
-  productsId    Int
-  bustlength    Float?
-  waistlength   Float?
-  length        Float?
-
-  Rental        Rental[]
-
-  @@unique([size, color, bustlength, waistlength, length, productsId])
-}
-
-model Wishlist {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int
-  products    Products  @relation(fields: [productsId], references: [id])
-  productsId  Int
-  createdAt   DateTime  @default(now())
-}
-
-model Rental {
-  id               Int             @id @default(autoincrement())
-  user             User            @relation(fields: [userId], references: [id])
-  userId           Int
-  products         Products        @relation(fields: [productsId], references: [id])
-  productsId       Int
-  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
-  variantProductId Int
-  startDate        DateTime
-  endDate          DateTime
-  status           RentalStatus    @default(ACTIVE)
-  createdAt        DateTime        @default(now())
-
-  Tracking         Tracking[]
-  Return           Return[]
-}
-
-model Tracking {
-  id         Int            @id @default(autoincrement())
-  rental     Rental         @relation(fields: [rentalId], references: [id])
-  rentalId   Int
-  status     TrackingStatus @default(ORDER_RECEIVED)
-  updatedAt  DateTime       @default(now())
-}
-
-model Return {
-  id          Int             @id @default(autoincrement())
-  rental      Rental          @relation(fields: [rentalId], references: [id])
-  rentalId    Int
-  returnDate  DateTime
-  condition   ReturnCondition @default(GOOD)
-  createdAt   DateTime        @default(now())
-}
-
-model FittingSchedule {
-  id         Int              @id @default(autoincrement())
-  user       User             @relation(fields: [userId], references: [id])
-  userId     Int
-  date       DateTime
-  status     FittingStatus    @default(PENDING)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  RescheduleRequest RescheduleRequest[]
-}
-
-model RescheduleRequest {
-  id             Int              @id @default(autoincrement())
-  fitting        FittingSchedule  @relation(fields: [fittingId], references: [id])
-  fittingId      Int
-  user           User             @relation(fields: [userId], references: [id])
-  userId         Int
-  requestedDate  DateTime
-  reason         String?
-  status         RescheduleStatus @default(PENDING)
-  createdAt      DateTime         @default(now())
-  respondedAt    DateTime?
 }
