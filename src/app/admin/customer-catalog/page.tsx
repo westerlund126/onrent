@@ -13,8 +13,53 @@ import tableDataTopCreators from 'variables/nfts/marketplace/tableDataTopCreator
 import HistoryItem from 'components/admin/nft-marketplace/HistoryItem';
 import TopCreatorTable from 'components/admin/nft-marketplace/TableTopCreators';
 import NftCard from 'components/card/NftCard';
+import { useEffect, useState } from 'react';
+import { Product } from 'types/product';
+import ProductCard from 'components/card/ProductCard';
 
 const Marketplace = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+
+        const data = await response.json();
+        setProducts(data);
+      } catch (err) {
+        setError('Error loading products. Please try again later.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-lg">Loading products...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-lg text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
       <div className="col-span-1 h-fit w-full xl:col-span-1 2xl:col-span-2">
@@ -63,29 +108,12 @@ const Marketplace = () => {
         </div>
 
         {/* NFTs trending card */}
-        <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
-          <NftCard
-            bidders={[avatar1, avatar2, avatar3]}
-            title="Abstract Colors"
-            author="Esthera Jackson"
-            price="0.91"
-            image={NFt3}
-          />
-          <NftCard
-            bidders={[avatar1, avatar2, avatar3]}
-            title="ETH AI Brain"
-            author="Nick Wilson"
-            price="0.7"
-            image={NFt2}
-          />
-          <NftCard
-            bidders={[avatar1, avatar2, avatar3]}
-            title="Mesh Gradients"
-            author="Will Smith"
-            price="2.91"
-            image={NFt4}
-          />
-        </div>
+          <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        
 
         {/* Recenlty Added setion */}
         <div className="mb-5 mt-5 flex items-center justify-between px-[26px]">

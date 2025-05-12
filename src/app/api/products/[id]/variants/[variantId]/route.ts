@@ -4,13 +4,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET a specific variant
 export async function GET(
   req: Request, 
   context: { params: { id: string; variantId: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
     const variant = await prisma.variantProducts.findUnique({
@@ -30,13 +28,11 @@ export async function GET(
   }
 }
 
-// PATCH update variant
 export async function PATCH(
   req: Request,
   context: { params: { id: string; variantId: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
     const body = await req.json();
@@ -65,16 +61,13 @@ export async function PATCH(
   }
 }
 
-// DELETE variant
 export async function DELETE(
   req: Request,
   context: { params: { id: string; variantId: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
-    // First check if the variant exists and belongs to the specified product
     const variant = await prisma.variantProducts.findFirst({
       where: {
         id: parseInt(params.variantId),
@@ -86,14 +79,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Variant not found or does not belong to this product' }, { status: 404 });
     }
 
-    // Delete the variant
     const deleted = await prisma.variantProducts.delete({
       where: { 
         id: parseInt(params.variantId),
       },
     });
 
-    // Fetch updated product to return
     const updatedProduct = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: {

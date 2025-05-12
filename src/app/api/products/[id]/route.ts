@@ -4,13 +4,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET one product by ID
 export async function GET(
   req: Request, 
   context: { params: { id: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
     const product = await prisma.products.findUnique({
@@ -31,13 +29,11 @@ export async function GET(
   }
 }
 
-// PATCH update product info or availability
 export async function PATCH(
   req: Request, 
   context: { params: { id: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
     const body = await req.json();
@@ -78,13 +74,11 @@ export async function PATCH(
   }
 }
 
-// DELETE product
 export async function DELETE(
   req: Request,
   context: { params: { id: string } }
 ) {
   try {
-    // Properly await the params
     const params = await Promise.resolve(context.params);
     
     const deleted = await prisma.products.delete({

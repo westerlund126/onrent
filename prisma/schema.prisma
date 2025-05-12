@@ -66,6 +66,7 @@ model User {
   RescheduleRequest RescheduleRequest[]
   Products         Products[]
 }
+
 model Products {
   id             Int     @id @default(autoincrement())
   name           String
@@ -80,7 +81,7 @@ model Products {
   VariantProducts VariantProducts[]
 }
 
-model VariantProducts {
+model  VariantProducts {
   id            Int       @id @default(autoincrement())
   size          String?
   color         String?

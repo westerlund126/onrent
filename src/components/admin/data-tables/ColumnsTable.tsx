@@ -41,22 +41,18 @@ const ProductCatalog = () => {
     setExpandedProductId(expandedProductId === productId ? null : productId);
   };
 
-  // Handler for status change
   const handleStatusChange = async (productId: number, variantId: number, newStatus: StatusType) => {
     try {
       console.log(`Changing status for variant ${variantId} to ${newStatus}`);
       
-      // Find the variant to update
       const product = products.find(p => p.id === productId);
       if (!product) return;
       
       const variant = product.VariantProducts.find(v => v.id === variantId);
       if (!variant) return;
       
-      // Update via API
       const updatedVariant = await updateVariantStatus(productId, variantId, newStatus, variant);
       
-      // Update local state with the updated variant
       console.log('Updated variant data:', updatedVariant);
       
       setProducts(products.map(p => {
@@ -77,7 +73,6 @@ const ProductCatalog = () => {
     }
   };
 
-  // Handler for variant deletion confirmation
   const openDeleteConfirmation = (variantId: number, productId: number) => {
     setDeleteConfirmation({
       isOpen: true,
@@ -86,7 +81,6 @@ const ProductCatalog = () => {
     });
   };
 
-  // Handler for actual variant deletion
   const handleDeleteVariant = async () => {
     if (!deleteConfirmation.variantId || !deleteConfirmation.productId) return;
     
@@ -94,10 +88,8 @@ const ProductCatalog = () => {
       const productId = deleteConfirmation.productId;
       const variantId = deleteConfirmation.variantId;
       
-      // Delete via API
       await deleteVariant(productId, variantId);
       
-      // Update local state by removing the deleted variant
       setProducts(products.map(p => {
         if (p.id === productId) {
           return {
@@ -108,7 +100,6 @@ const ProductCatalog = () => {
         return p;
       }));
       
-      // Close the confirmation dialog
       cancelDelete();
       
     } catch (err) {
@@ -117,7 +108,6 @@ const ProductCatalog = () => {
     }
   };
 
-  // Cancel deletion
   const cancelDelete = () => {
     setDeleteConfirmation({
       isOpen: false,
@@ -241,7 +231,6 @@ const ProductCatalog = () => {
         </table>
       </div>
 
-      {/* Confirmation Popup for Deletion */}
       {deleteConfirmation.isOpen && (
         <ConfirmationPopup
           message="Apakah Anda yakin ingin menghapus varian ini? Tindakan ini tidak dapat dibatalkan."
