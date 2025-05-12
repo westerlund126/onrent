@@ -1,5 +1,4 @@
 'use client';
-// Layout components
 import { usePathname } from 'next/navigation';
 import { useContext, useState } from 'react';
 import routes from 'routes';
@@ -9,11 +8,9 @@ import {
   isWindowAvailable,
 } from 'utils/navigation';
 import React from 'react';
-import { Portal } from '@chakra-ui/portal';
 import Navbar from 'components/navbar';
 import Sidebar from 'components/sidebar';
 import Footer from 'components/footer/Footer';
-import { ClerkProvider, ClerkLoaded } from '@clerk/nextjs';
 
 export default function Owner({ children }: { children: React.ReactNode }) {
   // states and functions
