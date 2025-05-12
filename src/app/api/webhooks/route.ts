@@ -42,7 +42,7 @@ const storeUserInDatabase = async (userData: any) => {
       data: {
         clerkUserId: userData.id,
         email: userData.email_addresses[0].email_address,
-        name: userData.first_name,
+        name: userData.username,
         imageUrl: userData.image_url,
       },
     });
@@ -54,37 +54,64 @@ const storeUserInDatabase = async (userData: any) => {
 
 export async function POST(req: Request) {
   try {
-    // Get request payload
     const payload = await req.json();
     const body = JSON.stringify(payload);
 
-    // Get headers and verify
     const { svix_id, svix_timestamp, svix_signature } = await getSvixHeaders();
 
-    // Verify payload with headers
     const evt = await verifyWebhook(body, {
       'svix-id': svix_id,
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
     });
 
-    // Handle specific webhook event type
+    console.log('Verified event:', evt);
+
+    // Handle different event types
     if (evt.type === 'user.created') {
-      const { id, email_addresses, first_name, image_url } = evt.data;
+      const { id, email_addresses, username, image_url } = evt.data;
+
       const newUser = await storeUserInDatabase({
         id,
         email_addresses,
-        first_name,
+        username,
         image_url,
       });
 
       return new Response(JSON.stringify(newUser), {
         status: 201,
       });
+    } else if (evt.type === 'user.updated') {
+      const { id, email_addresses, username, image_url } = evt.data;
+
+      const updatedUser = await prisma.user.update({
+        where: { clerkUserId: id },
+        data: {
+          email: email_addresses[0]?.email_address,
+          name: username,
+          imageUrl: image_url,
+        },
+      });
+
+      return new Response(JSON.stringify(updatedUser), {
+        status: 200,
+      });
+    } else if (evt.type === 'user.deleted') {
+      const { id } = evt.data;
+
+      await prisma.user.delete({
+        where: { clerkUserId: id },
+      });
+
+      return new Response('User deleted successfully', {
+        status: 200,
+      });
     }
 
     // If the event type is not handled
-    return new Response('Webhook received', { status: 200 });
+    return new Response('Webhook received but event type is not handled', {
+      status: 200,
+    });
   } catch (err) {
     console.error('Error handling webhook:', err);
     return new Response(err.message, { status: 400 });

@@ -52,10 +52,12 @@ model User {
   name             String
   email            String             @unique
   password         String?
-  imageUrl    String?
-  clerkUserId String   @unique
+  imageUrl         String?
+  clerkUserId      String   @unique
   createdAt        DateTime           @default(now())
-  // phone_numbers            String?
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  phone_numbers    String?
   role             UserRole          @default(CUSTOMER)
   businessName     String?
   businessAddress  String?
