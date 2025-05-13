@@ -16,7 +16,7 @@ import {
 const routes = [
   {
     name: 'Menu Utama',
-    layout: '/admin',
+    layout: '/owner',
     path: 'default',
     icon: <MdHome className="h-6 w-6" />,
   },

@@ -29,35 +29,12 @@ const Navbar = (props: {
     document.body.classList.contains('dark'),
   );
   const router = useRouter(); 
-  const [isLoading, setIsLoading] = useState(false); 
+  // const [isLoading, setIsLoading] = useState(false); 
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
-  const handleLogout = async () => {
-    setIsLoading(true); 
-    try {
-      await signOut({ redirect: false }); 
-      router.push('/auth/sign-in'); 
-    } catch (error) {
-      console.error('Logout error:', error);
-      setIsLoading(false); 
-    }
-  };
-
-    const handleLogoutClick = () => {
-      setShowConfirmPopup(true);
-    };
-
-    const handleConfirmLogout = () => {
-      setShowConfirmPopup(false); 
-      handleLogout(); 
-    };
-
-    const handleCancelLogout = () => {
-      setShowConfirmPopup(false); 
-    };
   return (
     <>
-      {isLoading && <Loader />}
+      {/* {isLoading && <Loader />} */}
 
       {/* {showConfirmPopup && (
         <ConfirmationPopup
