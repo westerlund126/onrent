@@ -31,7 +31,7 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
       <div className="relative w-full">
         <Image
           width={500}
-          height={300}
+          height={800}
           className="mb-3 h-56 w-full rounded-xl object-cover"
           src={product.images[0]}
           alt={product.name}

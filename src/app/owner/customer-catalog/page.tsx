@@ -63,7 +63,7 @@ const Marketplace = () => {
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
       <div className="col-span-1 h-full w-full rounded-xl 2xl:col-span-1">
-        <TopCreatorTable tableData={tableDataTopCreators} />
+        <TopCreatorTable/>
         <div className="mb-5" />
         <HistoryItem />
       </div>
