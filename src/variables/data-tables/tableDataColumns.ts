@@ -5,8 +5,7 @@ type RowObj = {
   stok: number;
   total_sewa: number;
   status: string;
-  specs?: string;
-};
+  specs?: string; };
 
 const tableDataColumns: RowObj[] = [
   {
@@ -24,6 +23,7 @@ const tableDataColumns: RowObj[] = [
     stok: 27,
     total_sewa: 5,
     status: 'Nonaktif',
+
   },
   {
     produk: 'Tuxedo Black White',
@@ -32,6 +32,7 @@ const tableDataColumns: RowObj[] = [
     stok: 8,
     total_sewa: 15,
     status: 'Disewa',
+
   },
   {
     produk: 'Baju Adat Anak Papua',
@@ -40,6 +41,7 @@ const tableDataColumns: RowObj[] = [
     stok: 127,
     total_sewa: 6,
     status: 'Aktif',
+
   },
 ];
 

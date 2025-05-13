@@ -26,16 +26,12 @@ const Tables = () => {
         
         // Calculate total stock from all variant products
         let totalStock = 0;
-        let totalVariants = 0;
         
         products.forEach(product => {
-          if (product.VariantProducts && Array.isArray(product.VariantProducts)) {
-            totalVariants += product.VariantProducts.length;
-            product.VariantProducts.forEach(variant => {
-              totalStock += variant.stock || 0;
-            });
-          }
-        });
+  if (product.VariantProducts && Array.isArray(product.VariantProducts)) {
+    totalStock += product.VariantProducts.length;
+  }
+});
         
         setProductStats({
           totalStock,

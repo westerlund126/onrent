@@ -4,7 +4,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET all products
 export async function GET() {
   try {
     const products = await prisma.products.findMany({
@@ -23,6 +22,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  console.log("POST /api/products called");
   try {
     const body = await req.json();
     const { name, category, images, ownerId, description, variants } = body;
@@ -39,9 +39,8 @@ export async function POST(req: Request) {
             size: v.size,
             color: v.color,
             price: v.price,
-            stock: v.stock,
-            availstock: v.stock,
-            isAvailable: v.stock > 0,
+            isRented: v.isRented ?? false,
+            isAvailable: v.isAvailable ?? true,
             bustlength: v.bustlength,
             waistlength: v.waistlength,
             length: v.length,
