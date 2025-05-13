@@ -1,10 +1,9 @@
 /* eslint-disable */
-import React from 'react';
+import React, { JSX } from 'react';
 import { useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import NavLink from 'components/link/NavLink';
 import DashIcon from 'components/icons/DashIcon';
-// chakra imports
 
 export const SidebarLinks = (props: { routes: RoutesType[] }): JSX.Element => {
   // Chakra color mode
@@ -24,6 +23,7 @@ export const SidebarLinks = (props: { routes: RoutesType[] }): JSX.Element => {
     return routes.map((route, index) => {
       if (
         route.layout === '/admin' ||
+        route.layout === '/owner' ||
         route.layout === '/auth' ||
         route.layout === '/rtl'
       ) {

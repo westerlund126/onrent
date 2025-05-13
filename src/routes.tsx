@@ -22,7 +22,7 @@ const routes = [
   },
   {
     name: 'Jadwal Fitting',
-    layout: '/admin',
+    layout: '/owner',
     path: 'nft-marketplace',
     icon: <MdOutlineCalendarMonth className="h-6 w-6" />,
 
@@ -30,13 +30,13 @@ const routes = [
   },
   {
     name: 'Katalog',
-    layout: '/admin',
+    layout: '/owner',
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,
     path: 'data-tables',
   },
   {
     name: 'Profil',
-    layout: '/admin',
+    layout: '/owner',
     path: 'profile',
     icon: <MdPerson className="h-6 w-6" />,
   },
@@ -48,7 +48,7 @@ const routes = [
   },
   {
     name: 'Customer Katalog',
-    layout: '/admin',
+    layout: '/owner',
     path: 'customer-catalog',
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,
   },
