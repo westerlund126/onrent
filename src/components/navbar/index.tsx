@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Dropdown from 'components/dropdown';
 import { FiAlignJustify } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
-import navbarimage from '/public/img/layout/Navbar.png';
+// import navbarimage from '/public/img/layout/Navbar.png';
 import { BsArrowBarUp } from 'react-icons/bs';
 import { FiSearch } from 'react-icons/fi';
 import { RiMoonFill, RiSunFill } from 'react-icons/ri';
@@ -10,12 +10,9 @@ import {
   IoMdNotificationsOutline,
   IoMdInformationCircleOutline,
 } from 'react-icons/io';
-import avatar from '/public/img/avatars/avatar4.png';
-import Image from 'next/image';
-import { signOut } from 'next-auth/react'; 
 import { useRouter } from 'next/navigation';
-import Loader from 'components/loader/Loader'; 
-import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup'; 
+// import Loader from 'components/loader/Loader'; 
+// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup'; 
 import { UserButton } from '@clerk/nextjs';
 
 const Navbar = (props: {
