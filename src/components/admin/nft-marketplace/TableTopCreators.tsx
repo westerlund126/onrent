@@ -1,158 +1,84 @@
-import React from 'react';
-import Progress from 'components/progress';
+'use client';
+
+import { useState } from 'react';
+import { MdCheckCircle } from 'react-icons/md';
 import Card from 'components/card';
 
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
-type RowObj = {
-  name: string[];
-  artworks: number;
-  rating: number;
-};
-import Image from 'next/image';
+const sizes = ['S', 'M', 'L', 'XL'];
+const colors = [
+  '#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#66d9e8',
+  '#74c0fc', '#a5d8ff', '#d0bfff', '#e599f7', '#f783ac',
+];
+const prices = [
+  'Rp 0-Rp 100.000', 'Rp 100.000-Rp 500.000', 'Rp 500.000-Rp 1.000.000', 'Rp 1.000.000-Rp 3.000.000', 'Rp 3.000.000-Rp 5.000.000',
+];
 
-function CheckTable(props: { tableData: any }) {
-  const { tableData } = props;
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  let defaultData = tableData;
-  const columns = [
-    columnHelper.accessor('name', {
-      id: 'name',
-      header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
-      ),
-      cell: (info: any) => (
-        <div className="flex items-center gap-2">
-          <div className="h-[30px] w-[30px] rounded-full">
-            <Image
-              width="2"
-              height="20"
-              src={info.getValue()[1]}
-              className="h-full w-full rounded-full"
-              alt=""
-            />
-          </div>
-          <p className="text-sm font-medium text-navy-700 dark:text-white">
-            {info.getValue()[0]}
-          </p>
-        </div>
-      ),
-    }),
-    columnHelper.accessor('artworks', {
-      id: 'artworks',
-      header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">
-          ARTWORKS
-        </p>
-      ),
-      cell: (info) => (
-        <p className="text-md font-medium text-gray-600 dark:text-white">
-          {info.getValue()}
-        </p>
-      ),
-    }),
-    columnHelper.accessor('rating', {
-      id: 'rating',
-      header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">
-          RATING
-        </p>
-      ),
-      cell: (info) => (
-        <div className="mx-2 flex font-bold">
-          <Progress width="w-16" value={info.getValue()} />
-        </div>
-      ),
-    }),
-  ]; // eslint-disable-next-line
-  const [data, setData] = React.useState(() => [...defaultData]);
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-    },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    debugTable: true,
-  });
+export default function FilterCard() {
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+
   return (
-    <Card extra={'w-full sm:overflow-auto px-6'}>
-      <header className="relative flex items-center justify-between pt-4">
-        <div className="text-xl font-bold text-navy-700 dark:text-white">
-          Check Table
+    <Card extra="w-full p-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Filters</h2>
+
+      {/* Size Filter */}
+      <div className="mb-6">
+        <h3 className="mb-2 text-sm font-medium text-gray-600">Size</h3>
+        <div className="flex flex-wrap gap-3">
+          {sizes.map((size) => (
+            <button
+              key={size}
+              onClick={() => setSelectedSize(size)}
+              className={`w-10 h-10 border rounded-md text-sm font-medium
+                ${selectedSize === size
+                  ? 'bg-gray-800 text-white border-gray-800'
+                  : 'text-gray-700 border-gray-300 hover:border-gray-500'}`}
+            >
+              {size}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <button className="dark:active-bg-white-20 linear rounded-[20px] bg-lightPrimary px-4 py-2 text-base font-medium text-brand-500 transition duration-200 hover:bg-gray-100 active:bg-gray-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
-          See all
-        </button>
-      </header>
+      {/* Color Filter */}
+      <div className="mb-6">
+        <h3 className="mb-2 text-sm font-medium text-gray-600">Colors</h3>
+        <div className="flex flex-wrap gap-3">
+          {colors.map((color) => (
+            <div
+              key={color}
+              className="relative w-7 h-7 rounded-full cursor-pointer border-2 border-white hover:ring-2 hover:ring-gray-300"
+              style={{ backgroundColor: color }}
+              onClick={() => setSelectedColor(color)}
+            >
+              {selectedColor === color && (
+                <MdCheckCircle className="absolute -top-1.5 -right-1.5 text-white bg-black rounded-full text-xs" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <div className="mt-8 overflow-x-scroll xl:overflow-x-hidden">
-        <table className="w-full">
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="!border-px !border-gray-400">
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <th
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      onClick={header.column.getToggleSortingHandler()}
-                      className="cursor-pointer border-b border-gray-200 pb-2 pr-4 pt-4 text-start"
-                    >
-                      <div className="items-center justify-between text-xs text-gray-200">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                        {{
-                          asc: '',
-                          desc: '',
-                        }[header.column.getIsSorted() as string] ?? null}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table
-              .getRowModel()
-              .rows.slice(0, 5)
-              .map((row) => {
-                return (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => {
-                      return (
-                        <td
-                          key={cell.id}
-                          className="min-w-[150px] border-white/0 py-3  pr-4"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
+      {/* Price Filter */}
+      <div>
+        <h3 className="mb-2 text-sm font-medium text-gray-600">Prices</h3>
+        <ul className="space-y-2">
+          {prices.map((price) => (
+            <li
+              key={price}
+              className={`cursor-pointer text-sm font-medium ${
+                selectedPrice === price
+                  ? 'text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setSelectedPrice(price)}
+            >
+              {price}
+            </li>
+          ))}
+        </ul>
       </div>
     </Card>
   );
 }
-
-export default CheckTable;
-const columnHelper = createColumnHelper<RowObj>();
