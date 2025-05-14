@@ -19,17 +19,17 @@ const Dashboard = () => {
             <Widget
               icon={<MdInventory className="h-7 w-7" />}
               title={'Total Stok'}
-              subtitle={'$340.5'}
+              subtitle={'212'}
             />
             <Widget
               icon={<MdFactCheck className="h-7 w-7" />}
               title={'Sewa Aktif'}
-              subtitle={'$642.39'}
+              subtitle={'50'}
             />
             <Widget
               icon={<IoArrowBack className="h-7 w-7" />}
               title={'Pengembalian'}
-              subtitle={'$574.34'}
+              subtitle={'80'}
             />
           </div>
 

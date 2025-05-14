@@ -11,8 +11,9 @@ import {
   IoMdInformationCircleOutline,
 } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
-// import Loader from 'components/loader/Loader'; 
-// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup'; 
+import Link from 'next/link';
+// import Loader from 'components/loader/Loader';
+// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
 
 const Navbar = (props: {
@@ -25,8 +26,8 @@ const Navbar = (props: {
   const [darkmode, setDarkmode] = React.useState(
     document.body.classList.contains('dark'),
   );
-  const router = useRouter(); 
-  // const [isLoading, setIsLoading] = useState(false); 
+  const router = useRouter();
+  // const [isLoading, setIsLoading] = useState(false);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   return (
@@ -43,32 +44,27 @@ const Navbar = (props: {
 
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
-          <div className="h-6 w-[224px] pt-1">
-            <a
+          <div className="flex items-center space-x-8">
+            <Link
+              href="/"
+              className="text-lg font-bold text-navy-700 dark:text-white"
+            >
+              LOGO
+            </Link>
+
+            <Link
+              href="/how-to-rent"
               className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
-              href=" "
             >
-              Pages
-              <span className="mx-1 text-sm text-navy-700 hover:text-navy-700 dark:text-white">
-                {' '}
-                /{' '}
-              </span>
-            </a>
-            <NavLink
-              className="text-sm font-normal capitalize text-navy-700 hover:underline dark:text-white dark:hover:text-white"
-              href="#"
+              How to Rent
+            </Link>
+            <Link
+              href="/src/app/customer/katalog"
+              className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
             >
-              {brandText}
-            </NavLink>
+              Katalog
+            </Link>
           </div>
-          <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
-            <NavLink
-              href="#"
-              className="font-bold capitalize hover:text-navy-700 dark:hover:text-white"
-            >
-              {brandText}
-            </NavLink>
-          </p>
         </div>
 
         <div className="relative mt-[3px] flex h-[61px] w-[255px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[265px] md:flex-grow-0 md:gap-1 xl:w-[265px] xl:gap-2">
@@ -135,7 +131,7 @@ const Navbar = (props: {
               },
             }}
           />
-          
+
           {/* Profile & Dropdown */}
           {/* <Dropdown
             button={
