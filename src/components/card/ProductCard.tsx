@@ -32,7 +32,7 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
         <Image
           width={500}
           height={800}
-          className="mb-3 h-56 w-full rounded-xl object-cover"
+          className="mb-3 h-80 w-full rounded-xl object-cover"
           src={product.images[0]}
           alt={product.name}
         />
