@@ -1,7 +1,6 @@
 import { IRoute } from 'types/navigation';
 import Router from 'next/router';
 
-// NextJS Requirement
 export const isWindowAvailable = () => typeof window !== 'undefined';
 
 export const findCurrentRoute = (
@@ -21,7 +20,7 @@ export const findCurrentRoute = (
 
 export const getActiveRoute = (routes: IRoute[], pathname: string): string => {
   const route = findCurrentRoute(routes, pathname);
-  return route?.name || 'Main Dashboard';
+  return route?.name || 'Halaman Utama';
 };
 
 export const getActiveNavbar = (
