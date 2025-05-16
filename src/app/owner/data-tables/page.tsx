@@ -21,10 +21,8 @@ const Tables = () => {
         }
         const products = await response.json();
         
-        // Calculate total stats from the actual API response structure
         const totalProducts = products.length;
         
-        // Calculate total stock from all variant products
         let totalStock = 0;
         
         products.forEach(product => {

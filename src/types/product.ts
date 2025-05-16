@@ -9,6 +9,7 @@ export interface ProductVariant {
   bustlength: number | null;
   waistlength: number | null;
   length: number | null;
+  sku: string;
 }
 
 export interface Product {
@@ -31,4 +32,4 @@ export interface DeleteConfirmation {
   productId: number | null;
 }
 
-export type StatusType = "Aktif" | "Nonaktif" | "Disewa";
+export type StatusType = 'Aktif' | 'Nonaktif' | 'Disewa';

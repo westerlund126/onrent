@@ -1,6 +1,7 @@
 // app/api/products/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { generateSku } from 'lib/sku';
 
 const prisma = new PrismaClient();
 
@@ -22,10 +23,39 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  console.log("POST /api/products called");
+  console.log('POST /api/products called');
+
   try {
     const body = await req.json();
     const { name, category, images, ownerId, description, variants } = body;
+
+    // Track count per size to increment SKUs correctly
+    const sizeCountMap: Record<string, number> = {};
+
+    const processedVariants = variants.map((v: any) => {
+      const size = v.size ?? 'X';
+
+      // Count how many of this size we've seen so far
+      sizeCountMap[size] = (sizeCountMap[size] || 0) + 1;
+
+      const sku = generateSku({
+        category,
+        size,
+        sequence: sizeCountMap[size],
+      });
+
+      return {
+        sku,
+        size,
+        color: v.color,
+        price: v.price,
+        isRented: v.isRented ?? false,
+        isAvailable: v.isAvailable ?? true,
+        bustlength: v.bustlength,
+        waistlength: v.waistlength,
+        length: v.length,
+      };
+    });
 
     const newProduct = await prisma.products.create({
       data: {
@@ -35,16 +65,7 @@ export async function POST(req: Request) {
         ownerId,
         description,
         VariantProducts: {
-          create: variants.map((v: any) => ({
-            size: v.size,
-            color: v.color,
-            price: v.price,
-            isRented: v.isRented ?? false,
-            isAvailable: v.isAvailable ?? true,
-            bustlength: v.bustlength,
-            waistlength: v.waistlength,
-            length: v.length,
-          })),
+          create: processedVariants,
         },
       },
       include: {
@@ -54,7 +75,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error('Failed to create product:', error);
     return NextResponse.json(
       { error: 'Failed to create product' },
       { status: 500 },

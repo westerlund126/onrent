@@ -16,7 +16,6 @@ export const updateVariantStatus = async (
   newStatus: StatusType,
   variant: ProductVariant
 ): Promise<ProductVariant> => {
-  // Determine what to update based on the new status
   let isAvailable = variant.isAvailable;
   let isRented = variant.isRented;
   

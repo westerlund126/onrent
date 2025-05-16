@@ -52,6 +52,7 @@ model VariantProducts {
   waistlength Float?
   length      Float?
   isRented    Boolean  @default(false)
+  sku         String   @unique
   Rental      Rental[]
   products    Products @relation(fields: [productsId], references: [id])
 
@@ -72,7 +73,7 @@ model Rental {
   userId           Int
   startDate        DateTime
   endDate          DateTime
-  status           RentalStatus    @default(ACTIVE)
+  status           RentalStatus    @default(BELUM_LUNAS)
   createdAt        DateTime        @default(now())
   productsId       Int
   variantProductId Int
@@ -131,8 +132,10 @@ enum UserRole {
 }
 
 enum RentalStatus {
-  ACTIVE
-  COMPLETED
+  BELUM_LUNAS
+  LUNAS
+  TERLAMBAT
+  SELESAI
 }
 
 enum FittingStatus {
@@ -161,4 +164,15 @@ enum RescheduleStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum ProductCategory {
+  KEBAYA
+  PAKAIAN_ADAT
+  GAUN_PENGANTIN
+  JARIK
+  SELOP
+  BESKAP
+  SELENDANG
+  LAINNYA
 }
