@@ -7,10 +7,12 @@ import {
   NativeSelect,
   Stack,
 } from "@chakra-ui/react"
+import Card from "components/card"
 import { ECDH } from "crypto"
 
 const Demo = () => {
   return (
+    <Card>
     <Fieldset.Root size="lg" maxW="md">
       <Stack>
         <Fieldset.Legend>Contact details</Fieldset.Legend>
@@ -47,10 +49,11 @@ const Demo = () => {
         </Field.Root>
       </Fieldset.Content>
 
-      <Button type="submit" alignSelf="flex-start">
+      <Button type="submit" alignSelf="flex-start" colorPalette={"blue"}>
         Submit
       </Button>
     </Fieldset.Root>
+    </Card>
   )
 }
 
