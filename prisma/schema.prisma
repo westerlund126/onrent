@@ -29,7 +29,7 @@ model User {
 model Products {
   id              Int               @id @default(autoincrement())
   name            String
-  category        String
+  category        ProductCategory   @default(LAINNYA)
   createdAt       DateTime          @default(now())
   images          String[]
   description     String
@@ -72,7 +72,7 @@ model Rental {
   userId           Int
   startDate        DateTime
   endDate          DateTime
-  status           RentalStatus    @default(ACTIVE)
+  status           RentalStatus    @default(BELUM_LUNAS)
   createdAt        DateTime        @default(now())
   productsId       Int
   variantProductId Int
@@ -131,8 +131,10 @@ enum UserRole {
 }
 
 enum RentalStatus {
-  ACTIVE
-  COMPLETED
+  BELUM_LUNAS
+  LUNAS
+  TERLAMBAT
+  SELESAI
 }
 
 enum FittingStatus {
@@ -161,4 +163,17 @@ enum RescheduleStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum ProductCategory {
+  KEBAYA
+  PAKAIAN_ADAT
+  GAUN
+  BATIK
+  KEMEJA
+  DRESS
+  BLOUSE
+  CELANA
+  ROK
+  LAINNYA
 }

@@ -32,7 +32,7 @@ const routes = [
     name: 'Katalog',
     layout: '/owner',
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,
-    path: 'data-tables',
+    path: 'catalog',
   },
   {
     name: 'Profil',
@@ -45,12 +45,6 @@ const routes = [
     layout: '/rtl',
     path: 'rtl-default',
     icon: <FaMoneyBill className="h-6 w-6" />,
-  },
-  {
-    name: 'Customer Katalog',
-    layout: '/owner',
-    path: 'customer-catalog',
-    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
   },
 ];
 export default routes;
