@@ -56,7 +56,7 @@ model VariantProducts {
   Rental      Rental[]
   products    Products @relation(fields: [productsId], references: [id])
 
-  @@unique([size, color, bustlength, waistlength, length, productsId])
+  @@unique([size, color, bustlength, waistlength, length, productsId, sku])
 }
 
 model Wishlist {
@@ -71,10 +71,12 @@ model Wishlist {
 model Rental {
   id               Int             @id @default(autoincrement())
   userId           Int
+  rentalCode       String          @unique
   startDate        DateTime
   endDate          DateTime
   status           RentalStatus    @default(BELUM_LUNAS)
   createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   productsId       Int
   variantProductId Int
   products         Products        @relation(fields: [productsId], references: [id])

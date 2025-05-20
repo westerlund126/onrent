@@ -8,13 +8,13 @@ const AddProductWidget = () => {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push('/owner/catalog/add'); // Change this path if your route is different
+    router.push('/owner/catalog/add');
   };
 
   return (
     <Card
       onClick={handleClick}
-      className="cursor-pointer" // Optional: for visual cue
+      className="cursor-pointer" 
       extra="flex flex-col items-center justify-center h-full rounded-[20px] !bg-orange-500 text-white hover:brightness-110 transition-all"
     >
       <div className="flex flex-col items-center justify-center text-center gap-1 h-[90px]">

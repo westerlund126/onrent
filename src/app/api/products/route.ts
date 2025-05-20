@@ -1,7 +1,7 @@
 // app/api/products/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { generateSku } from 'lib/sku';
+import { skuPrefix, generateSku } from 'utils/sku';
 
 const prisma = new PrismaClient();
 
@@ -24,38 +24,45 @@ export async function GET() {
 
 export async function POST(req: Request) {
   console.log('POST /api/products called');
-
   try {
     const body = await req.json();
     const { name, category, images, ownerId, description, variants } = body;
 
-    // Track count per size to increment SKUs correctly
-    const sizeCountMap: Record<string, number> = {};
+    const prefixSeqCache: Record<string, number> = {};
 
-    const processedVariants = variants.map((v: any) => {
-      const size = v.size ?? 'X';
+    const processedVariants = await Promise.all(
+      variants.map(async (v: any) => {
+        const size = v.size ?? 'X';
+        const prefix = skuPrefix(category, size);
 
-      // Count how many of this size we've seen so far
-      sizeCountMap[size] = (sizeCountMap[size] || 0) + 1;
+        if (prefixSeqCache[prefix] === undefined) {
+          const last = await prisma.variantProducts.findFirst({
+            where: { sku: { startsWith: prefix } },
+            orderBy: { sku: 'desc' },
+            select: { sku: true },
+          });
+          prefixSeqCache[prefix] = last
+            ? Number(last.sku.slice(prefix.length))
+            : 0;
+        }
 
-      const sku = generateSku({
-        category,
-        size,
-        sequence: sizeCountMap[size],
-      });
+        prefixSeqCache[prefix] += 1;
+        const sku = generateSku(prefix, prefixSeqCache[prefix]);
 
-      return {
-        sku,
-        size,
-        color: v.color,
-        price: v.price,
-        isRented: v.isRented ?? false,
-        isAvailable: v.isAvailable ?? true,
-        bustlength: v.bustlength,
-        waistlength: v.waistlength,
-        length: v.length,
-      };
-    });
+        return {
+          sku,
+          size,
+          color: v.color,
+          price: v.price,
+          isRented: v.isRented ?? false,
+          isAvailable: v.isAvailable ?? true,
+          bustlength: v.bustlength,
+          waistlength: v.waistlength,
+          length: v.length,
+        };
+      }),
+    );
+    console.log('typeof category', typeof category, category);
 
     const newProduct = await prisma.products.create({
       data: {
@@ -64,13 +71,9 @@ export async function POST(req: Request) {
         images,
         ownerId,
         description,
-        VariantProducts: {
-          create: processedVariants,
-        },
+        VariantProducts: { create: processedVariants },
       },
-      include: {
-        VariantProducts: true,
-      },
+      include: { VariantProducts: true },
     });
 
     return NextResponse.json(newProduct, { status: 201 });

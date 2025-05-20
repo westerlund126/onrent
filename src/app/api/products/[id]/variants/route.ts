@@ -1,7 +1,7 @@
 // app/api/products/[id]/variants/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
-import { generateSku } from 'lib/sku';
+import { skuPrefix, generateSku } from 'utils/sku';
 
 export async function GET(
   _req: NextRequest,
@@ -45,11 +45,9 @@ export async function POST(
       where: { productsId: productId, size },
     });
 
-    const sku = generateSku({
-      category: product.category,
-      size,
-      sequence: currentCount + 1,
-    });
+    // Construct the SKU prefix, e.g., "GPS"
+    const prefix = skuPrefix(product.category, size);
+    const sku = generateSku(prefix, currentCount + 1);
 
     const variant = await prisma.variantProducts.create({
       data: {
