@@ -9,8 +9,47 @@ import ComplexTable from 'components/admin/default/ComplexTable';
 import DailyTraffic from 'components/admin/default/DailyTraffic';
 import tableDataCheck from 'variables/data-tables/tableDataCheck';
 import tableDataComplex from 'variables/data-tables/tableDataComplex';
+import { useEffect, useState } from 'react';
 
 const Dashboard = () => {
+  const [productStats, setProductStats] = useState({
+    totalStock: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProductStats = async () => {
+      try {
+        const response = await fetch('/api/products/owner');
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        const products = await response.json();
+
+        let totalStock = 0;
+
+        products.forEach((product) => {
+          if (
+            product.VariantProducts &&
+            Array.isArray(product.VariantProducts)
+          ) {
+            totalStock += product.VariantProducts.length;
+          }
+        });
+
+        setProductStats({
+          totalStock,
+        });
+      } catch (err) {
+        console.error('Failed to fetch product stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductStats();
+  }, []);
+
   return (
     <div>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
@@ -19,7 +58,7 @@ const Dashboard = () => {
             <Widget
               icon={<MdInventory className="h-7 w-7" />}
               title={'Total Stok'}
-              subtitle={'212'}
+              subtitle={loading ? 'Loading...' : `${productStats.totalStock}`}
             />
             <Widget
               icon={<MdFactCheck className="h-7 w-7" />}

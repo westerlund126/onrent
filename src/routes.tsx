@@ -42,8 +42,8 @@ const routes = [
   },
   {
     name: 'Transaksi',
-    layout: '/rtl',
-    path: 'rtl-default',
+    layout: '/owner',
+    path: 'transaction',
     icon: <FaMoneyBill className="h-6 w-6" />,
   },
 ];

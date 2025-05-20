@@ -8,7 +8,7 @@ import {
   isWindowAvailable,
 } from 'utils/navigation';
 import React from 'react';
-import Navbar from 'components/navbar';
+import Navbar from 'components/navbar/customer';
 // import Sidebar from 'components/sidebar';
 import Footer from 'components/footer/Footer';
 

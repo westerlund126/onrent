@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
+  darkMode: ['class', 'class'],
   mode: 'jit',
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -121,31 +121,93 @@ module.exports = {
         darkinset: '0px 4px 4px inset',
       },
       backgroundImage: {
-        ballanceDashboard: "url('/src//public/img/dashboards/balanceImg.png')",
+        ballanceDashboard: "url('/src/public/img/dashboards/balanceImg.png')",
         ellispisModeCarInterface:
           "url('https://i.ibb.co/Y3nrFfd/elipse-light.png')",
         ellispisModeCarInterfaceDark:
           "url('https://i.ibb.co/g66yJnm/Ellipse-94.png')",
         homeButton:
           'linear-gradient(112.83deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0) 110.84%)',
-        smartHomeDropzone: `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='13' ry='13' stroke='%23E0E5F2FF' stroke-width='4' stroke-dasharray='6%2c 14' stroke-dashoffset='5' stroke-linecap='square'/%3e%3c/svg%3e")`,
+        smartHomeDropzone:
+          "url(\"data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='13' ry='13' stroke='%23E0E5F2FF' stroke-width='4' stroke-dasharray='6%2c 14' stroke-dashoffset='5' stroke-linecap='square'/%3e%3c/svg%3e\")",
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          1: 'hsl(var(--chart-1))',
+          2: 'hsl(var(--chart-2))',
+          3: 'hsl(var(--chart-3))',
+          4: 'hsl(var(--chart-4))',
+          5: 'hsl(var(--chart-5))',
+        },
       },
     },
     screens: {
       sm: '576px',
-      'sm-max': { max: '576px' },
+      'sm-max': {
+        max: '576px',
+      },
       md: '768px',
-      'md-max': { max: '768px' },
+      'md-max': {
+        max: '768px',
+      },
       lg: '992px',
-      'lg-max': { max: '992px' },
+      'lg-max': {
+        max: '992px',
+      },
       xl: '1200px',
-      'xl-max': { max: '1200px' },
+      'xl-max': {
+        max: '1200px',
+      },
       '2xl': '1320px',
-      '2xl-max': { max: '1320px' },
+      '2xl-max': {
+        max: '1320px',
+      },
       '3xl': '1600px',
-      '3xl-max': { max: '1600px' },
+      '3xl-max': {
+        max: '1600px',
+      },
       '4xl': '1850px',
-      '4xl-max': { max: '1850px' },
+      '4xl-max': {
+        max: '1850px',
+      },
     },
     colors: {
       white: '#ffffff',
@@ -458,5 +520,5 @@ module.exports = {
       info: '#388cfa',
     },
   },
-  plugins: [require('tailwindcss-rtl')],
+  plugins: [require('tailwindcss-rtl'), require('tailwindcss-animate')],
 };

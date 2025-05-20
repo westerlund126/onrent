@@ -11,12 +11,11 @@ import {
   IoMdInformationCircleOutline,
 } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 // import Loader from 'components/loader/Loader';
 // import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
 
-const Navbar = (props: {
+const NavbarCustomer = (props: {
   onOpenSidenav: () => void;
   brandText: string;
   secondary?: boolean | string;
@@ -44,7 +43,7 @@ const Navbar = (props: {
 
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
-        <div className="h-6 w-[224px] pt-1">
+          <div className="h-6 w-[224px] pt-1">
             <a
               className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
               href=" "
@@ -189,4 +188,4 @@ const Navbar = (props: {
   );
 };
 
-export default Navbar;
+export default NavbarCustomer;
