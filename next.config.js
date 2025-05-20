@@ -17,9 +17,10 @@ const nextConfig = {
       'scontent.fotp8-1.fna.fbcdn.net',
       'onrent.onrent.live'
     ],
-    // Make ENV
+  
     unoptimized: true,
   },
-};
+}
+
 
 module.exports = nextConfig;
