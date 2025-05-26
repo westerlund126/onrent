@@ -41,8 +41,10 @@ const storeUserInDatabase = async (userData: any) => {
     return await prisma.user.create({
       data: {
         clerkUserId: userData.id,
-        email: userData.email_addresses[0].email_address,
-        name: userData.username,
+        email: userData.email_addresses[0]?.email_address,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        username: userData.username,
         imageUrl: userData.image_url,
       },
     });
@@ -69,26 +71,44 @@ export async function POST(req: Request) {
 
     // Handle different event types
     if (evt.type === 'user.created') {
-      const { id, email_addresses, username, image_url } = evt.data;
+      const {
+        id,
+        email_addresses,
+        username,
+        image_url,
+        first_name,
+        last_name,
+      } = evt.data;
 
       const newUser = await storeUserInDatabase({
         id,
         email_addresses,
         username,
         image_url,
+        first_name,
+        last_name,
       });
 
       return new Response(JSON.stringify(newUser), {
         status: 201,
       });
     } else if (evt.type === 'user.updated') {
-      const { id, email_addresses, username, image_url } = evt.data;
+      const {
+        id,
+        email_addresses,
+        username,
+        image_url,
+        first_name,
+        last_name,
+      } = evt.data;
 
       const updatedUser = await prisma.user.update({
         where: { clerkUserId: id },
         data: {
           email: email_addresses[0]?.email_address,
-          name: username,
+          first_name,
+          last_name,
+          username,
           imageUrl: image_url,
         },
       });
