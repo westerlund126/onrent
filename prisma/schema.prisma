@@ -23,7 +23,8 @@ model User {
   imageUrl          String?
   FittingSchedule   FittingSchedule[]
   Products          Products[]
-  Rental            Rental[]
+  UserRental           Rental[]          @relation("UserRental") 
+  OwnerRental      Rental[]          @relation("OwnerRental")
   RescheduleRequest RescheduleRequest[]
   Wishlist          Wishlist[]
 }
@@ -72,7 +73,8 @@ model Wishlist {
 
 model Rental {
   id               Int             @id @default(autoincrement())
-  userId           Int
+  userId           Int                              
+  ownerId          Int                             
   rentalCode       String          @unique
   startDate        DateTime
   endDate          DateTime
@@ -81,12 +83,14 @@ model Rental {
   updatedAt        DateTime        @updatedAt
   productsId       Int
   variantProductId Int
+  user             User            @relation("UserRental", fields: [userId], references: [id])
+  owner            User            @relation("OwnerRental", fields: [ownerId], references: [id])
   products         Products        @relation(fields: [productsId], references: [id])
-  user             User            @relation(fields: [userId], references: [id])
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
   Return           Return[]
   Tracking         Tracking[]
 }
+
 
 model Tracking {
   id        Int            @id @default(autoincrement())

@@ -182,7 +182,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       }
     } catch (error) {
       console.error('Customer search failed:', error);
-      setCustomerError('Gagal mencari pelanggan');
+      setCustomerError('Gagal mencari username pelanggan');
       setSelectedCustomer(null);
       setFormData((prev) => ({ ...prev, customerId: '' }));
     } finally {
@@ -346,7 +346,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
 
               {customerSearching && (
                 <div className="text-sm text-blue-600">
-                  Mencari pelanggan...
+                  Mencari username pelanggan...
                 </div>
               )}
 
