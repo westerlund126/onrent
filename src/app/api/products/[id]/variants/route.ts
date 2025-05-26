@@ -32,6 +32,13 @@ export async function POST(
   const body = await req.json();
   const { size, price, color, ...rest } = body;
 
+  if (!size || !price || !color) {
+    return NextResponse.json(
+      { error: 'Missing required fields: size, price, or color' },
+      { status: 400 },
+    );
+  }
+
   try {
     const product = await prisma.products.findUnique({
       where: { id: productId },
@@ -45,7 +52,6 @@ export async function POST(
       where: { productsId: productId, size },
     });
 
-    // Construct the SKU prefix, e.g., "GPS"
     const prefix = skuPrefix(product.category, size);
     const sku = generateSku(prefix, currentCount + 1);
 
@@ -68,7 +74,7 @@ export async function POST(
         { status: 409 },
       );
     }
-    console.error(err);
+    console.error('Failed to create variant:', err);
     return NextResponse.json(
       { error: 'Failed to create variant' },
       { status: 500 },

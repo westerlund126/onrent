@@ -15,7 +15,7 @@ export async function GET(
       where: { id: parseInt(params.id) },
       include: {
         VariantProducts: true,
-        owner: { select: { id: true, name: true } },
+        owner: { select: { id: true, username: true } },
       },
     });
 
@@ -30,15 +30,15 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: Request, 
+  req: Request,
   context: { params: { id: string } }
 ) {
   try {
     const params = await Promise.resolve(context.params);
-    
     const body = await req.json();
-    const { name, category, images, description, isAvailable, variants } = body;
+    const { name, category, images, description, variants } = body;
 
+    // Update the product
     const updatedProduct = await prisma.products.update({
       where: { id: parseInt(params.id) },
       data: {
@@ -46,30 +46,38 @@ export async function PATCH(
         category,
         images,
         description,
-        VariantProducts: variants
-          ? {
-              updateMany: variants.map((v: any) => ({
-                where: { id: v.id },
-                data: {
-                  size: v.size,
-                  color: v.color,
-                  price: v.price,
-                  isRented: v.isRented,
-                  isAvailable: v.isAvailable,
-                  bustlength: v.bustlength,
-                  waistlength: v.waistlength,
-                  length: v.length,
-                },
-              })),
-            }
-          : undefined,
       },
       include: { VariantProducts: true },
     });
 
-    return NextResponse.json(updatedProduct);
+    // Update variants if provided
+    if (variants && Array.isArray(variants)) {
+      for (const v of variants) {
+        await prisma.variantProducts.update({
+          where: { id: v.id },
+          data: {
+            size: v.size,
+            color: v.color,
+            price: v.price,
+            isRented: v.isRented,
+            isAvailable: v.isAvailable,
+            bustlength: v.bustlength,
+            waistlength: v.waistlength,
+            length: v.length,
+          },
+        });
+      }
+    }
+
+    // Fetch the updated product with variants
+    const productWithVariants = await prisma.products.findUnique({
+      where: { id: parseInt(params.id) },
+      include: { VariantProducts: true },
+    });
+
+    return NextResponse.json(productWithVariants);
   } catch (error) {
-    console.error(error);
+    console.error('Failed to update product:', error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }

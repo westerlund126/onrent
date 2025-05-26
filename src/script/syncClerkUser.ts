@@ -20,14 +20,24 @@ async function syncClerkUsers() {
     for (const user of users) {
       const email = user.email_addresses[0]?.email_address;
       const username = user.username;
+      const first_name = user.first_name;
+      const last_name = user.last_name;
 
       await prisma.user.upsert({
         where: { clerkUserId: user.id },
-        update: { email, name: username },
+        update: {
+          email,
+          first_name,
+          last_name,
+          username,
+          imageUrl: user.image_url,
+        },
         create: {
           clerkUserId: user.id,
           email,
-          name: username,
+          first_name,
+          last_name,
+          username,
           imageUrl: user.image_url,
         },
       });

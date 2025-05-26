@@ -3,9 +3,9 @@
 import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import ColumnsTable from 'components/admin/transaction/ColumnsTable';
 import Card from 'components/card';
 import RentalForm from 'components/form/owner/RentalForm';
+import TransactionTable from 'components/admin/data-tables/TransactionTable';
 
 const Transaction = () => {
   const [productStats, setProductStats] = useState({
@@ -93,7 +93,7 @@ const Transaction = () => {
       </div>
 
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
-        <ColumnsTable />
+        <TransactionTable />
       </div>
 
       {/* Pass dialog state to form */}

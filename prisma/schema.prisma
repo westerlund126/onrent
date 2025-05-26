@@ -9,7 +9,9 @@ datasource db {
 
 model User {
   id                Int                 @id @default(autoincrement())
-  name              String
+  first_name        String
+  last_name         String?
+  username          String              @unique
   email             String              @unique
   createdAt         DateTime            @default(now())
   password          String?
@@ -89,7 +91,7 @@ model Rental {
 model Tracking {
   id        Int            @id @default(autoincrement())
   rentalId  Int
-  status    TrackingStatus @default(ORDER_RECEIVED)
+  status    TrackingStatus @default(RENTAL_ONGOING)
   updatedAt DateTime       @default(now())
   rental    Rental         @relation(fields: [rentalId], references: [id])
 }
@@ -150,9 +152,9 @@ enum FittingStatus {
 }
 
 enum TrackingStatus {
-  ORDER_RECEIVED
   RENTAL_ONGOING
   RETURN_PENDING
+  RETURNED
   COMPLETED
 }
 

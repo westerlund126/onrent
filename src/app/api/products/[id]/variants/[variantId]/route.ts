@@ -89,7 +89,7 @@ export async function DELETE(
       where: { id: parseInt(params.id) },
       include: {
         VariantProducts: true,
-        owner: { select: { id: true, name: true } },
+        owner: { select: { id: true, username: true } },
       },
     });
 
