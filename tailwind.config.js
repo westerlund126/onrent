@@ -523,7 +523,7 @@ module.exports = {
   		success: '#009f42',
   		warning: '#f0ad4e',
   		info: '#388cfa'
-  	}
+  	},
     extend: {
       width: {
         '1p': '1%',

@@ -1,9 +1,11 @@
 'use client';
 import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
-import AddProductWidget from 'components/addproduct/AddProduct';
 import { useEffect, useState } from 'react';
 import ColumnsTable from 'components/admin/data-tables/ColumnsTable';
+import { Button } from '@/components/ui/button';
+import ProductForm from 'components/form/owner/ProductForm';
+import { FaPlus } from 'react-icons/fa';
 
 const Tables = () => {
   const [productStats, setProductStats] = useState({
@@ -11,6 +13,7 @@ const Tables = () => {
     totalProducts: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false); // 🔹 state for modal visibility
 
   useEffect(() => {
     const fetchProductStats = async () => {
@@ -22,7 +25,6 @@ const Tables = () => {
         const products = await response.json();
 
         const totalProducts = products.length;
-
         let totalStock = 0;
 
         products.forEach((product) => {
@@ -70,8 +72,14 @@ const Tables = () => {
                 }
               />
             </div>
-            <div className="md:col-span-1">
-              <AddProductWidget />
+            <div className="md:col-span-1 flex items-center justify-center">
+              <Button
+  onClick={() => setIsOpen(true)}
+  className="flex flex-col items-center justify-center h-[90px] w-full rounded-[20px] bg-orange-500 text-white text-sm font-semibold hover:brightness-110 transition-all gap-1"
+>
+  <FaPlus className="h-7 w-7" />
+  <span>Tambah Produk</span>
+</Button>
             </div>
           </div>
         </div>
@@ -80,6 +88,9 @@ const Tables = () => {
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
         <ColumnsTable />
       </div>
+
+      {/* 🔹 Modal Form */}
+      <ProductForm isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 };

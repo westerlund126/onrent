@@ -42,8 +42,8 @@ model Products {
 
 model VariantProducts {
   id          Int      @id @default(autoincrement())
-  size        String?
-  color       String?
+  size        String
+  color       String
   price       Float
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
