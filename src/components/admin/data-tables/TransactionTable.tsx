@@ -10,6 +10,7 @@ import Card from 'components/card';
 import CardMenu from 'components/card/CardMenu';
 import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { useRentalStore } from 'stores/useRentalStore';
+import EditRentalForm from 'components/form/owner/EditRentalForm';
 import { DeleteConfirmation, RentalFilters, RentalStatus } from 'types/rental';
 import {
   getStatusBadgeConfig,
@@ -50,6 +51,20 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     refreshData,
   } = useRentalStore();
 
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
+
+  const handleEditSuccess = () => {
+    loadRentals();
+    setIsEditDialogOpen(false);
+  };
+
+  const handleEdit = (rentalId: number) => {
+    setSelectedRentalId(rentalId);
+    setIsEditDialogOpen(true);
+    if (onEdit) onEdit(rentalId);
+  };
+
   const [deleteConfirmation, setDeleteConfirmation] =
     useState<DeleteConfirmation>({
       isOpen: false,
@@ -61,16 +76,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   useEffect(() => {
     const storeFilters = useRentalStore.getState().filters;
-
     const areFiltersEqual =
       JSON.stringify(storeFilters) === JSON.stringify(filters);
     if (!areFiltersEqual) {
       setFilters(filters);
     }
   }, [filters, setFilters]);
-  
 
-  // Load rentals when filters change
   useEffect(() => {
     loadRentals();
   }, [loadRentals]);
@@ -113,13 +125,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     }
   };
 
-  const handleEdit = (rentalId: number) => {
-    if (onEdit) {
-      onEdit(rentalId);
-    } else {
-      window.location.href = `/transactions/edit/${rentalId}`;
-    }
-  };
+  // const handleEdit = (rentalId: number) => {
+  //   if (onEdit) {
+  //     onEdit(rentalId);
+  //   } else {
+  //     window.location.href = `/transactions/edit/${rentalId}`;
+  //   }
+  // };
 
   const renderStatusBadge = (status: RentalStatus) => {
     const config = getStatusBadgeConfig(status);
@@ -278,9 +290,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 <td className="px-4 py-3">
                   <select
                     value={rental.status}
-                    onChange={(e) =>
-                      handleStatusChange(rental.id, e.target.value)
-                    }
+                    onChange={({ target }) => {
+                      if (target.value !== rental.status) {
+                        handleStatusChange(rental.id, target.value);
+                      }
+                    }}
                     disabled={statusUpdateLoading === rental.id}
                     className="rounded-md border border-gray-300 px-2 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -317,6 +331,16 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           </div>
         )}
       </div>
+
+      <EditRentalForm
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedRentalId(null);
+        }}
+        rentalId={selectedRentalId}
+        onSuccess={handleEditSuccess}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (

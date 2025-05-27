@@ -9,7 +9,6 @@ import {
 } from 'types/rental';
 
 interface RentalState {
-  // State
   rentals: Rental[];
   loading: boolean;
   error: string | null;
@@ -20,7 +19,6 @@ interface RentalState {
   deleteLoading: boolean;
   filters: RentalFilters;
 
-  // Actions
   setRentals: (rentals: Rental[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -30,7 +28,6 @@ interface RentalState {
   setDeleteLoading: (loading: boolean) => void;
   setFilters: (filters: RentalFilters) => void;
 
-  // Complex Actions
   loadRentals: () => Promise<void>;
   updateRentalStatus: (
     rentalId: number,
@@ -39,12 +36,10 @@ interface RentalState {
   deleteRental: (rentalId: number) => Promise<void>;
   refreshData: () => Promise<void>;
 
-  // Helper functions
   buildQueryParams: () => string;
 }
 
 export const useRentalStore = create<RentalState>((set, get) => ({
-  // Initial State
   rentals: [],
   loading: true,
   error: null,
@@ -55,7 +50,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
   deleteLoading: false,
   filters: { page: 1, limit: 10 },
 
-  // Simple Actions (Setters)
   setRentals: (rentals) => set({ rentals }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
@@ -72,7 +66,7 @@ export const useRentalStore = create<RentalState>((set, get) => ({
           merged[k as keyof typeof merged] ===
           state.filters[k as keyof typeof merged],
       );
-      if (noChange) return state; // 🔹 ← no state update → no re-render loop
+      if (noChange) return state; 
 
       return {
         filters: merged,
@@ -80,7 +74,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       };
     }),
 
-  // Helper function to build query parameters
   buildQueryParams: () => {
     const { currentPage, filters } = get();
     const params = new URLSearchParams();
@@ -154,7 +147,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
 
       const result: ApiResponse<Rental> = await response.json();
 
-      // Update the specific rental in the store
       set((state) => ({
         rentals: state.rentals.map((rental) =>
           rental.id === rentalId
@@ -203,7 +195,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
         throw new Error(errorData.error || 'Failed to delete rental');
       }
 
-      // Remove the rental from store
       set((state) => ({
         rentals: state.rentals.filter((r) => r.id !== rentalId),
       }));
@@ -211,12 +202,10 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       const itemsPerPage = filters.limit || 10;
       const newTotalItems = totalItems - 1;
 
-      // Adjust pagination if needed
       const state = get();
       if (state.rentals.length === 0 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
-        // Update total items count
         const newTotalPages = Math.ceil(newTotalItems / itemsPerPage);
         setPagination(newTotalPages, newTotalItems);
       }
