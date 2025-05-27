@@ -1,6 +1,8 @@
 // app/api/rentals/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
+import { auth } from '@clerk/nextjs/server'; 
+
 
 interface RouteParams {
   params: {
@@ -87,6 +89,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const { userId } = await auth();
+    if (!userId)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const owner = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true },
+    });
+
+    if (!owner)
+      return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {
@@ -108,6 +121,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (!existingRental) {
       return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
+    }
+
+    if (existingRental.ownerId !== owner.id) {
+      return NextResponse.json(
+        { error: 'You do not have permission to update this rental' },
+        { status: 403 },
+      );
     }
 
     const validStatuses = ['BELUM_LUNAS', 'LUNAS', 'TERLAMBAT', 'SELESAI'];
@@ -264,15 +284,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Perform the update in a transaction
     const updatedRental = await prisma.$transaction(async (tx) => {
-      // Prepare update data
       const updateData: any = {};
       if (status !== undefined) updateData.status = status;
       if (parsedStartDate) updateData.startDate = parsedStartDate;
       if (parsedEndDate) updateData.endDate = parsedEndDate;
 
-      // If changing variant
       if (variantId && variantId !== existingRental.variantProductId) {
         const newVariantId = parseInt(variantId);
 
@@ -298,7 +315,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         updateData.variantProductId = newVariantId;
       }
 
-      // Update rental
       const rental = await tx.rental.update({
         where: { id: rentalId },
         data: updateData,
@@ -379,6 +395,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { userId } = await auth();
+    if (!userId)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const owner = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true },
+    });
+
+    if (!owner)
+      return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {
@@ -388,7 +416,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if rental exists
     const existingRental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: {
@@ -402,7 +429,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
     }
 
-    // Prevent deletion if rental is ongoing or has returns
+    if (existingRental.ownerId !== owner.id) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this rental' },
+        { status: 403 },
+      );
+    }
+
+    
+
     if (
       existingRental.status === 'LUNAS' ||
       existingRental.status === 'TERLAMBAT'
@@ -423,19 +458,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Delete in transaction
     await prisma.$transaction(async (tx) => {
-      // Delete related tracking records
       await tx.tracking.deleteMany({
         where: { rentalId: rentalId },
       });
 
-      // Delete the rental
       await tx.rental.delete({
         where: { id: rentalId },
       });
 
-      // Update variant to not rented if it was rented for this rental
       if (existingRental.variantProduct.isRented) {
         await tx.variantProducts.update({
           where: { id: existingRental.variantProductId },

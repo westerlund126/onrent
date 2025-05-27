@@ -35,7 +35,6 @@ const Transaction = () => {
 
   return (
     <div>
-      {/* ── widgets ─────────────────────────────────────────────── */}
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-5 lg:col-span-3">
           <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-4">
@@ -71,12 +70,10 @@ const Transaction = () => {
         </div>
       </div>
 
-      {/* ── table ────────────────────────────────────────────────── */}
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
         <TransactionTable />
       </div>
 
-      {/* ── dialog ───────────────────────────────────────────────── */}
       <RentalForm isOpen={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );

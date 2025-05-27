@@ -1,9 +1,7 @@
 // utils/rental.ts
 import { RentalUser, RentalStatus } from 'types/rental';
 
-/**
- * Get status badge configuration for UI display
- */
+
 export const getStatusBadgeConfig = (status: RentalStatus) => {
   const statusConfig = {
     BELUM_LUNAS: {

@@ -44,15 +44,17 @@ export interface RentalUser {
   export interface Rental {
     id: number;
     rentalCode: string;
-    startDate: string;
-    endDate: string;
+    startDate: string; 
+    endDate: string; 
     status: 'BELUM_LUNAS' | 'LUNAS' | 'TERLAMBAT' | 'SELESAI';
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string; 
+    updatedAt: string; 
     userId: number;
+    ownerId: number;
     productsId: number;
     variantProductId: number;
     user: RentalUser;
+    owner: RentalUser; 
     products: RentalProduct;
     variantProduct: RentalVariant;
     Tracking: RentalTracking[];

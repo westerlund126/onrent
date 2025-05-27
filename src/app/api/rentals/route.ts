@@ -2,6 +2,106 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { generateRentalCode } from 'utils/rental-code';
+import { auth } from '@clerk/nextjs/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status');
+    const customerUserId = searchParams.get('customerUserId'); // Renamed for clarity
+
+    const { userId } = await auth();
+    if (!userId)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const owner = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true },
+    });
+
+    if (!owner)
+      return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      ownerId: owner.id,
+      products: { ownerId: owner.id },
+    };
+
+    if (status) where.status = status;
+
+    // Only add customerUserId filter if it's provided and valid
+    if (customerUserId) {
+      const parsedCustomerUserId = parseInt(customerUserId);
+      if (!isNaN(parsedCustomerUserId)) {
+        where.userId = parsedCustomerUserId;
+      }
+    }
+
+    const [rentals, total] = await Promise.all([
+      prisma.rental.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              first_name: true,
+              last_name: true,
+            },
+          },
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              businessName: true,
+              phone_numbers: true,
+            },
+          },
+          products: {
+            select: { id: true, name: true, ownerId: true },
+          },
+          variantProduct: {
+            select: {
+              id: true,
+              sku: true,
+              size: true,
+              color: true,
+              price: true,
+            },
+          },
+          Tracking: {
+            orderBy: { updatedAt: 'desc' },
+            take: 1,
+          },
+        },
+      }),
+      prisma.rental.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: rentals,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get rentals error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -192,82 +292,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 },
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const userId = searchParams.get('userId');
-
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-    if (status) where.status = status;
-    if (userId) where.userId = parseInt(userId);
-
-    const [rentals, total] = await Promise.all([
-      prisma.rental.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-            },
-          },
-          owner: {
-            select: {
-              id: true,
-              username: true,
-              businessName: true,
-              phone_numbers: true,
-            },
-          },
-          products: {
-            select: { id: true, name: true, ownerId: true },
-          },
-          variantProduct: {
-            select: {
-              id: true,
-              sku: true,
-              size: true,
-              color: true,
-              price: true,
-            },
-          },
-          Tracking: {
-            orderBy: { updatedAt: 'desc' },
-            take: 1,
-          },
-        },
-      }),
-      prisma.rental.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      data: rentals,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error('Get rentals error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },
