@@ -53,26 +53,49 @@ export async function PATCH(
     // Update variants if provided
     if (variants && Array.isArray(variants)) {
       for (const v of variants) {
-        await prisma.variantProducts.update({
-          where: { id: v.id },
-          data: {
-            size: v.size,
-            color: v.color,
-            price: v.price,
-            isRented: v.isRented,
-            isAvailable: v.isAvailable,
-            bustlength: v.bustlength,
-            waistlength: v.waistlength,
-            length: v.length,
-          },
-        });
-      }
+  if (v.id) {
+    await prisma.variantProducts.update({
+      where: { id: v.id },
+      data: {
+        size: v.size,
+        color: v.color,
+        price: v.price,
+        isRented: v.isRented ?? false,
+        isAvailable: v.isAvailable ?? true,
+        bustlength: v.bustlength,
+        waistlength: v.waistlength,
+        length: v.length,
+      },
+    });
+  } else {
+    await prisma.variantProducts.create({
+      data: {
+        size: v.size,
+        color: v.color,
+        price: v.price,
+        isRented: v.isRented ?? false,
+        isAvailable: v.isAvailable ?? true,
+        bustlength: v.bustlength,
+        waistlength: v.waistlength,
+        length: v.length,
+        sku: v.sku,
+ products: {
+      connect: { id: Number(params.id) },
+    },
+    },
+    });
+  }
+}
+
     }
 
     // Fetch the updated product with variants
     const productWithVariants = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
-      include: { VariantProducts: true },
+      include: { 
+        VariantProducts: true,
+        owner: { select: { id: true, username: true } }
+      },
     });
 
     return NextResponse.json(productWithVariants);
@@ -89,11 +112,19 @@ export async function DELETE(
   try {
     const params = await Promise.resolve(context.params);
     
+    // First, delete all variants associated with the product
+    await prisma.variantProducts.deleteMany({
+      where: { productsId: parseInt(params.id) }
+    });
+
+    // Then delete the product
     const deleted = await prisma.products.delete({
       where: { id: parseInt(params.id) },
     });
+    
     return NextResponse.json({ success: true, deleted });
   } catch (error) {
+    console.error('Failed to delete product:', error);
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 }

@@ -8,12 +8,16 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogOverlay,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { getCategoryOptions } from 'utils/product';
 
 interface AddProductFormProps {
   isOpen: boolean;
@@ -24,6 +28,7 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const [isLoadingOwner, setIsLoadingOwner] = useState(false);
+  const router = useRouter();
   
   const [product, setProduct] = useState({
     name: '',
@@ -43,7 +48,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
     },
   ]);
 
-  // Fetch owner ID when component mounts or dialog opens
   useEffect(() => {
     const fetchOwnerId = async () => {
       if (!isOpen) return;
@@ -129,13 +133,13 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
 
     // Validation
     if (!product.name || !product.category || !product.description) {
-      alert('Lengkapi semua data produk.');
-      return;
+      toast.error("Lengkapi semua data produk.");
+return;
     }
 
     if (variants.some(v => !v.size || !v.color || !v.price || !v.bustlength || !v.waistlength || !v.length)) {
-      alert('Lengkapi semua data varian produk.');
-      return;
+    toast.error("Lengkapi semua data varian");      
+    return;
     }
 
     // Convert string values to numbers for numeric fields
@@ -174,16 +178,21 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
       console.log('Product created successfully:', result);
       
       // Reset form and close dialog
-      resetForm();
       onClose();
+      router.refresh();
       
       // Optionally show success message
-      alert('Produk berhasil ditambahkan!');
+      toast.success("Produk berhasil ditambahkan!",{
+        description: "Produk baru telah berhasil ditambahkan ke katalog.",
+      });
+
+      // await new Promise((resolve) => setTimeout(resolve, 2000));
       
     } catch (error) {
       console.error('Error creating product:', error);
-      alert(`Gagal menambahkan produk: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
+toast.error("Gagal menambahkan produk", {
+        description: error.message || 'Terjadi kesalahan saat menambahkan produk.'});    
+} finally {
       setIsSubmitting(false);
     }
   };
@@ -196,23 +205,22 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
     }
   };
 
+  const categoryOptions = getCategoryOptions();
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+      <DialogContent className="max-w-2xl max-h-[90vh]  bg-white rounded-lg ">
         <ScrollArea className="h-[80vh] pr-4">
           <form onSubmit={handleSubmit} className="space-y-4 px-1">
             <DialogHeader>
               <DialogTitle>Tambah Produk Baru</DialogTitle>
               <DialogDescription>
-                {isLoadingOwner ? 'Memuat informasi pemilik...' : 'Isi informasi produk dan minimal satu varian.'}
+                Isi detail produk di bawah ini
               </DialogDescription>
             </DialogHeader>
 
-            {isLoadingOwner ? (
-              <div className="flex justify-center py-8">
-                <div className="text-sm text-gray-600">Memuat...</div>
-              </div>
-            ) : (
+            
               <>
                 {/* Product Info */}
                 <div className="space-y-4">
@@ -223,7 +231,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                       name="name" 
                       value={product.name} 
                       onChange={handleProductChange}
-                      required 
                       disabled={isSubmitting}
                     />
                   </div>
@@ -233,22 +240,18 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                     <Select
                       value={product.category}
                       onValueChange={(val) => setProduct((prev) => ({ ...prev, category: val }))}
-                      required
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id="category">
                         <SelectValue placeholder="Pilih kategori" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="GAUN_PENGANTIN">Gaun Pengantin</SelectItem>
-                        <SelectItem value="KEBAYA">Kebaya</SelectItem>
-                        <SelectItem value="PAKAIAN_ADAT">Pakaian Adat</SelectItem>
-                        <SelectItem value="JARIK">Jarik</SelectItem>
-                        <SelectItem value="SELOP">Selop</SelectItem>
-                        <SelectItem value="BESKAP">Beskap</SelectItem>
-                        <SelectItem value="SELENDANG">Selendang</SelectItem>
-                        <SelectItem value="LAINNYA">Lainnya</SelectItem>
-                      </SelectContent>
+                    {categoryOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                     </Select>
                   </div>
 
@@ -259,7 +262,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                       name="description" 
                       value={product.description} 
                       onChange={handleProductChange} 
-                      required 
                       disabled={isSubmitting}
                     />
                   </div>
@@ -269,7 +271,7 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                 <div>
                   <h4 className="text-md font-semibold mt-4">Varian Produk</h4>
                   {variants.map((variant, index) => (
-                    <div key={index} className="border p-3 rounded-lg space-y-2 mt-2 bg-gray-50">
+                    <div key={index} className="border p-3 rounded-lg space-y-2 mt-2 ">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label htmlFor={`size-${index}`} className="text-xs">Ukuran</Label>
@@ -279,7 +281,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             placeholder="Ukuran" 
                             value={variant.size} 
                             onChange={(e) => handleVariantChange(index, e)} 
-                            required 
                             disabled={isSubmitting}
                           />
                         </div>
@@ -291,7 +292,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             placeholder="Warna" 
                             value={variant.color} 
                             onChange={(e) => handleVariantChange(index, e)} 
-                            required 
                             disabled={isSubmitting}
                           />
                         </div>
@@ -304,7 +304,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             placeholder="Harga" 
                             value={variant.price} 
                             onChange={(e) => handleVariantChange(index, e)} 
-                            required 
                             disabled={isSubmitting}
                             min="0"
                             step="0.01"
@@ -318,9 +317,8 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             name="bustlength" 
                             type="number"
                             placeholder="Lingkar Dada" 
-                            value={variant.bustlength} 
+                            value={variant.bustlength}
                             onChange={(e) => handleVariantChange(index, e)} 
-                            required 
                             disabled={isSubmitting}
                             min="0"
                             step="0.1"
@@ -335,7 +333,6 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             placeholder="Lingkar Pinggang" 
                             value={variant.waistlength} 
                             onChange={(e) => handleVariantChange(index, e)} 
-                            required 
                             disabled={isSubmitting}
                             min="0"
                             step="0.1"
@@ -349,8 +346,7 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                             type="number"
                             placeholder="Panjang Gaun" 
                             value={variant.length} 
-                            onChange={(e) => handleVariantChange(index, e)} 
-                            required 
+                            onChange={(e) => handleVariantChange(index, e)}
                             disabled={isSubmitting}
                             min="0"
                             step="0.1"
@@ -381,20 +377,20 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
                   </Button>
                 </div>
               </>
-            )}
+            
 
             <DialogFooter className="gap-2 pt-4 sticky bottom-0 pb-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={handleClose}
-                disabled={isSubmitting || isLoadingOwner}
+                disabled={isSubmitting}
               >
                 Batal
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || isLoadingOwner || !ownerId}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Menyimpan...' : 'Simpan'}
               </Button>

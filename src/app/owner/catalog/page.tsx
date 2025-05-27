@@ -54,7 +54,6 @@ const Tables = () => {
     <div>
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-5 lg:col-span-3">
-          {/* Card widgets */}
           <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-9">
             <div className="md:col-span-4">
               <Widget

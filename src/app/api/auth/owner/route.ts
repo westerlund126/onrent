@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const owner = await prisma.user.findUnique({
       where: { clerkUserId: userId },
-      select: { id: true, role: true, name: true },
+      select: { id: true, role: true, username: true },
     });
 
     if (!owner || owner.role !== 'OWNER') {

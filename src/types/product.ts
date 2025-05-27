@@ -1,15 +1,25 @@
 // types/product.ts
+export type StatusType = 'Aktif' | 'Nonaktif' | 'Disewa';
+
 export interface ProductVariant {
   id: number;
-  size: string | null;
-  color: string | null;
+  productsId: number;
+  size: string;
+  color: string;
   price: number;
+  sku: string;
   isAvailable: boolean;
   isRented: boolean;
-  bustlength: number | null;
-  waistlength: number | null;
-  length: number | null;
-  sku: string;
+  bustlength?: number;
+  waistlength?: number;
+  length?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Owner {
+  id: number;
+  username: string;
 }
 
 export interface Product {
@@ -17,13 +27,12 @@ export interface Product {
   name: string;
   category: string;
   images: string[];
-  description: string;
+  description?: string;
   ownerId: number;
-  owner: {
-    id: number;
-    name: string;
-  };
+  owner?: Owner;
   VariantProducts: ProductVariant[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DeleteConfirmation {
@@ -32,4 +41,45 @@ export interface DeleteConfirmation {
   productId: number | null;
 }
 
-export type StatusType = 'Aktif' | 'Nonaktif' | 'Disewa';
+export interface CreateProductData {
+  name: string;
+  category: string;
+  images: string[];
+  description?: string;
+  ownerId: number;
+  variants: CreateVariantData[];
+}
+
+export interface CreateVariantData {
+  size: string;
+  color: string;
+  price: number;
+  isAvailable?: boolean;
+  isRented?: boolean;
+  bustlength?: number;
+  waistlength?: number;
+  length?: number;
+}
+
+export interface UpdateProductData {
+  name?: string;
+  category?: string;
+  images?: string[];
+  description?: string;
+  variants?: ProductVariant[];
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface DeleteVariantResponse {
+  success: boolean;
+  deleted: ProductVariant;
+  productDeleted: boolean;
+  product?: Product;
+  message?: string;
+}

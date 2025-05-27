@@ -1,4 +1,4 @@
-// app/api/product/owner/route.ts
+// app/api/products/owner/route.ts
 import { auth } from '@clerk/nextjs/server'; 
 import { prisma } from 'lib/prisma';
 import { NextResponse } from 'next/server';
@@ -25,7 +25,11 @@ export async function GET() {
 
     const products = await prisma.products.findMany({
       where: { ownerId: owner.id },
-      include: { VariantProducts: true },
+      include: { 
+        VariantProducts: true,
+        owner: { select: { id: true, username: true } }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json(products);

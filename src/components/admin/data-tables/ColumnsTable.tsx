@@ -3,16 +3,26 @@ import Card from 'components/card';
 import CardMenu from 'components/card/CardMenu';
 import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import React, { useEffect, useState } from 'react';
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md';
-import { fetchProducts, updateVariantStatus, deleteVariant } from './fetch/productApi';
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit } from 'react-icons/md';
+import { 
+  fetchProducts, 
+  updateVariantStatus, 
+  deleteVariant 
+} from 'app/api/products/fetch/productApi';
 import { DeleteConfirmation, Product, StatusType } from 'types/product';
 import { ProductDetails } from 'components/catalog/ProductDetails';
+import { toast } from 'sonner';
+import { formatCategoryName } from 'utils/product';
+import EditProductDialog from 'components/catalog/EditProduct';
+import { Button } from '@/components/ui/button';
 
 const ProductCatalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
     isOpen: false,
     variantId: null,
@@ -41,7 +51,22 @@ const ProductCatalog = () => {
     setExpandedProductId(expandedProductId === productId ? null : productId);
   };
 
-  const handleStatusChange = async (productId: number, variantId: number, newStatus: StatusType) => {
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleProductUpdated = (updatedProduct: Product) => {
+    setProducts(products.map(p => 
+      p.id === updatedProduct.id ? updatedProduct : p
+    ));
+  };
+
+  const handleStatusChange = async (
+    productId: number, 
+    variantId: number, 
+    newStatus: StatusType
+  ) => {
     try {
       console.log(`Changing status for variant ${variantId} to ${newStatus}`);
       
@@ -51,7 +76,12 @@ const ProductCatalog = () => {
       const variant = product.VariantProducts.find(v => v.id === variantId);
       if (!variant) return;
       
-      const updatedVariant = await updateVariantStatus(productId, variantId, newStatus, variant);
+      const updatedVariant = await updateVariantStatus(
+        productId, 
+        variantId, 
+        newStatus, 
+        variant
+      );
       
       console.log('Updated variant data:', updatedVariant);
       
@@ -67,9 +97,11 @@ const ProductCatalog = () => {
         return p;
       }));
       
+      toast.success('Status berhasil diubah');
+      
     } catch (err) {
       console.error('Failed to update variant status:', err);
-      alert('Failed to update status. Please try again.');
+      toast.error('Gagal mengganti status. Coba lagi.');
     }
   };
 
@@ -88,23 +120,28 @@ const ProductCatalog = () => {
       const productId = deleteConfirmation.productId;
       const variantId = deleteConfirmation.variantId;
       
-      await deleteVariant(productId, variantId);
+      const result = await deleteVariant(productId, variantId);
       
-      setProducts(products.map(p => {
-        if (p.id === productId) {
-          return {
-            ...p,
-            VariantProducts: p.VariantProducts.filter(v => v.id !== variantId)
-          };
-        }
-        return p;
-      }));
+      if (result.productDeleted) {
+        // Remove the entire product from the list
+        setProducts(products.filter(p => p.id !== productId));
+        toast.success('Varian berhasil dihapus. Produk juga dihapus karena tidak ada varian yang tersisa.');
+      } else {
+        // Update the product with remaining variants
+        setProducts(products.map(p => {
+          if (p.id === productId && result.product) {
+            return result.product;
+          }
+          return p;
+        }));
+        toast.success('Variant berhasil dihapus!');
+      }
       
       cancelDelete();
       
     } catch (err) {
       console.error('Failed to delete variant:', err);
-      alert('Failed to delete variant. Please try again.');
+      toast.error('Gagal menghapus varian. Coba kembali!.');
     }
   };
 
@@ -136,109 +173,144 @@ const ProductCatalog = () => {
     );
   }
 
-
   return (
-    <Card extra="w-full h-full">
-      <header className="relative flex items-center justify-between px-4 pt-4">
-        <div className="text-xl font-bold text-navy-700 dark:text-white">
-          Katalog On-Rent
-        </div>
-        <CardMenu />
-      </header>
+    <>
+      <Card extra="w-full h-full">
+        <header className="relative flex items-center justify-between px-4 pt-4">
+          <div className="text-xl font-bold text-navy-700 dark:text-white">
+            Katalog On-Rent
+          </div>
+          <CardMenu />
+        </header>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Produk</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                <div className="flex items-center">
-                  Kategori
-                  <MdKeyboardArrowDown className="ml-1" />
-                </div>
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                <div className="flex items-center">
-                  Harga
-                  <MdKeyboardArrowDown className="ml-1" />
-                </div>
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Total Variasi</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Variasi Tersedia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => {
-              // Calculate total variants and available variants for the main row
-              const totalVariants = product.VariantProducts.length;
-              const availableVariants = product.VariantProducts.filter(v => v.isAvailable && !v.isRented).length;
-              
-              // Get price range
-              const prices = product.VariantProducts
-                .map(v => v.price)
-                .filter(price => typeof price === 'number' && !isNaN(price));
-
-              let priceDisplay = '-';
-              if (prices.length > 0) {
-                const minPrice = Math.min(...prices);
-                const maxPrice = Math.max(...prices);
-                priceDisplay = minPrice === maxPrice
-                  ? `${minPrice.toLocaleString('id-ID')}`
-                  : `${minPrice.toLocaleString('id-ID')} - ${maxPrice.toLocaleString('id-ID')}`;
-              }
-              
-              const isExpanded = expandedProductId === product.id;
-
-              return (
-                <React.Fragment key={product.id}>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        <button 
-                          onClick={() => toggleExpand(product.id)}
-                          className="mr-2 focus:outline-none"
-                        >
-                          {isExpanded ? (
-                            <MdKeyboardArrowUp className="h-5 w-5 text-gray-600" />
-                          ) : (
-                            <MdKeyboardArrowDown className="h-5 w-5 text-gray-600" />
-                          )}
-                        </button>
-                        <span className="font-semibold text-secondary-500">{product.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-secondary-500">{product.category}</td>
-                    <td className="py-3 px-4 font-semibold text-secondary-500">{priceDisplay}</td>
-                    <td className="py-3 px-4 font-semibold text-secondary-500">{totalVariants}</td>
-                    <td className="py-3 px-4 font-semibold text-secondary-500">{availableVariants}</td>
-                  </tr>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Produk</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                  <div className="flex items-center">
+                    Kategori
+                    <MdKeyboardArrowDown className="ml-1" />
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                  <div className="flex items-center">
+                    Harga
+                    <MdKeyboardArrowDown className="ml-1" />
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Total Variasi</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Variasi Tersedia</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8">
+                    <p className="text-gray-500">Belum ada produk. Silakan tambah produk baru.</p>
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => {
+                  // Calculate total variants and available variants for the main row
+                  const totalVariants = product.VariantProducts.length;
+                  const availableVariants = product.VariantProducts.filter(
+                    v => v.isAvailable && !v.isRented
+                  ).length;
                   
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan={5} className="p-0">
-                        <ProductDetails 
-                          product={product}
-                          onStatusChange={handleStatusChange}
-                          onDeleteClick={openDeleteConfirmation}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  // Get price range
+                  const prices = product.VariantProducts
+                    .map(v => v.price)
+                    .filter(price => typeof price === 'number' && !isNaN(price));
 
-      {deleteConfirmation.isOpen && (
-        <ConfirmationPopup
-          message="Apakah Anda yakin ingin menghapus varian ini? Tindakan ini tidak dapat dibatalkan."
-          onConfirm={handleDeleteVariant}
-          onCancel={cancelDelete}
-        />
-      )}
-    </Card>
+                  let priceDisplay = '-';
+                  if (prices.length > 0) {
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+                    priceDisplay = minPrice === maxPrice
+                      ? `${minPrice.toLocaleString('id-ID')}`
+                      : `${minPrice.toLocaleString('id-ID')} - ${maxPrice.toLocaleString('id-ID')}`;
+                  }
+                  
+                  const isExpanded = expandedProductId === product.id;
+
+                  return (
+                    <React.Fragment key={product.id}>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => toggleExpand(product.id)}
+                              className="mr-2 focus:outline-none"
+                            >
+                              {isExpanded ? (
+                                <MdKeyboardArrowUp className="h-5 w-5 text-gray-600" />
+                              ) : (
+                                <MdKeyboardArrowDown className="h-5 w-5 text-gray-600" />
+                              )}
+                            </button>
+                            <span className="font-semibold text-secondary-500">{product.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-secondary-500">
+                          {formatCategoryName(product.category)}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-secondary-500">{priceDisplay}</td>
+                        <td className="py-3 px-4 font-semibold text-secondary-500">{totalVariants}</td>
+                        <td className="py-3 px-4 font-semibold text-secondary-500">{availableVariants}</td>
+                        <td className="py-3 px-4">
+                          <Button
+                            onClick={() => handleEditProduct(product)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <MdEdit className="h-4 w-4" />
+                            Edit
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} className="p-0">
+                            <ProductDetails 
+                              product={product}
+                              onStatusChange={handleStatusChange}
+                              onDeleteClick={openDeleteConfirmation}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {deleteConfirmation.isOpen && (
+          <ConfirmationPopup
+            message="Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus. Tindakan ini tidak dapat dibatalkan."
+            onConfirm={handleDeleteVariant}
+            onCancel={cancelDelete}
+          />
+        )}
+      </Card>
+
+      <EditProductDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+        onProductUpdated={handleProductUpdated}
+      />
+    </>
   );
 };
 
