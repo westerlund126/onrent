@@ -1,4 +1,4 @@
-// stores/useRentalStore.ts
+// stores/useRentalStore.ts 
 import { create } from 'zustand';
 import {
   Rental,
@@ -66,7 +66,7 @@ export const useRentalStore = create<RentalState>((set, get) => ({
           merged[k as keyof typeof merged] ===
           state.filters[k as keyof typeof merged],
       );
-      if (noChange) return state; 
+      if (noChange) return state;
 
       return {
         filters: merged,
@@ -91,7 +91,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
     return params.toString();
   },
 
-  // Complex Actions
   loadRentals: async () => {
     const {
       buildQueryParams,
@@ -166,7 +165,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       console.error('Failed to update rental status:', err);
       alert(`${errorMessage}. Please try again.`);
 
-      // Reload to restore original state on error
       await loadRentals();
     } finally {
       setStatusUpdateLoading(null);
