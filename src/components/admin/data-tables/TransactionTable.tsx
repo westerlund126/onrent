@@ -1,67 +1,70 @@
-// components/RentalTransactionTable.tsx
-import Card from 'components/card';
-import CardMenu from 'components/card/CardMenu';
-import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
-import React, { useEffect, useState } from 'react';
+// components/TransactionTable.tsx
+import React, { useState, useEffect } from 'react';
 import {
   MdKeyboardArrowDown,
   MdEdit,
   MdDelete,
   MdVisibility,
 } from 'react-icons/md';
+import Card from 'components/card';
+import CardMenu from 'components/card/CardMenu';
+import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
+import { useRentalStore } from 'stores/useRentalStore';
+import EditRentalForm from 'components/form/owner/EditRentalForm';
+import { DeleteConfirmation, RentalFilters, RentalStatus } from 'types/rental';
+import {
+  getStatusBadgeConfig,
+  formatDate,
+  formatCurrency,
+  getCustomerName,
+  getCustomerContact,
+  isDeletionDisabled,
+  isValidStatus,
+} from 'utils/rental';
 
-// Types based on your schema
-interface RentalUser {
-  id: number;
-  username: string;
-  first_name: string;
-  last_name?: string;
-  phone_numbers?: string;
+interface TransactionTableProps {
+  filters?: RentalFilters;
+  onViewDetails?: (rentalId: number) => void;
+  onEdit?: (rentalId: number) => void;
 }
 
-interface RentalProduct {
-  id: number;
-  name: string;
-}
+const TransactionTable: React.FC<TransactionTableProps> = ({
+  filters = {},
+  onViewDetails,
+  onEdit,
+}) => {
+  const {
+    rentals,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    totalItems,
+    statusUpdateLoading,
+    deleteLoading,
 
-interface RentalVariant {
-  id: number;
-  sku: string;
-  size?: string;
-  color?: string;
-  price: number;
-}
+    setCurrentPage,
+    setFilters,
+    loadRentals,
+    updateRentalStatus,
+    deleteRental,
+    refreshData,
+  } = useRentalStore();
 
-interface RentalTracking {
-  id: number;
-  status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
-  updatedAt: string;
-}
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
 
-interface Rental {
-  id: number;
-  rentalCode: string;
-  startDate: string;
-  endDate: string;
-  status: 'BELUM_LUNAS' | 'LUNAS' | 'TERLAMBAT' | 'SELESAI';
-  createdAt: string;
-  updatedAt: string;
-  user: RentalUser;
-  products: RentalProduct;
-  variantProduct: RentalVariant;
-  Tracking: RentalTracking[];
-}
+  const handleEditSuccess = () => {
+    loadRentals();
+    setIsEditDialogOpen(false);
+  };
 
-interface DeleteConfirmation {
-  isOpen: boolean;
-  rentalId: number | null;
-  rentalCode: string | null;
-}
+  const handleEdit = (rentalId: number) => {
+    setSelectedRentalId(rentalId);
+    setIsEditDialogOpen(true);
+    if (onEdit) onEdit(rentalId);
+  };
 
-const TransactionTable = () => {
-  const [rentals, setRentals] = useState<Rental[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] =
     useState<DeleteConfirmation>({
       isOpen: false,
@@ -69,59 +72,27 @@ const TransactionTable = () => {
       rentalCode: null,
     });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = filters.limit || 10;
+
+  useEffect(() => {
+    const storeFilters = useRentalStore.getState().filters;
+    const areFiltersEqual =
+      JSON.stringify(storeFilters) === JSON.stringify(filters);
+    if (!areFiltersEqual) {
+      setFilters(filters);
+    }
+  }, [filters, setFilters]);
 
   useEffect(() => {
     loadRentals();
-  }, [currentPage]);
-
-  const loadRentals = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `/api/rentals?page=${currentPage}&limit=${itemsPerPage}`,
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch rentals');
-      }
-
-      const result = await response.json();
-      setRentals(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalItems(result.pagination.total);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch transactions',
-      );
-      console.error('Failed to fetch rentals:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadRentals]);
 
   const handleStatusChange = async (rentalId: number, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/rentals/${rentalId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
-
-      await loadRentals();
-    } catch (err) {
-      console.error('Failed to update rental status:', err);
-      alert('Failed to update status. Please try again.');
+    if (!isValidStatus(newStatus)) {
+      console.error('Invalid status:', newStatus);
+      return;
     }
+    await updateRentalStatus(rentalId, newStatus);
   };
 
   const openDeleteConfirmation = (rentalId: number, rentalCode: string) => {
@@ -134,31 +105,8 @@ const TransactionTable = () => {
 
   const handleDeleteRental = async () => {
     if (!deleteConfirmation.rentalId) return;
-
-    try {
-      const response = await fetch(
-        `/api/rentals/${deleteConfirmation.rentalId}`,
-        {
-          method: 'DELETE',
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete rental');
-      }
-
-      setRentals(rentals.filter((r) => r.id !== deleteConfirmation.rentalId));
-      cancelDelete();
-
-      if (rentals.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        await loadRentals();
-      }
-    } catch (err) {
-      console.error('Failed to delete rental:', err);
-      alert('Failed to delete transaction. Please try again.');
-    }
+    await deleteRental(deleteConfirmation.rentalId);
+    cancelDelete();
   };
 
   const cancelDelete = () => {
@@ -169,22 +117,24 @@ const TransactionTable = () => {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      BELUM_LUNAS: {
-        color: 'bg-yellow-100 text-yellow-800',
-        text: 'Belum Lunas',
-      },
-      LUNAS: { color: 'bg-green-100 text-green-800', text: 'Lunas' },
-      TERLAMBAT: { color: 'bg-red-100 text-red-800', text: 'Terlambat' },
-      SELESAI: { color: 'bg-gray-100 text-gray-800', text: 'Selesai' },
-    };
+  const handleViewDetails = (rentalId: number) => {
+    if (onViewDetails) {
+      onViewDetails(rentalId);
+    } else {
+      window.location.href = `/transactions/${rentalId}`;
+    }
+  };
 
-    const config = statusConfig[status] || {
-      color: 'bg-gray-100 text-gray-800',
-      text: status,
-    };
+  // const handleEdit = (rentalId: number) => {
+  //   if (onEdit) {
+  //     onEdit(rentalId);
+  //   } else {
+  //     window.location.href = `/transactions/edit/${rentalId}`;
+  //   }
+  // };
 
+  const renderStatusBadge = (status: RentalStatus) => {
+    const config = getStatusBadgeConfig(status);
     return (
       <span
         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}
@@ -194,38 +144,51 @@ const TransactionTable = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getCustomerName = (user: RentalUser) => {
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    }
-    return user.first_name || user.username;
-  };
-
-  const getCustomerContact = (user: RentalUser) => {
-    return user.phone_numbers || '-';
-  };
+  const renderActionButtons = (rental: any) => (
+    <div className="flex items-center space-x-2">
+      <button
+        onClick={() => handleViewDetails(rental.id)}
+        className="rounded p-1 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
+        title="Lihat Detail"
+      >
+        <MdVisibility className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => handleEdit(rental.id)}
+        className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 hover:text-green-800"
+        title="Edit"
+      >
+        <MdEdit className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => openDeleteConfirmation(rental.id, rental.rentalCode)}
+        disabled={isDeletionDisabled(rental.status)}
+        className={`rounded p-1 transition-colors ${
+          isDeletionDisabled(rental.status)
+            ? 'cursor-not-allowed text-gray-400'
+            : 'text-red-600 hover:bg-red-50 hover:text-red-800'
+        }`}
+        title={
+          isDeletionDisabled(rental.status)
+            ? 'Cannot delete active rental'
+            : 'Hapus'
+        }
+      >
+        <MdDelete className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
   if (loading) {
     return (
       <Card extra="w-full pb-10 p-4 h-full">
         <div className="flex h-64 items-center justify-center">
-          <p className="text-lg font-medium">Loading transactions...</p>
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+            <p className="text-lg font-medium text-gray-600">
+              Loading transactions...
+            </p>
+          </div>
         </div>
       </Card>
     );
@@ -235,7 +198,17 @@ const TransactionTable = () => {
     return (
       <Card extra="w-full pb-10 p-4 h-full">
         <div className="flex h-64 items-center justify-center">
-          <p className="text-lg font-medium text-red-500">Error: {error}</p>
+          <div className="text-center">
+            <p className="mb-4 text-lg font-medium text-red-500">
+              Error: {error}
+            </p>
+            <button
+              onClick={refreshData}
+              className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </Card>
     );
@@ -290,7 +263,7 @@ const TransactionTable = () => {
             {rentals.map((rental) => (
               <tr
                 key={rental.id}
-                className="border-b border-gray-100 hover:bg-gray-50"
+                className="border-b border-gray-100 transition-colors hover:bg-gray-50"
               >
                 <td className="px-4 py-3">
                   <div className="flex flex-col">
@@ -317,59 +290,57 @@ const TransactionTable = () => {
                 <td className="px-4 py-3">
                   <select
                     value={rental.status}
-                    onChange={(e) =>
-                      handleStatusChange(rental.id, e.target.value)
-                    }
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={({ target }) => {
+                      if (target.value !== rental.status) {
+                        handleStatusChange(rental.id, target.value);
+                      }
+                    }}
+                    disabled={statusUpdateLoading === rental.id}
+                    className="rounded-md border border-gray-300 px-2 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="BELUM_LUNAS">Belum Lunas</option>
                     <option value="LUNAS">Lunas</option>
                     <option value="TERLAMBAT">Terlambat</option>
                     <option value="SELESAI">Selesai</option>
                   </select>
+                  {statusUpdateLoading === rental.id && (
+                    <div className="mt-1 text-xs text-blue-600">
+                      Updating...
+                    </div>
+                  )}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        /* Handle view details */
-                      }}
-                      className="rounded p-1 text-blue-600 hover:bg-blue-50 hover:text-blue-800"
-                      title="Lihat Detail"
-                    >
-                      <MdVisibility className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        /* Handle edit */
-                      }}
-                      className="rounded p-1 text-green-600 hover:bg-green-50 hover:text-green-800"
-                      title="Edit"
-                    >
-                      <MdEdit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        openDeleteConfirmation(rental.id, rental.rentalCode)
-                      }
-                      className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-800"
-                      title="Hapus"
-                    >
-                      <MdDelete className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
+                <td className="px-4 py-3">{renderActionButtons(rental)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         {rentals.length === 0 && (
-          <div className="py-8 text-center">
+          <div className="py-12 text-center">
+            <div className="mx-auto mb-4 h-12 w-12 text-gray-400">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
             <p className="text-gray-500">Tidak ada transaksi ditemukan</p>
           </div>
         )}
       </div>
+
+      <EditRentalForm
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedRentalId(null);
+        }}
+        rentalId={selectedRentalId}
+        onSuccess={handleEditSuccess}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -383,7 +354,7 @@ const TransactionTable = () => {
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sebelumnya
             </button>
@@ -395,7 +366,7 @@ const TransactionTable = () => {
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages}
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Selanjutnya
             </button>
@@ -409,6 +380,7 @@ const TransactionTable = () => {
           message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}
           onConfirm={handleDeleteRental}
           onCancel={cancelDelete}
+          loading={deleteLoading}
         />
       )}
     </Card>

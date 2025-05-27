@@ -39,16 +39,18 @@ import {
   Search,
   AlertCircle,
   CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface RentalFormProps {
+interface EditRentalFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (rental: any) => void; 
+  rentalId: number | null;
+  onSuccess?: (rental: any) => void;
 }
 
-const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
+const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalFormProps) => {
   const [formData, setFormData] = useState({
     customerId: '',
     product: '',
@@ -57,12 +59,15 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     variantId: '',
     status: 'BELUM_LUNAS',
   });
+  
+  const [originalData, setOriginalData] = useState<any>(null);
   const [options, setOptions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [productSearching, setProductSearching] = useState(false);
   const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map());
+  const [loadingRental, setLoadingRental] = useState(false);
 
   const [customerUsername, setCustomerUsername] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<{
@@ -74,14 +79,69 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [customerSearching, setCustomerSearching] = useState(false);
   const [customerError, setCustomerError] = useState('');
 
+  // Success/Error states
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // Load rental data when dialog opens
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen && rentalId) {
+      loadRentalData();
+    } else if (!isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, rentalId]);
+
+  const loadRentalData = async () => {
+    setLoadingRental(true);
+    setSubmitError('');
+    
+    try {
+      const response = await fetch(`/api/rentals/${rentalId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load rental data');
+      }
+      
+      const result = await response.json();
+      const rental = result.data;
+      
+      setOriginalData(rental);
+      
+      // Pre-populate form data
+      setFormData({
+        customerId: rental.userId.toString(),
+        product: rental.productsId.toString(),
+        startDate: new Date(rental.startDate).toISOString().split('T')[0],
+        endDate: new Date(rental.endDate).toISOString().split('T')[0],
+        variantId: rental.variantProductId.toString(),
+        status: rental.status,
+      });
+      
+      // Set customer data
+      setSelectedCustomer({
+        id: rental.user.id,
+        username: rental.user.username,
+        first_name: rental.user.first_name,
+        last_name: rental.user.last_name,
+      });
+      setCustomerUsername(rental.user.username);
+      
+      // Pre-populate product data
+      const productData = {
+        id: rental.products.id,
+        name: rental.products.name,
+        VariantProducts: [rental.variantProduct]
+      };
+      setOptions([productData]);
+      setSearch(rental.variantProduct.sku);
+      
+    } catch (error) {
+      console.error('Failed to load rental data:', error);
+      setSubmitError('Gagal memuat data transaksi');
+    } finally {
+      setLoadingRental(false);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -92,6 +152,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       variantId: '',
       status: 'BELUM_LUNAS',
     });
+    setOriginalData(null);
     setCustomerUsername('');
     setSelectedCustomer(null);
     setCustomerError('');
@@ -99,11 +160,16 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     setSubmitSuccess(false);
     setSearch('');
     setOptions([]);
+    setSearchCache(new Map());
   };
 
+  // Product search functionality (same as original)
   useEffect(() => {
     if (!search || search.length < 2) {
-      setOptions([]);
+      // Don't clear options if we have pre-loaded data
+      if (!originalData) {
+        setOptions([]);
+      }
       setProductSearching(false);
       return;
     }
@@ -129,7 +195,9 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
         setOptions(results);
       } catch (error) {
         console.error('Product search failed:', error);
-        setOptions([]);
+        if (!originalData) {
+          setOptions([]);
+        }
       } finally {
         setProductSearching(false);
       }
@@ -139,7 +207,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       clearTimeout(timer);
       setProductSearching(false);
     };
-  }, [search, searchCache]);
+  }, [search, searchCache, originalData]);
 
   const handleCustomerSearch = async (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -242,56 +310,102 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     setSubmitError('');
     setSubmitSuccess(false);
 
-    if (!validateForm()) {
+    if (!validateForm() || !rentalId) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/rentals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId: parseInt(formData.customerId),
-          variantId: parseInt(formData.variantId),
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          status: formData.status,
-        }),
-      });
+        const changes: any = {};
+        const statusChanged = formData.status !== originalData?.status;
+        const datesChanged = 
+          formData.startDate !== originalData.startDate.split('T')[0] ||
+          formData.endDate !== originalData.endDate.split('T')[0];
+        const variantChanged = parseInt(formData.variantId) !== originalData.variantProductId;
+    
+        // Only include changed fields
+        if (statusChanged) changes.status = formData.status;
+        if (datesChanged) {
+          changes.startDate = formData.startDate;
+          changes.endDate = formData.endDate;
+        }
+        if (variantChanged) {
+          const newVariantResponse = await fetch(
+            `/api/variants/${formData.variantId}`,
+          );
+          if (!newVariantResponse.ok) {
+            throw new Error('Gagal memeriksa ketersediaan varian');
+          }
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Gagal membuat transaksi sewa');
+          const newVariant = await newVariantResponse.json();
+          if (!newVariant.isAvailable) {
+            throw new Error('Varian sudah tidak tersedia');
+          }
+        }
+        
+        if (Object.keys(changes).length === 0) {
+          setSubmitError('Tidak ada perubahan yang dilakukan');
+          return;
+        }
+    
+        const response = await fetch(`/api/rentals/${rentalId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(changes),
+        });
+    
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Gagal mengupdate transaksi sewa');
+        }
+    
+        // Handle variant change
+        if (variantChanged) {
+          // Mark old variant as available
+          await fetch(`/api/variants/${originalData.variantProductId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isAvailable: true })
+          });
+    
+          // Mark new variant as unavailable
+          await fetch(`/api/variants/${formData.variantId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isAvailable: false })
+          });
+        }
+    
+        setSubmitSuccess(true);
+        if (onSuccess) onSuccess(await response.json());
+        
+        setTimeout(onClose, 1500);
+      } catch (error) {
+        console.error('Update error:', error);
+        setSubmitError(error instanceof Error ? error.message : 'Terjadi kesalahan');
+      } finally {
+        setIsLoading(false);
       }
-
-      console.log('Rental created successfully:', result);
-      setSubmitSuccess(true);
-
-      if (onSuccess) {
-        onSuccess(result.data);
-      }
-
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (error) {
-      console.error('Rental submission error:', error);
-      setSubmitError(
-        error instanceof Error ? error.message : 'Gagal membuat transaksi sewa',
-      );
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const selectedVariant = options
     .flatMap((product) => product.VariantProducts)
     .find((variant) => variant.id === parseInt(formData.variantId));
+
+  if (loadingRental) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+        <DialogContent className="max-w-md rounded-lg bg-white">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-gray-600">Memuat data transaksi...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -300,10 +414,16 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              Tambah Transaksi Baru
+              Edit Transaksi
             </DialogTitle>
             <DialogDescription className="text-gray-500">
-              Isi detail transaksi sewa di bawah ini
+              {originalData?.rentalCode && (
+                <span className="font-medium text-blue-600">
+                  {originalData.rentalCode}
+                </span>
+              )}
+              <br />
+              Ubah detail transaksi sewa di bawah ini
             </DialogDescription>
           </DialogHeader>
 
@@ -311,7 +431,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
           {submitSuccess && (
             <div className="flex items-center gap-2 rounded-md bg-green-50 p-3 text-sm text-green-700">
               <CheckCircle className="h-4 w-4" />
-              Transaksi sewa berhasil dibuat!
+              Transaksi sewa berhasil diupdate!
             </div>
           )}
 
@@ -481,7 +601,6 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               value={formData.startDate}
               onChange={handleInputChange}
               required
-              min={new Date().toISOString().split('T')[0]} // Prevent past dates
               className="mt-1"
               disabled={isLoading}
             />
@@ -520,6 +639,8 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               <SelectContent>
                 <SelectItem value="BELUM_LUNAS">Belum Lunas</SelectItem>
                 <SelectItem value="LUNAS">Lunas</SelectItem>
+                <SelectItem value="TERLAMBAT">Terlambat</SelectItem>
+                <SelectItem value="SELESAI">Selesai</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -534,12 +655,16 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
             <Button
               type="submit"
               disabled={isLoading || !selectedCustomer || submitSuccess}
+              className="relative"
             >
+              {isLoading && (
+                <Loader2 className="absolute left-4 h-4 w-4 animate-spin" />
+              )}
               {isLoading
                 ? 'Menyimpan...'
                 : submitSuccess
                 ? 'Berhasil!'
-                : 'Simpan'}
+                : 'Update'}
             </Button>
           </DialogFooter>
         </form>
@@ -548,4 +673,4 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   );
 };
 
-export default RentalForm;
+export default EditRentalForm;

@@ -1,7 +1,7 @@
 // app/api/rentals/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
-import { generateRentalCode } from 'utils/rental-code'; 
+import { generateRentalCode } from 'utils/rental-code';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       where: { id: variantIdNum },
       include: {
         products: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, ownerId: true },
         },
       },
     });
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         status: {
-          not: 'SELESAI', 
+          not: 'SELESAI',
         },
       },
     });
@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       const newRental = await tx.rental.create({
         data: {
           userId: customerIdNum,
+          ownerId: variant.products.ownerId,
           rentalCode,
           startDate: start,
           endDate: end,
@@ -137,9 +138,15 @@ export async function POST(request: NextRequest) {
               last_name: true,
             },
           },
-          products: {
-            select: { id: true, name: true },
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              businessName: true,
+              phone_numbers: true,
+            },
           },
+          products: { select: { id: true, name: true } },
           variantProduct: {
             select: {
               id: true,
@@ -221,8 +228,16 @@ export async function GET(request: NextRequest) {
               last_name: true,
             },
           },
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              businessName: true,
+              phone_numbers: true,
+            },
+          },
           products: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, ownerId: true },
           },
           variantProduct: {
             select: {
