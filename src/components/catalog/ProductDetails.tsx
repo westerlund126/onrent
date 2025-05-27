@@ -1,6 +1,4 @@
 // components/product/ProductDetails.tsx
-import Card from 'components/card';
-import { MdAdd, MdEdit } from 'react-icons/md';
 import { Product, StatusType } from '../../types/product';
 import { ProductVariantCard } from './ProductVariantCard';
 
@@ -68,13 +66,6 @@ export const ProductDetails = ({ product, onStatusChange, onDeleteClick }: Produ
         </div>
       </div>
       
-      {/* Add Variant Button */}
-      <div className="mt-4">
-        <button className="w-full py-2 px-4 border border-gray-300 rounded-md text-gray-600 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <MdAdd className="mr-2" /> Tambah Variasi
-        </button>
-      </div>
-      
       {/* Variants Section - Card Layout */}
       <div className="mt-4">
         <h3 className="font-medium text-gray-800 mb-3">Variants</h3>
@@ -89,15 +80,6 @@ export const ProductDetails = ({ product, onStatusChange, onDeleteClick }: Produ
             />
           ))}
         </div>
-      </div>
-
-      {/* Edit Button */}
-      <div className="mt-6">
-        <Card extra='p-3 w-max'>
-          <button className="flex items-center text-blue-500 font-medium">
-            <MdEdit className="mr-1" /> Edit
-          </button>
-        </Card>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
 import AddProductWidget from 'components/addproduct/AddProduct';
 import { useEffect, useState } from 'react';
-import ColumnsTable from 'components/admin/data-tables/ColumnsTable';
+import ColumnsTable from 'components/admin/data-tables/CatalogTable';
 
 const Tables = () => {
   const [productStats, setProductStats] = useState({

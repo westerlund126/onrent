@@ -1,9 +1,11 @@
-// api/productApi.ts
+// api/fetch/productApi.ts
 import { Product, ProductVariant, StatusType } from 'types/product';
 
 // Fetch all products for the current owner
 export const fetchProducts = async (): Promise<Product[]> => {
-  const response = await fetch('/api/products/owner');
+  const response = await fetch('/api/products/owner', {
+  credentials: 'include', 
+});
   if (!response.ok) {
     throw new Error(`Error: ${response.status}`);
   }

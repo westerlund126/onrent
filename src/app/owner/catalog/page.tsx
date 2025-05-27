@@ -2,7 +2,7 @@
 import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import ColumnsTable from 'components/admin/data-tables/ColumnsTable';
+import ColumnsTable from 'components/admin/data-tables/CatalogTable';
 import { Button } from '@/components/ui/button';
 import ProductForm from 'components/form/owner/ProductForm';
 import { FaPlus } from 'react-icons/fa';
@@ -18,7 +18,9 @@ const Tables = () => {
   useEffect(() => {
     const fetchProductStats = async () => {
       try {
-        const response = await fetch('/api/products/owner');
+        const response = await fetch('/api/products/owner', {
+  credentials: 'include',
+});
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }

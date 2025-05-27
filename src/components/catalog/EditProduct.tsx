@@ -315,30 +315,6 @@ const EditProductDialog = ({ isOpen, onClose, product, onProductUpdated }: EditP
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4 mt-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={variant.isAvailable}
-                        onChange={(e) => handleVariantChange(index, 'isAvailable', e.target.checked)}
-                        disabled={isSubmitting}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Tersedia</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={variant.isRented}
-                        onChange={(e) => handleVariantChange(index, 'isRented', e.target.checked)}
-                        disabled={isSubmitting}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Sedang Disewa</span>
-                    </label>
-                  </div>
-                  
                   {variants.length > 1 && (
                     <Button 
                       type="button" 

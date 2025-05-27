@@ -3,18 +3,33 @@ import Card from 'components/card';
 import CardMenu from 'components/card/CardMenu';
 import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import React, { useEffect, useState } from 'react';
-import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit } from 'react-icons/md';
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit, MdDelete } from 'react-icons/md';
 import { 
   fetchProducts, 
   updateVariantStatus, 
-  deleteVariant 
+  deleteVariant,
+  deleteProduct 
 } from 'app/api/products/fetch/productApi';
 import { DeleteConfirmation, Product, StatusType } from 'types/product';
 import { ProductDetails } from 'components/catalog/ProductDetails';
 import { toast } from 'sonner';
 import { formatCategoryName } from 'utils/product';
 import EditProductDialog from 'components/catalog/EditProduct';
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog'; 
 import { Button } from '@/components/ui/button';
+
+interface ProductDeleteConfirmation {
+  isOpen: boolean;
+  productId: number | null;
+  productName: string;
+}
 
 const ProductCatalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -27,6 +42,11 @@ const ProductCatalog = () => {
     isOpen: false,
     variantId: null,
     productId: null
+  });
+  const [productDeleteConfirmation, setProductDeleteConfirmation] = useState<ProductDeleteConfirmation>({
+    isOpen: false,
+    productId: null,
+    productName: ''
   });
 
   useEffect(() => {
@@ -60,6 +80,40 @@ const ProductCatalog = () => {
     setProducts(products.map(p => 
       p.id === updatedProduct.id ? updatedProduct : p
     ));
+  };
+
+  const openProductDeleteConfirmation = (productId: number, productName: string) => {
+    setProductDeleteConfirmation({
+      isOpen: true,
+      productId,
+      productName
+    });
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productDeleteConfirmation.productId) return;
+    
+    try {
+      await deleteProduct(productDeleteConfirmation.productId);
+      
+      // Remove the product from the list
+      setProducts(products.filter(p => p.id !== productDeleteConfirmation.productId));
+      
+      toast.success('Produk berhasil dihapus!');
+      cancelProductDelete();
+      
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      toast.error('Gagal menghapus produk. Coba lagi.');
+    }
+  };
+
+  const cancelProductDelete = () => {
+    setProductDeleteConfirmation({
+      isOpen: false,
+      productId: null,
+      productName: ''
+    });
   };
 
   const handleStatusChange = async (
@@ -230,8 +284,8 @@ const ProductCatalog = () => {
                     const minPrice = Math.min(...prices);
                     const maxPrice = Math.max(...prices);
                     priceDisplay = minPrice === maxPrice
-                      ? `${minPrice.toLocaleString('id-ID')}`
-                      : `${minPrice.toLocaleString('id-ID')} - ${maxPrice.toLocaleString('id-ID')}`;
+                      ? `Rp ${minPrice.toLocaleString('id-ID')}`
+                      : `Rp ${minPrice.toLocaleString('id-ID')} - Rp ${maxPrice.toLocaleString('id-ID')}`;
                   }
                   
                   const isExpanded = expandedProductId === product.id;
@@ -261,15 +315,22 @@ const ProductCatalog = () => {
                         <td className="py-3 px-4 font-semibold text-secondary-500">{totalVariants}</td>
                         <td className="py-3 px-4 font-semibold text-secondary-500">{availableVariants}</td>
                         <td className="py-3 px-4">
-                          <Button
-                            onClick={() => handleEditProduct(product)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                          >
-                            <MdEdit className="h-4 w-4" />
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 hover:text-green-800"
+                              title="Edit"
+                            >
+                              <MdEdit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => openProductDeleteConfirmation(product.id, product.name)}
+                              className="rounded p-1 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
+                              title="Hapus"
+                            >
+                              <MdDelete className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       
@@ -292,13 +353,50 @@ const ProductCatalog = () => {
           </table>
         </div>
 
-        {deleteConfirmation.isOpen && (
-          <ConfirmationPopup
-            message="Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus. Tindakan ini tidak dapat dibatalkan."
-            onConfirm={handleDeleteVariant}
-            onCancel={cancelDelete}
-          />
-        )}
+        {/* Variant Delete Confirmation */}
+        <Dialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelDelete()}>
+  <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+  <DialogContent className="max-w-md bg-white rounded-lg p-6 space-y-6">
+    <DialogHeader>
+      <DialogTitle>Hapus Varian</DialogTitle>
+      <DialogDescription>
+        Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="flex justify-end space-x-2">
+      <Button variant="outline" onClick={cancelDelete}>
+        Batal
+      </Button>
+      <Button variant="destructive" onClick={handleDeleteVariant}>
+        Hapus
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+
+        {/* Product Delete Confirmation */}
+      
+          <Dialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()}>
+  <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+  <DialogContent className="max-w-md bg-white rounded-lg p-6 space-y-6">
+    <DialogHeader>
+      <DialogTitle>Hapus Produk</DialogTitle>
+      <DialogDescription>
+        Apakah Anda yakin ingin menghapus produk <span className="font-semibold">"{productDeleteConfirmation.productName}"</span>? Semua varian dari produk ini akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="flex justify-end space-x-2">
+      <Button variant="outline" onClick={cancelProductDelete}>
+        Batal
+      </Button>
+      <Button variant="destructive" onClick={handleDeleteProduct}>
+        Hapus
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+        
       </Card>
 
       <EditProductDialog
