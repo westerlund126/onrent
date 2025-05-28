@@ -50,7 +50,6 @@ export async function PATCH(
       include: { VariantProducts: true },
     });
 
-    // Update variants if provided
     if (variants && Array.isArray(variants)) {
       for (const v of variants) {
         await prisma.variantProducts.update({

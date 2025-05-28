@@ -40,25 +40,38 @@ export interface RentalUser {
     condition?: string;
     notes?: string;
   }
+
+  export interface RentalItem {
+    id: number;
+    variantProduct: {
+      id: number;
+      sku: string;
+      size?: string;
+      color?: string;
+      price: number;
+      products: {
+        id: number;
+        name: string;
+        category: string;
+      };
+    };
+  }
   
   export interface Rental {
     id: number;
     rentalCode: string;
-    startDate: string; 
-    endDate: string; 
+    startDate: string;
+    endDate: string;
     status: 'BELUM_LUNAS' | 'LUNAS' | 'TERLAMBAT' | 'SELESAI';
-    createdAt: string; 
-    updatedAt: string; 
+    createdAt: string;
+    updatedAt: string;
     userId: number;
     ownerId: number;
-    productsId: number;
-    variantProductId: number;
     user: RentalUser;
-    owner: RentalUser; 
-    products: RentalProduct;
-    variantProduct: RentalVariant;
+    owner: RentalUser;
     Tracking: RentalTracking[];
     Return?: RentalReturn[];
+    rentalItems: RentalItem[];
   }
   
   export interface RentalListResponse {

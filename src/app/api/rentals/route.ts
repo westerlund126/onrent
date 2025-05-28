@@ -6,47 +6,30 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const customerUserId = searchParams.get('customerUserId'); // Renamed for clarity
-
-    const { userId } = await auth();
-    if (!userId)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const skip = (page - 1) * limit;
 
     const owner = await prisma.user.findUnique({
       where: { clerkUserId: userId },
       select: { id: true },
     });
 
-    if (!owner)
+    if (!owner) {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
-
-    const skip = (page - 1) * limit;
-
-    const where: any = {
-      ownerId: owner.id,
-      products: { ownerId: owner.id },
-    };
-
-    if (status) where.status = status;
-
-    // Only add customerUserId filter if it's provided and valid
-    if (customerUserId) {
-      const parsedCustomerUserId = parseInt(customerUserId);
-      if (!isNaN(parsedCustomerUserId)) {
-        where.userId = parsedCustomerUserId;
-      }
     }
 
-    const [rentals, total] = await Promise.all([
+    const [rentals, totalCount] = await Promise.all([
       prisma.rental.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+        where: {
+          ownerId: owner.id,
+        },
         include: {
           user: {
             select: {
@@ -64,16 +47,26 @@ export async function GET(request: NextRequest) {
               phone_numbers: true,
             },
           },
-          products: {
-            select: { id: true, name: true, ownerId: true },
-          },
-          variantProduct: {
-            select: {
-              id: true,
-              sku: true,
-              size: true,
-              color: true,
-              price: true,
+          rentalItems: {
+            include: {
+              variantProduct: {
+                select: {
+                  id: true,
+                  sku: true,
+                  size: true,
+                  color: true,
+                  price: true,
+                  products: {
+                    select: {
+                      id: true,
+                      name: true,
+                      category: true,
+                    },
+                  },
+                  isAvailable: true,
+                  isRented: true,
+                },
+              },
             },
           },
           Tracking: {
@@ -81,17 +74,29 @@ export async function GET(request: NextRequest) {
             take: 1,
           },
         },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
       }),
-      prisma.rental.count({ where }),
+      prisma.rental.count({
+        where: {
+          ownerId: owner.id,
+        },
+      }),
     ]);
 
+    const totalPages = Math.ceil(totalCount / limit);
+
     return NextResponse.json({
+      success: true,
       data: rentals,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        totalCount,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     });
   } catch (error) {
@@ -106,49 +111,50 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const {
+      customerId,
+      variantIds,
+      startDate,
+      endDate,
+      status,
+      additionalInfo,
+    } = body;
 
-    const { customerId, variantId, startDate, endDate, status } = body;
-
-    if (!customerId || !variantId || !startDate || !endDate) {
+    if (
+      !customerId ||
+      !Array.isArray(variantIds) ||
+      variantIds.length === 0 ||
+      !startDate ||
+      !endDate
+    ) {
       return NextResponse.json(
         {
           error:
-            'Missing required fields: customerId, variantId, startDate, endDate',
+            'Missing required fields: customerId, variantIds, startDate, endDate',
         },
         { status: 400 },
       );
     }
 
     const customerIdNum = parseInt(customerId);
-    const variantIdNum = parseInt(variantId);
-
-    if (isNaN(customerIdNum) || isNaN(variantIdNum)) {
-      return NextResponse.json(
-        { error: 'Invalid customerId or variantId format' },
-        { status: 400 },
-      );
-    }
-
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (
+      isNaN(customerIdNum) ||
+      isNaN(start.getTime()) ||
+      isNaN(end.getTime()) ||
+      end <= start
+    ) {
       return NextResponse.json(
-        { error: 'Invalid date format' },
-        { status: 400 },
-      );
-    }
-
-    if (end <= start) {
-      return NextResponse.json(
-        { error: 'End date must be after start date' },
+        { error: 'Invalid input data' },
         { status: 400 },
       );
     }
 
     const customer = await prisma.user.findUnique({
       where: { id: customerIdNum },
-      select: { id: true, username: true },
+      select: { id: true },
     });
 
     if (!customer) {
@@ -158,121 +164,100 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const variant = await prisma.variantProducts.findUnique({
-      where: { id: variantIdNum },
-      include: {
-        products: {
-          select: { id: true, name: true, ownerId: true },
-        },
+    const rental = await prisma.$transaction(
+      async (tx) => {
+        const variantData = await Promise.all(
+          variantIds.map(async (id) => {
+            const variantId = parseInt(id);
+            const variant = await tx.variantProducts.findUnique({
+              where: { id: variantId },
+              include: { products: true },
+            });
+
+            if (!variant || !variant.isAvailable || variant.isRented) {
+              throw new Error(`Variant ${variantId} is not available`);
+            }
+
+            // Check for date conflicts
+            const conflict = await tx.rentalItem.findFirst({
+              where: {
+                variantProductId: variantId,
+                rental: {
+                  OR: [
+                    { startDate: { lte: start }, endDate: { gte: start } },
+                    { startDate: { lte: end }, endDate: { gte: end } },
+                    { startDate: { gte: start }, endDate: { lte: end } },
+                  ],
+                  status: { not: 'SELESAI' },
+                },
+              },
+            });
+
+            if (conflict) {
+              throw new Error(
+                `Variant ${variantId} is already rented for selected dates`,
+              );
+            }
+
+            return variant;
+          }),
+        );
+
+        const ownerIds = [
+          ...new Set(variantData.map((v) => v.products.ownerId)),
+        ];
+        if (ownerIds.length > 1) {
+          throw new Error('All variants must belong to the same owner');
+        }
+
+        const rentalCode = await generateRentalCode();
+
+        const newRental = await tx.rental.create({
+          data: {
+            userId: customerIdNum,
+            ownerId: ownerIds[0],
+            rentalCode,
+            startDate: start,
+            endDate: end,
+            status: status || 'BELUM_LUNAS',
+            additionalInfo: additionalInfo || '',
+            rentalItems: {
+              create: variantData.map((v) => ({ variantProductId: v.id })),
+            },
+          },
+          include: {
+            user: { select: { id: true, username: true } },
+            owner: { select: { id: true, username: true } },
+            rentalItems: {
+              include: {
+                variantProduct: {
+                  include: {
+                    products: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        for (const variant of variantData) {
+          await tx.variantProducts.update({
+            where: { id: variant.id },
+            data: { isAvailable: false, isRented: true },
+          });
+        }
+
+        await tx.tracking.create({
+          data: {
+            rentalId: newRental.id,
+            status: 'RENTAL_ONGOING',
+          },
+        });
+
+        return newRental;
       },
-    });
-
-    if (!variant) {
-      return NextResponse.json(
-        { error: 'Product variant not found' },
-        { status: 404 },
-      );
-    }
-
-    if (!variant.isAvailable) {
-      return NextResponse.json(
-        { error: 'Product variant is not available' },
-        { status: 400 },
-      );
-    }
-
-    if (variant.isRented) {
-      return NextResponse.json(
-        { error: 'Product variant is currently rented' },
-        { status: 400 },
-      );
-    }
-
-    const conflictingRental = await prisma.rental.findFirst({
-      where: {
-        variantProductId: variantIdNum,
-        OR: [
-          {
-            AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
-          },
-          {
-            AND: [{ startDate: { lte: end } }, { endDate: { gte: end } }],
-          },
-          {
-            AND: [{ startDate: { gte: start } }, { endDate: { lte: end } }],
-          },
-        ],
-        status: {
-          not: 'SELESAI',
-        },
-      },
-    });
-
-    if (conflictingRental) {
-      return NextResponse.json(
-        { error: 'Product variant is already rented for the selected dates' },
-        { status: 400 },
-      );
-    }
-
-    const rentalCode = await generateRentalCode();
-
-    const rental = await prisma.$transaction(async (tx) => {
-      const newRental = await tx.rental.create({
-        data: {
-          userId: customerIdNum,
-          ownerId: variant.products.ownerId,
-          rentalCode,
-          startDate: start,
-          endDate: end,
-          status: status || 'BELUM_LUNAS',
-          productsId: variant.products.id,
-          variantProductId: variantIdNum,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-            },
-          },
-          owner: {
-            select: {
-              id: true,
-              username: true,
-              businessName: true,
-              phone_numbers: true,
-            },
-          },
-          products: { select: { id: true, name: true } },
-          variantProduct: {
-            select: {
-              id: true,
-              sku: true,
-              size: true,
-              color: true,
-              price: true,
-            },
-          },
-        },
-      });
-
-      await tx.variantProducts.update({
-        where: { id: variantIdNum },
-        data: { isRented: true },
-      });
-
-      await tx.tracking.create({
-        data: {
-          rentalId: newRental.id,
-          status: 'RENTAL_ONGOING',
-        },
-      });
-
-      return newRental;
-    });
+      { timeout: 15_000 },
+    );
 
     return NextResponse.json(
       {
@@ -282,18 +267,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Rental creation error:', error);
-
-    if (error?.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Rental code already exists. Please try again.' },
-        { status: 409 },
-      );
-    }
-
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 },
     );
   }

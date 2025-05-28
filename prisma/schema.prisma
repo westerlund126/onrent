@@ -38,7 +38,6 @@ model Products {
   description     String
   ownerId         Int
   owner           User              @relation(fields: [ownerId], references: [id])
-  Rental          Rental[]
   VariantProducts VariantProducts[]
   Wishlist        Wishlist[]
 }
@@ -56,9 +55,8 @@ model VariantProducts {
   length      Float?
   isRented    Boolean  @default(false)
   sku         String   @unique
-  Rental      Rental[]
+  RentalItem  RentalItem[]
   products    Products @relation(fields: [productsId], references: [id])
-
   @@unique([size, color, bustlength, waistlength, length, productsId, sku])
 }
 
@@ -79,18 +77,23 @@ model Rental {
   startDate        DateTime
   endDate          DateTime
   status           RentalStatus    @default(BELUM_LUNAS)
+  additionalInfo String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
-  productsId       Int
-  variantProductId Int
   user             User            @relation("UserRental", fields: [userId], references: [id])
   owner            User            @relation("OwnerRental", fields: [ownerId], references: [id])
-  products         Products        @relation(fields: [productsId], references: [id])
-  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
   Return           Return[]
+  rentalItems    RentalItem[] 
   Tracking         Tracking[]
 }
 
+model RentalItem {
+  id               Int              @id @default(autoincrement())
+  rentalId         Int
+  variantProductId Int
+  rental           Rental          @relation(fields: [rentalId], references: [id])
+  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+}
 
 model Tracking {
   id        Int            @id @default(autoincrement())

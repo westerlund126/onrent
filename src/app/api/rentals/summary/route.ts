@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
     _count: true,
     where: {
       ownerId: owner.id,
-      products: { ownerId: owner.id },
     },
   });
 
@@ -28,7 +27,9 @@ export async function GET(req: NextRequest) {
     LUNAS: 0,
     BELUM_LUNAS: 0,
     TERLAMBAT: 0,
+    SELESAI: 0,
   };
+
   rows.forEach((r) => {
     if (stats[r.status as keyof typeof stats] !== undefined) {
       stats[r.status as keyof typeof stats] = r._count;

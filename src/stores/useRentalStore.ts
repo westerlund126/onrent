@@ -1,4 +1,4 @@
-// stores/useRentalStore.ts 
+// stores/useRentalStore.ts
 import { create } from 'zustand';
 import {
   Rental,
@@ -8,6 +8,14 @@ import {
   ApiResponse,
 } from 'types/rental';
 
+interface RentalUpdateData {
+  status?: RentalStatus;
+  startDate?: string;
+  endDate?: string;
+  additionalInfo?: string;
+  variantIds?: number[];
+}
+
 interface RentalState {
   rentals: Rental[];
   loading: boolean;
@@ -16,6 +24,7 @@ interface RentalState {
   totalPages: number;
   totalItems: number;
   statusUpdateLoading: number | null;
+  editUpdateLoading: number | null;
   deleteLoading: boolean;
   filters: RentalFilters;
 
@@ -25,6 +34,7 @@ interface RentalState {
   setCurrentPage: (page: number) => void;
   setPagination: (totalPages: number, totalItems: number) => void;
   setStatusUpdateLoading: (rentalId: number | null) => void;
+  setEditUpdateLoading: (rentalId: number | null) => void;
   setDeleteLoading: (loading: boolean) => void;
   setFilters: (filters: RentalFilters) => void;
 
@@ -33,6 +43,10 @@ interface RentalState {
     rentalId: number,
     newStatus: RentalStatus,
   ) => Promise<void>;
+  updateRental: (
+    rentalId: number,
+    updateData: RentalUpdateData,
+  ) => Promise<Rental>;
   deleteRental: (rentalId: number) => Promise<void>;
   refreshData: () => Promise<void>;
 
@@ -47,6 +61,7 @@ export const useRentalStore = create<RentalState>((set, get) => ({
   totalPages: 1,
   totalItems: 0,
   statusUpdateLoading: null,
+  editUpdateLoading: null,
   deleteLoading: false,
   filters: { page: 1, limit: 10 },
 
@@ -56,6 +71,7 @@ export const useRentalStore = create<RentalState>((set, get) => ({
   setCurrentPage: (page) => set({ currentPage: page }),
   setPagination: (totalPages, totalItems) => set({ totalPages, totalItems }),
   setStatusUpdateLoading: (rentalId) => set({ statusUpdateLoading: rentalId }),
+  setEditUpdateLoading: (rentalId) => set({ editUpdateLoading: rentalId }),
   setDeleteLoading: (loading) => set({ deleteLoading: loading }),
   setFilters: (newFilters) =>
     set((state) => {
@@ -168,6 +184,49 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       await loadRentals();
     } finally {
       setStatusUpdateLoading(null);
+    }
+  },
+
+  updateRental: async (rentalId: number, updateData: RentalUpdateData) => {
+    const { setEditUpdateLoading } = get();
+
+    try {
+      setEditUpdateLoading(rentalId);
+
+      const response = await fetch(`/api/rentals/${rentalId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorData: ApiResponse = await response.json();
+        throw new Error(errorData.error || 'Failed to update rental');
+      }
+
+      const result: ApiResponse<Rental> = await response.json();
+
+      if (!result.data) {
+        throw new Error('No data returned from update');
+      }
+
+      set((state) => ({
+        rentals: state.rentals.map((rental) =>
+          rental.id === rentalId ? result.data! : rental,
+        ),
+      }));
+
+      console.log('Rental updated successfully');
+      return result.data;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update rental';
+      console.error('Failed to update rental:', err);
+      throw err; 
+    } finally {
+      setEditUpdateLoading(null);
     }
   },
 
