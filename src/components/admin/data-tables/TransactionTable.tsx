@@ -21,12 +21,17 @@ import {
   isDeletionDisabled,
   isValidStatus,
 } from 'utils/rental';
+import { sumBy } from 'lodash';
+import { useRouter } from 'next/navigation';
 
 interface TransactionTableProps {
   filters?: RentalFilters;
   onViewDetails?: (rentalId: number) => void;
   onEdit?: (rentalId: number) => void;
 }
+
+const getTotalRentalPrice = (rental: any) =>
+  sumBy(rental?.rentalItems ?? [], (ri: any) => ri.variantProduct?.price ?? 0);
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   filters = {},
@@ -53,6 +58,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
+
+  const router = useRouter();
 
   const handleEditSuccess = () => {
     loadRentals();
@@ -121,17 +128,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     if (onViewDetails) {
       onViewDetails(rentalId);
     } else {
-      window.location.href = `/transactions/${rentalId}`;
+      // router.push(`/owner/transaction/${rentalId}`);
+      router.push(`/owner/transaction/mockDetails`);
     }
   };
-
-  // const handleEdit = (rentalId: number) => {
-  //   if (onEdit) {
-  //     onEdit(rentalId);
-  //   } else {
-  //     window.location.href = `/transactions/edit/${rentalId}`;
-  //   }
-  // };
 
   const renderStatusBadge = (status: RentalStatus) => {
     const config = getStatusBadgeConfig(status);
@@ -179,6 +179,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     </div>
   );
 
+
   if (loading) {
     return (
       <Card extra="w-full pb-10 p-4 h-full">
@@ -186,7 +187,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
             <p className="text-lg font-medium text-gray-600">
-              Loading transactions...
+              Loading transaksi...
             </p>
           </div>
         </div>
@@ -206,7 +207,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               onClick={refreshData}
               className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
             >
-              Retry
+              Caba Lagi
             </button>
           </div>
         </div>
@@ -279,7 +280,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   {getCustomerContact(rental.user)}
                 </td>
                 <td className="px-4 py-3 font-semibold text-secondary-500">
-                  {formatCurrency(rental.variantProduct.price)}
+                  {formatCurrency(getTotalRentalPrice(rental))}
                 </td>
                 <td className="px-4 py-3 font-semibold text-secondary-500">
                   {formatDate(rental.startDate)}
@@ -305,7 +306,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </select>
                   {statusUpdateLoading === rental.id && (
                     <div className="mt-1 text-xs text-blue-600">
-                      Updating...
+                      Memperbarui...
                     </div>
                   )}
                 </td>
@@ -332,6 +333,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         )}
       </div>
 
+      {/* edit dialog */}
       <EditRentalForm
         isOpen={isEditDialogOpen}
         onClose={() => {
@@ -342,11 +344,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         onSuccess={handleEditSuccess}
       />
 
-      {/* Pagination */}
+      {/* pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
           <div className="text-sm text-gray-700">
-            Menampilkan {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} –{' '}
             {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems}{' '}
             transaksi
           </div>
@@ -374,7 +376,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* delete confirmation */}
       {deleteConfirmation.isOpen && (
         <ConfirmationPopup
           message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}

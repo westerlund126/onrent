@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -39,24 +40,39 @@ import {
   Search,
   AlertCircle,
   CheckCircle,
+  X,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RentalFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (rental: any) => void; 
+  onSuccess?: (rental: any) => void;
+}
+
+interface SelectedProduct {
+  id: number;
+  variantId: number;
+  productName: string;
+  sku: string;
+  size?: string;
+  color?: string;
+  price?: number;
 }
 
 const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [formData, setFormData] = useState({
     customerId: '',
-    product: '',
     startDate: '',
     endDate: '',
-    variantId: '',
     status: 'BELUM_LUNAS',
+    additionalInfo: '',
   });
+
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
+    [],
+  );
   const [options, setOptions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +93,8 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  const [debugInfo, setDebugInfo] = useState('');
+
   useEffect(() => {
     if (!isOpen) {
       resetForm();
@@ -86,12 +104,12 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const resetForm = () => {
     setFormData({
       customerId: '',
-      product: '',
       startDate: '',
       endDate: '',
-      variantId: '',
       status: 'BELUM_LUNAS',
+      additionalInfo: '',
     });
+    setSelectedProducts([]);
     setCustomerUsername('');
     setSelectedCustomer(null);
     setCustomerError('');
@@ -99,47 +117,93 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     setSubmitSuccess(false);
     setSearch('');
     setOptions([]);
+    setSearchCache(new Map());
+    setDebugInfo('');
   };
 
   useEffect(() => {
-    if (!search || search.length < 2) {
-      setOptions([]);
-      setProductSearching(false);
-      return;
-    }
+    const performSearch = async () => {
+      if (!search || search.length < 2) {
+        setOptions([]);
+        setProductSearching(false);
+        setDebugInfo('Search query too short (minimum 2 characters)');
+        return;
+      }
 
-    if (searchCache.has(search)) {
-      setOptions(searchCache.get(search) || []);
-      setProductSearching(false);
-      return;
-    }
-
-    setProductSearching(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/products/search?q=${encodeURIComponent(search)}&limit=20`,
+      // Check cache first
+      if (searchCache.has(search)) {
+        const cachedResults = searchCache.get(search) || [];
+        setOptions(cachedResults);
+        setProductSearching(false);
+        setDebugInfo(
+          `Using cached results: ${cachedResults.length} products found`,
         );
-        if (!res.ok) throw new Error('Failed to fetch products');
+        return;
+      }
+
+      setProductSearching(true);
+      setDebugInfo(`Searching for "${search}"...`);
+
+      try {
+        const url = `/api/products/search?q=${encodeURIComponent(
+          search,
+        )}&limit=20&excludeRented=true`;
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('❌ API Error:', res.status, errorText);
+          throw new Error(`API Error: ${res.status} - ${errorText}`);
+        }
 
         const results = await res.json();
 
-        setSearchCache((prev) => new Map(prev).set(search, results));
-        setOptions(results);
+        const processedResults = results
+          .map((product: any) => {
+            const availableVariants =
+              product.VariantProducts?.filter((variant: any) => {
+                const isNotSelected = !selectedProducts.some(
+                  (selected) => selected.variantId === variant.id,
+                );
+                return (
+                  variant.isAvailable && !variant.isRented && isNotSelected
+                );
+              }) || [];
+
+            return {
+              ...product,
+              VariantProducts: availableVariants,
+            };
+          })
+          .filter((product: any) => {
+            const hasVariants = product.VariantProducts.length > 0;
+            return hasVariants;
+          });
+
+        setSearchCache((prev) => new Map(prev).set(search, processedResults));
+        setOptions(processedResults);
+        setDebugInfo(
+          `Found ${processedResults.length} products with available variants`,
+        );
       } catch (error) {
-        console.error('Product search failed:', error);
         setOptions([]);
+        setDebugInfo(
+          `Error: ${error instanceof Error ? error.message : 'Search failed'}`,
+        );
       } finally {
         setProductSearching(false);
       }
-    }, 300);
+    };
+
+    // Debounce the search
+    const timer = setTimeout(performSearch, 300);
 
     return () => {
       clearTimeout(timer);
       setProductSearching(false);
     };
-  }, [search, searchCache]);
+  }, [search, selectedProducts, searchCache]);
 
   const handleCustomerSearch = async (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -188,12 +252,14 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
 
     if (name === 'endDate' && formData.startDate) {
       const isValid = new Date(value) >= new Date(formData.startDate);
-      e.target.setCustomValidity(
+      (e.target as HTMLInputElement).setCustomValidity(
         isValid ? '' : 'Tanggal selesai harus setelah tanggal mulai',
       );
     }
@@ -207,14 +273,47 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     if (submitError) setSubmitError('');
   };
 
+  const addProduct = (product: any, variant: any) => {
+    const newProduct: SelectedProduct = {
+      id: product.id,
+      variantId: variant.id,
+      productName: product.name,
+      sku: variant.sku,
+      size: variant.size,
+      color: variant.color,
+      price: variant.price,
+    };
+
+    setSelectedProducts((prev) => {
+      const updated = [...prev, newProduct];
+      return updated;
+    });
+
+    setOpen(false);
+    setSearch('');
+
+    setSearchCache(new Map());
+    setOptions([]);
+  };
+
+  const removeProduct = (variantId: number) => {
+    setSelectedProducts((prev) => {
+      const updated = prev.filter((p) => p.variantId !== variantId);
+      return updated;
+    });
+
+    setSearchCache(new Map());
+    setOptions([]);
+  };
+
   const validateForm = () => {
     if (!formData.customerId) {
       setSubmitError('Silakan pilih pelanggan terlebih dahulu');
       return false;
     }
 
-    if (!formData.variantId) {
-      setSubmitError('Silakan pilih produk terlebih dahulu');
+    if (selectedProducts.length === 0) {
+      setSubmitError('Silakan pilih minimal satu produk');
       return false;
     }
 
@@ -256,10 +355,11 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
         },
         body: JSON.stringify({
           customerId: parseInt(formData.customerId),
-          variantId: parseInt(formData.variantId),
+          variantIds: selectedProducts.map((p) => p.variantId),
           startDate: formData.startDate,
           endDate: formData.endDate,
           status: formData.status,
+          additionalInfo: formData.additionalInfo.trim() || null,
         }),
       });
 
@@ -268,8 +368,6 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       if (!response.ok) {
         throw new Error(result.error || 'Gagal membuat transaksi sewa');
       }
-
-      console.log('Rental created successfully:', result);
       setSubmitSuccess(true);
 
       if (onSuccess) {
@@ -289,14 +387,17 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     }
   };
 
-  const selectedVariant = options
-    .flatMap((product) => product.VariantProducts)
-    .find((variant) => variant.id === parseInt(formData.variantId));
+  const getTotalPrice = () => {
+    return selectedProducts.reduce(
+      (total, product) => total + (product.price || 0),
+      0,
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-      <DialogContent className="max-w-md rounded-lg bg-white">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-lg bg-white">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
@@ -368,29 +469,74 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
             </div>
           </div>
 
-          {/* Product */}
+          {/* Selected Products */}
+          {selectedProducts.length > 0 && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Produk Terpilih ({selectedProducts.length})
+              </label>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-2">
+                {selectedProducts.map((product) => (
+                  <div
+                    key={product.variantId}
+                    className="flex items-center justify-between rounded bg-gray-50 p-2"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">
+                        {product.productName}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        SKU: {product.sku}
+                        {product.size && ` • ${product.size}`}
+                        {product.color && ` • ${product.color}`}
+                        {product.price &&
+                          ` • Rp ${product.price.toLocaleString()}`}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeProduct(product.variantId)}
+                      className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                      disabled={isLoading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {selectedProducts.some((p) => p.price) && (
+                  <div className="mt-2 border-t pt-2">
+                    <div className="text-right text-sm font-medium">
+                      Total: Rp {getTotalPrice().toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Product Search */}
           <div>
-            <label className="mb-1 block text-sm font-medium">Produk *</label>
+            <label className="mb-1 block text-sm font-medium">
+              Tambah Produk *
+            </label>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
                   className="w-full justify-between"
                   disabled={productSearching || isLoading}
                 >
-                  {selectedVariant
-                    ? `${
-                        options.find((p) =>
-                          p.VariantProducts.some(
-                            (v) => v.id === parseInt(formData.variantId),
-                          ),
-                        )?.name
-                      } - ${selectedVariant.sku}`
-                    : productSearching
-                    ? 'Mencari...'
-                    : 'Pilih Produk...'}
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    {productSearching
+                      ? 'Mencari...'
+                      : 'Pilih Produk untuk Ditambahkan...'}
+                  </div>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -399,7 +545,9 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
                   <CommandInput
                     placeholder="Cari kode produk..."
                     value={search}
-                    onValueChange={setSearch}
+                    onValueChange={(value) => {
+                      setSearch(value);
+                    }}
                   />
                   <CommandList>
                     {productSearching ? (
@@ -421,6 +569,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
                               <span>{product.name}</span>
                               <span className="text-xs text-gray-500">
                                 {product.VariantProducts?.length || 0} varian
+                                tersedia
                               </span>
                             </div>
                           }
@@ -431,23 +580,9 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
                               value={`${product.name} ${variant.sku} ${
                                 variant.size
                               } ${variant.color || ''}`}
-                              onSelect={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  product: product.id.toString(),
-                                  variantId: variant.id.toString(),
-                                }));
-                                setOpen(false);
-                              }}
+                              onSelect={() => addProduct(product, variant)}
                             >
-                              <Check
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  formData.variantId === variant.id.toString()
-                                    ? 'opacity-100'
-                                    : 'opacity-0',
-                                )}
-                              />
+                              <Plus className="mr-2 h-4 w-4 text-green-500" />
                               <div className="flex flex-col gap-1">
                                 <div className="font-medium">{variant.sku}</div>
                                 <div className="text-xs text-gray-500">
@@ -481,7 +616,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               value={formData.startDate}
               onChange={handleInputChange}
               required
-              min={new Date().toISOString().split('T')[0]} // Prevent past dates
+              min={new Date().toISOString().split('T')[0]}
               className="mt-1"
               disabled={isLoading}
             />
@@ -524,6 +659,21 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
             </Select>
           </div>
 
+          {/* Additional Info */}
+          <div>
+            <label className="block text-sm font-medium">
+              Informasi Tambahan
+            </label>
+            <Textarea
+              name="additionalInfo"
+              value={formData.additionalInfo}
+              onChange={handleInputChange}
+              placeholder="Catatan khusus, instruksi khusus, atau informasi tambahan lainnya..."
+              className="mt-1 min-h-[80px]"
+              disabled={isLoading}
+            />
+          </div>
+
           {/* Footer */}
           <DialogFooter className="gap-2 pt-4">
             <DialogClose asChild>
@@ -533,7 +683,12 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
             </DialogClose>
             <Button
               type="submit"
-              disabled={isLoading || !selectedCustomer || submitSuccess}
+              disabled={
+                isLoading ||
+                !selectedCustomer ||
+                selectedProducts.length === 0 ||
+                submitSuccess
+              }
             >
               {isLoading
                 ? 'Menyimpan...'

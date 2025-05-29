@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,8 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  X,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,17 +53,34 @@ interface EditRentalFormProps {
   onSuccess?: (rental: any) => void;
 }
 
-const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalFormProps) => {
+interface SelectedVariant {
+  id: number;
+  sku: string;
+  size: string;
+  color?: string;
+  price: number;
+  productName: string;
+  productId: number;
+}
+
+const EditRentalForm = ({
+  isOpen,
+  onClose,
+  rentalId,
+  onSuccess,
+}: EditRentalFormProps) => {
   const [formData, setFormData] = useState({
     customerId: '',
-    product: '',
     startDate: '',
     endDate: '',
-    variantId: '',
     status: 'BELUM_LUNAS',
+    additionalInfo: '',
   });
-  
+
   const [originalData, setOriginalData] = useState<any>(null);
+  const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>(
+    [],
+  );
   const [options, setOptions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -78,12 +98,12 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
   } | null>(null);
   const [customerSearching, setCustomerSearching] = useState(false);
   const [customerError, setCustomerError] = useState('');
-
-  // Success/Error states
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Load rental data when dialog opens
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState('');
+
   useEffect(() => {
     if (isOpen && rentalId) {
       loadRentalData();
@@ -95,29 +115,26 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
   const loadRentalData = async () => {
     setLoadingRental(true);
     setSubmitError('');
-    
+
     try {
       const response = await fetch(`/api/rentals/${rentalId}`);
       if (!response.ok) {
         throw new Error('Failed to load rental data');
       }
-      
+
       const result = await response.json();
       const rental = result.data;
-      
+
       setOriginalData(rental);
-      
-      // Pre-populate form data
+
       setFormData({
         customerId: rental.userId.toString(),
-        product: rental.productsId.toString(),
         startDate: new Date(rental.startDate).toISOString().split('T')[0],
         endDate: new Date(rental.endDate).toISOString().split('T')[0],
-        variantId: rental.variantProductId.toString(),
         status: rental.status,
+        additionalInfo: rental.additionalInfo || '',
       });
-      
-      // Set customer data
+
       setSelectedCustomer({
         id: rental.user.id,
         username: rental.user.username,
@@ -125,16 +142,19 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
         last_name: rental.user.last_name,
       });
       setCustomerUsername(rental.user.username);
-      
-      // Pre-populate product data
-      const productData = {
-        id: rental.products.id,
-        name: rental.products.name,
-        VariantProducts: [rental.variantProduct]
-      };
-      setOptions([productData]);
-      setSearch(rental.variantProduct.sku);
-      
+
+      const variants: SelectedVariant[] = rental.rentalItems.map(
+        (item: any) => ({
+          id: item.variantProduct.id,
+          sku: item.variantProduct.sku,
+          size: item.variantProduct.size,
+          color: item.variantProduct.color,
+          price: item.variantProduct.price,
+          productName: item.variantProduct.products.name,
+          productId: item.variantProduct.products.id,
+        }),
+      );
+      setSelectedVariants(variants);
     } catch (error) {
       console.error('Failed to load rental data:', error);
       setSubmitError('Gagal memuat data transaksi');
@@ -146,13 +166,13 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
   const resetForm = () => {
     setFormData({
       customerId: '',
-      product: '',
       startDate: '',
       endDate: '',
-      variantId: '',
       status: 'BELUM_LUNAS',
+      additionalInfo: '',
     });
     setOriginalData(null);
+    setSelectedVariants([]);
     setCustomerUsername('');
     setSelectedCustomer(null);
     setCustomerError('');
@@ -161,53 +181,95 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
     setSearch('');
     setOptions([]);
     setSearchCache(new Map());
+    setDebugInfo('');
   };
 
-  // Product search functionality (same as original)
   useEffect(() => {
-    if (!search || search.length < 2) {
-      // Don't clear options if we have pre-loaded data
-      if (!originalData) {
-        setOptions([]);
+    const performSearch = async () => {
+      if (!search || search.length < 2) {
+        if (!originalData) {
+          setOptions([]);
+        }
+        setProductSearching(false);
+        setDebugInfo('Search query too short (minimum 2 characters)');
+        return;
       }
-      setProductSearching(false);
-      return;
-    }
 
-    if (searchCache.has(search)) {
-      setOptions(searchCache.get(search) || []);
-      setProductSearching(false);
-      return;
-    }
-
-    setProductSearching(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/products/search?q=${encodeURIComponent(search)}&limit=20`,
+      // Check cache first
+      if (searchCache.has(search)) {
+        const cachedResults = searchCache.get(search) || [];
+        const filteredResults = filterAvailableVariants(cachedResults);
+        setOptions(filteredResults);
+        setProductSearching(false);
+        setDebugInfo(
+          `Using cached results: ${filteredResults.length} products found`,
         );
-        if (!res.ok) throw new Error('Failed to fetch products');
+        return;
+      }
+
+      setProductSearching(true);
+      setDebugInfo(`Searching for "${search}"...`);
+
+      try {
+        const url = `/api/products/search?q=${encodeURIComponent(
+          search,
+        )}&limit=20&includeRented=false`;
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('❌ API Error:', res.status, errorText);
+          throw new Error(`API Error: ${res.status} - ${errorText}`);
+        }
 
         const results = await res.json();
+        const filteredResults = filterAvailableVariants(results);
 
         setSearchCache((prev) => new Map(prev).set(search, results));
-        setOptions(results);
+        setOptions(filteredResults);
+        setDebugInfo(
+          `Found ${filteredResults.length} products with available variants`,
+        );
       } catch (error) {
         console.error('Product search failed:', error);
         if (!originalData) {
           setOptions([]);
         }
+        setDebugInfo(
+          `Error: ${error instanceof Error ? error.message : 'Search failed'}`,
+        );
       } finally {
         setProductSearching(false);
       }
-    }, 300);
+    };
+
+    const timer = setTimeout(performSearch, 300);
 
     return () => {
       clearTimeout(timer);
       setProductSearching(false);
     };
-  }, [search, searchCache, originalData]);
+  }, [search, searchCache, originalData, selectedVariants]);
+
+  const filterAvailableVariants = (results: any[]) => {
+    const selectedVariantIds = selectedVariants.map((v) => v.id);
+
+    return results
+      .map((product) => {
+        const availableVariants =
+          product.VariantProducts?.filter((variant: any) => {
+            const isNotSelected = !selectedVariantIds.includes(variant.id);
+            return variant.isAvailable && !variant.isRented && isNotSelected;
+          }) || [];
+
+        return {
+          ...product,
+          VariantProducts: availableVariants,
+        };
+      })
+      .filter((product) => product.VariantProducts.length > 0);
+  };
 
   const handleCustomerSearch = async (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -256,14 +318,18 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
 
     if (name === 'endDate' && formData.startDate) {
       const isValid = new Date(value) >= new Date(formData.startDate);
-      e.target.setCustomValidity(
-        isValid ? '' : 'Tanggal selesai harus setelah tanggal mulai',
-      );
+      if (e.target instanceof HTMLInputElement) {
+        e.target.setCustomValidity(
+          isValid ? '' : 'Tanggal selesai harus setelah tanggal mulai',
+        );
+      }
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -275,14 +341,40 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
     if (submitError) setSubmitError('');
   };
 
+  const addVariant = (variant: any, product: any) => {
+    const newVariant: SelectedVariant = {
+      id: variant.id,
+      sku: variant.sku,
+      size: variant.size,
+      color: variant.color,
+      price: variant.price,
+      productName: product.name,
+      productId: product.id,
+    };
+
+    setSelectedVariants((prev) => [...prev, newVariant]);
+    setOpen(false);
+    setSearch('');
+
+    setSearchCache(new Map());
+    setOptions([]);
+  };
+
+  const removeVariant = (variantId: number) => {
+    setSelectedVariants((prev) => prev.filter((v) => v.id !== variantId));
+
+    setSearchCache(new Map());
+    setOptions([]);
+  };
+
   const validateForm = () => {
     if (!formData.customerId) {
       setSubmitError('Silakan pilih pelanggan terlebih dahulu');
       return false;
     }
 
-    if (!formData.variantId) {
-      setSubmitError('Silakan pilih produk terlebih dahulu');
+    if (selectedVariants.length === 0) {
+      setSubmitError('Silakan pilih minimal satu produk');
       return false;
     }
 
@@ -317,85 +409,102 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
     setIsLoading(true);
 
     try {
-        const changes: any = {};
-        const statusChanged = formData.status !== originalData?.status;
-        const datesChanged = 
-          formData.startDate !== originalData.startDate.split('T')[0] ||
-          formData.endDate !== originalData.endDate.split('T')[0];
-        const variantChanged = parseInt(formData.variantId) !== originalData.variantProductId;
-    
-        // Only include changed fields
-        if (statusChanged) changes.status = formData.status;
-        if (datesChanged) {
-          changes.startDate = formData.startDate;
-          changes.endDate = formData.endDate;
-        }
-        if (variantChanged) {
-          const newVariantResponse = await fetch(
-            `/api/variants/${formData.variantId}`,
-          );
-          if (!newVariantResponse.ok) {
-            throw new Error('Gagal memeriksa ketersediaan varian');
+      const changes: any = {};
+
+      const statusChanged = formData.status !== originalData?.status;
+      const datesChanged =
+        formData.startDate !==
+          new Date(originalData.startDate).toISOString().split('T')[0] ||
+        formData.endDate !==
+          new Date(originalData.endDate).toISOString().split('T')[0];
+      const additionalInfoChanged =
+        formData.additionalInfo !== (originalData.additionalInfo || '');
+
+      const originalVariantIds = originalData.rentalItems
+        .map((item: any) => item.variantProduct.id)
+        .sort();
+      const currentVariantIds = selectedVariants.map((v) => v.id).sort();
+      const variantsChanged =
+        JSON.stringify(originalVariantIds) !==
+        JSON.stringify(currentVariantIds);
+
+      if (statusChanged) changes.status = formData.status;
+      if (datesChanged) {
+        changes.startDate = formData.startDate;
+        changes.endDate = formData.endDate;
+      }
+      if (additionalInfoChanged)
+        changes.additionalInfo = formData.additionalInfo;
+      if (variantsChanged)
+        changes.variantIds = selectedVariants.map((v) => v.id);
+
+      if (Object.keys(changes).length === 0) {
+        setSubmitError('Tidak ada perubahan yang dilakukan');
+        return;
+      }
+
+      if (datesChanged || variantsChanged) {
+        for (const variant of selectedVariants) {
+          if (originalVariantIds.includes(variant.id) && !datesChanged) {
+            continue;
           }
 
-          const newVariant = await newVariantResponse.json();
-          if (!newVariant.isAvailable) {
-            throw new Error('Varian sudah tidak tersedia');
+          const availabilityResponse = await fetch(
+            `/api/products/${variant.productId}/variants/${variant.id}/availability?startDate=${formData.startDate}&endDate=${formData.endDate}&excludeRentalId=${rentalId}`,
+          );
+
+          if (!availabilityResponse.ok) {
+            throw new Error(
+              `Gagal memeriksa ketersediaan varian ${variant.sku}`,
+            );
+          }
+
+          const availability = await availabilityResponse.json();
+          if (!availability.isAvailable) {
+            throw new Error(
+              `Varian ${variant.sku} tidak tersedia untuk tanggal yang dipilih`,
+            );
           }
         }
-        
-        if (Object.keys(changes).length === 0) {
-          setSubmitError('Tidak ada perubahan yang dilakukan');
-          return;
-        }
-    
-        const response = await fetch(`/api/rentals/${rentalId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(changes),
-        });
-    
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Gagal mengupdate transaksi sewa');
-        }
-    
-        // Handle variant change
-        if (variantChanged) {
-          // Mark old variant as available
-          await fetch(`/api/variants/${originalData.variantProductId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ isAvailable: true })
-          });
-    
-          // Mark new variant as unavailable
-          await fetch(`/api/variants/${formData.variantId}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ isAvailable: false })
-          });
-        }
-    
-        setSubmitSuccess(true);
-        if (onSuccess) onSuccess(await response.json());
-        
-        setTimeout(onClose, 1500);
-      } catch (error) {
-        console.error('Update error:', error);
-        setSubmitError(error instanceof Error ? error.message : 'Terjadi kesalahan');
-      } finally {
-        setIsLoading(false);
       }
+
+      const response = await fetch(`/api/rentals/${rentalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengupdate transaksi sewa');
+      }
+
+      setSubmitSuccess(true);
+      if (onSuccess) onSuccess(await response.json());
+
+      setTimeout(onClose, 1500);
+    } catch (error) {
+      console.error('Update error:', error);
+      setSubmitError(
+        error instanceof Error ? error.message : 'Terjadi kesalahan',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const selectedVariant = options
-    .flatMap((product) => product.VariantProducts)
-    .find((variant) => variant.id === parseInt(formData.variantId));
+  const getTotalPrice = () => {
+    return selectedVariants.reduce(
+      (total, variant) => total + (variant.price || 0),
+      0,
+    );
+  };
 
   if (loadingRental) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-        <DialogContent className="max-w-md rounded-lg bg-white">
+        <DialogContent className="max-w-2xl rounded-lg bg-white">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600" />
@@ -410,7 +519,7 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-      <DialogContent className="max-w-md rounded-lg bg-white">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-lg bg-white">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
@@ -488,29 +597,74 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
             </div>
           </div>
 
-          {/* Product */}
+          {/* Selected Products */}
+          {selectedVariants.length > 0 && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Produk Terpilih ({selectedVariants.length})
+              </label>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-2">
+                {selectedVariants.map((variant) => (
+                  <div
+                    key={variant.id}
+                    className="flex items-center justify-between rounded bg-gray-50 p-2"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">
+                        {variant.productName}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        SKU: {variant.sku}
+                        {variant.size && ` • ${variant.size}`}
+                        {variant.color && ` • ${variant.color}`}
+                        {variant.price &&
+                          ` • Rp ${variant.price.toLocaleString()}`}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeVariant(variant.id)}
+                      className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                      disabled={isLoading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {selectedVariants.some((v) => v.price) && (
+                  <div className="mt-2 border-t pt-2">
+                    <div className="text-right text-sm font-medium">
+                      Total: Rp {getTotalPrice().toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Add Product */}
           <div>
-            <label className="mb-1 block text-sm font-medium">Produk *</label>
+            <label className="mb-1 block text-sm font-medium">
+              Tambah Produk *
+            </label>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
                   className="w-full justify-between"
                   disabled={productSearching || isLoading}
                 >
-                  {selectedVariant
-                    ? `${
-                        options.find((p) =>
-                          p.VariantProducts.some(
-                            (v) => v.id === parseInt(formData.variantId),
-                          ),
-                        )?.name
-                      } - ${selectedVariant.sku}`
-                    : productSearching
-                    ? 'Mencari...'
-                    : 'Pilih Produk...'}
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    {productSearching
+                      ? 'Mencari...'
+                      : 'Pilih Produk untuk Ditambahkan...'}
+                  </div>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -519,7 +673,9 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
                   <CommandInput
                     placeholder="Cari kode produk..."
                     value={search}
-                    onValueChange={setSearch}
+                    onValueChange={(value) => {
+                      setSearch(value);
+                    }}
                   />
                   <CommandList>
                     {productSearching ? (
@@ -531,7 +687,9 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
                         Ketik minimal 2 karakter untuk mencari produk
                       </div>
                     ) : options.length === 0 && search.length >= 2 ? (
-                      <CommandEmpty>Produk tidak ditemukan.</CommandEmpty>
+                      <CommandEmpty>
+                        Produk tidak ditemukan atau sudah disewa.
+                      </CommandEmpty>
                     ) : (
                       options.map((product) => (
                         <CommandGroup
@@ -541,33 +699,20 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
                               <span>{product.name}</span>
                               <span className="text-xs text-gray-500">
                                 {product.VariantProducts?.length || 0} varian
+                                tersedia
                               </span>
                             </div>
                           }
                         >
-                          {product.VariantProducts?.map((variant) => (
+                          {product.VariantProducts?.map((variant: any) => (
                             <CommandItem
                               key={variant.id}
                               value={`${product.name} ${variant.sku} ${
                                 variant.size
                               } ${variant.color || ''}`}
-                              onSelect={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  product: product.id.toString(),
-                                  variantId: variant.id.toString(),
-                                }));
-                                setOpen(false);
-                              }}
+                              onSelect={() => addVariant(variant, product)}
                             >
-                              <Check
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  formData.variantId === variant.id.toString()
-                                    ? 'opacity-100'
-                                    : 'opacity-0',
-                                )}
-                              />
+                              <Plus className="mr-2 h-4 w-4 text-green-500" />
                               <div className="flex flex-col gap-1">
                                 <div className="font-medium">{variant.sku}</div>
                                 <div className="text-xs text-gray-500">
@@ -645,6 +790,21 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
             </Select>
           </div>
 
+          {/* Additional Info */}
+          <div>
+            <label className="block text-sm font-medium">
+              Informasi Tambahan
+            </label>
+            <Textarea
+              name="additionalInfo"
+              value={formData.additionalInfo}
+              onChange={handleInputChange}
+              placeholder="Catatan khusus, instruksi khusus, atau informasi tambahan lainnya..."
+              className="mt-1 min-h-[80px]"
+              disabled={isLoading}
+            />
+          </div>
+
           {/* Footer */}
           <DialogFooter className="gap-2 pt-4">
             <DialogClose asChild>
@@ -654,7 +814,12 @@ const EditRentalForm = ({ isOpen, onClose, rentalId, onSuccess }: EditRentalForm
             </DialogClose>
             <Button
               type="submit"
-              disabled={isLoading || !selectedCustomer || submitSuccess}
+              disabled={
+                isLoading ||
+                !selectedCustomer ||
+                selectedVariants.length === 0 ||
+                submitSuccess
+              }
               className="relative"
             >
               {isLoading && (
