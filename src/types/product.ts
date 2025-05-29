@@ -29,7 +29,7 @@ export interface Product {
   images: string[];
   description?: string;
   ownerId: number;
-  owner?: Owner;
+  owner: Owner;
   VariantProducts: ProductVariant[];
   createdAt: string;
   updatedAt: string;

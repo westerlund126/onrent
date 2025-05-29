@@ -6,6 +6,8 @@ import ColumnsTable from 'components/admin/data-tables/CatalogTable';
 import { Button } from '@/components/ui/button';
 import ProductForm from 'components/form/owner/ProductForm';
 import { FaPlus } from 'react-icons/fa';
+import { CldImage, CldUploadButton, CldUploadWidget } from 'next-cloudinary';
+import { useRouter } from 'next/navigation';
 
 const Tables = () => {
   const [productStats, setProductStats] = useState({
@@ -13,7 +15,7 @@ const Tables = () => {
     totalProducts: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false); // 🔹 state for modal visibility
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProductStats = async () => {
@@ -52,6 +54,10 @@ const Tables = () => {
     fetchProductStats();
   }, []);
 
+  const handleAddProductClick = () => {
+    router.push('/owner/catalog/addproduct');
+  };
+
   return (
     <div>
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-2">
@@ -75,7 +81,7 @@ const Tables = () => {
             </div>
             <div className="md:col-span-1 flex items-center justify-center">
               <Button
-  onClick={() => setIsOpen(true)}
+  onClick={handleAddProductClick}
   className="flex flex-col items-center justify-center h-[90px] w-full rounded-[20px] bg-orange-500 text-white text-sm font-semibold hover:brightness-110 transition-all gap-1"
 >
   <FaPlus className="h-7 w-7" />
@@ -88,10 +94,15 @@ const Tables = () => {
 
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
         <ColumnsTable />
+        {/* <CldUploadButton uploadPreset="onrent3636"/>
+  <CldImage
+  width="960"
+  height="600"
+  src="cld-sample-3"
+  sizes="100vw"
+  alt="Description of my image"
+/> */}
       </div>
-
-      {/* 🔹 Modal Form */}
-      <ProductForm isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 };

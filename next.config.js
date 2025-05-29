@@ -15,7 +15,8 @@ const nextConfig = {
       'images.unsplash.com',
       'i.ibb.co',
       'scontent.fotp8-1.fna.fbcdn.net',
-      'onrent.onrent.live'
+      'onrent.onrent.live',
+      'res.cloudinary.com',
     ],
   
     unoptimized: true,

@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { getCategoryOptions } from 'utils/product';
+import ImageUpload from 'components/image-upload/image-upload';
+import { CldImage, CldUploadButton, CldUploadWidget } from 'next-cloudinary';
 
 interface AddProductFormProps {
   isOpen: boolean;
@@ -34,7 +36,7 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
     name: '',
     category: 'LAINNYA',
     description: '',
-    images: ['http://onrent.onrent.live/P1.jpg'], // Default image
+    images: [], // Default image
   });
 
   const [variants, setVariants] = useState([
@@ -108,7 +110,7 @@ const AddProductForm = ({ isOpen, onClose }: AddProductFormProps) => {
       name: '',
       category: 'LAINNYA',
       description: '',
-      images: ['http://onrent.onrent.live/P1.jpg'],
+      images: [],
     });
     setVariants([
       {
@@ -141,6 +143,11 @@ return;
     toast.error("Lengkapi semua data varian");      
     return;
     }
+
+    if (product.images.length === 0) {
+  toast.error("Upload minimal satu gambar produk");
+  return;
+}
 
     // Convert string values to numbers for numeric fields
     const processedVariants = variants.map(variant => ({
@@ -206,6 +213,19 @@ toast.error("Gagal menambahkan produk", {
   };
 
   const categoryOptions = getCategoryOptions();
+  const handleImageUpload = (url: string) => {
+  setProduct(prev => ({
+    ...prev,
+    images: [...prev.images, url]
+  }));
+};
+
+const handleImageRemove = (url: string) => {
+  setProduct(prev => ({
+    ...prev,
+    images: prev.images.filter(image => image !== url)
+  }));
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -265,6 +285,25 @@ toast.error("Gagal menambahkan produk", {
                       disabled={isSubmitting}
                     />
                   </div>
+
+                  <div>
+  <Label className="block text-sm font-medium mb-2">Gambar Produk</Label>
+  <ImageUpload
+    onChange={handleImageUpload}
+    onRemove={handleImageRemove}
+    value={product.images}
+    disabled={isSubmitting}
+  />
+  <CldImage
+  width="960"
+  height="600"
+  src="cld-sample-3"
+  sizes="100vw"
+  alt="Description of my image"
+/>
+
+
+</div>
                 </div>
 
                 {/* Variant Section */}

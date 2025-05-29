@@ -16,14 +16,18 @@ import { toast } from 'sonner';
 import { formatCategoryName } from 'utils/product';
 import EditProductDialog from 'components/catalog/EditProduct';
 import {
-  Dialog,
-  DialogContent,
-  DialogOverlay,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog'; 
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
+import { AlertDialogOverlay } from '@radix-ui/react-alert-dialog';
 
 interface ProductDeleteConfirmation {
   isOpen: boolean;
@@ -354,48 +358,40 @@ const ProductCatalog = () => {
         </div>
 
         {/* Variant Delete Confirmation */}
-        <Dialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelDelete()}>
-  <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-  <DialogContent className="max-w-md bg-white rounded-lg p-6 space-y-6">
-    <DialogHeader>
-      <DialogTitle>Hapus Varian</DialogTitle>
-      <DialogDescription>
-        Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
-      </DialogDescription>
-    </DialogHeader>
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" onClick={cancelDelete}>
-        Batal
-      </Button>
-      <Button variant="destructive" onClick={handleDeleteVariant}>
-        Hapus
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
+        <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelDelete()}>
+                      <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
 
+  <AlertDialogContent className='bg-white'>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Hapus Varian?</AlertDialogTitle>
+      <AlertDialogDescription>
+        Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Batal</AlertDialogCancel>
+      <AlertDialogAction onClick={handleDeleteVariant}>Hapus</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
 
         {/* Product Delete Confirmation */}
       
-          <Dialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()}>
-  <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-  <DialogContent className="max-w-md bg-white rounded-lg p-6 space-y-6">
-    <DialogHeader>
-      <DialogTitle>Hapus Produk</DialogTitle>
-      <DialogDescription>
-        Apakah Anda yakin ingin menghapus produk <span className="font-semibold">"{productDeleteConfirmation.productName}"</span>? Semua varian dari produk ini akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
-      </DialogDescription>
-    </DialogHeader>
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" onClick={cancelProductDelete}>
-        Batal
-      </Button>
-      <Button variant="destructive" onClick={handleDeleteProduct}>
-        Hapus
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
+          <AlertDialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()} >
+            <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+  <AlertDialogContent className='bg-white'>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Hapus Produk?</AlertDialogTitle>
+      <AlertDialogDescription>
+        Apakah Anda yakin ingin menghapus produk <b>"{productDeleteConfirmation.productName}"</b>? Semua varian dari produk ini akan ikut terhapus.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Batal</AlertDialogCancel>
+      <AlertDialogAction onClick={handleDeleteProduct}>Hapus</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
         
       </Card>
 

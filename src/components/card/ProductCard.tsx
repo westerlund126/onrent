@@ -8,7 +8,7 @@ type ProductCardProps = {
     id: number;
     name: string;
     images: string[];
-    owner: { id: number; name: string };
+    owner: { id: number; username: string };
     VariantProducts: {
       id: number;
       price: number;

@@ -6,3 +6,8 @@ body {
 option {
   color: black;
 }
+
+.cloudinary-widget {
+  z-index: 9999 !important;
+  
+}

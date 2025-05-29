@@ -144,3 +144,20 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const products = await prisma.products.findMany({
+      include: {
+        VariantProducts: true,
+        owner: { select: { id: true, username: true } },
+      },
+    });
+    return NextResponse.json(products);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch products' },
+      { status: 500 },
+    );
+  }
+}
