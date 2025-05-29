@@ -1,3 +1,4 @@
+//app/customer/layout.tsx
 'use client';
 import { usePathname } from 'next/navigation';
 import { useContext, useState } from 'react';
@@ -12,7 +13,7 @@ import Navbar from 'components/navbar/customer';
 // import Sidebar from 'components/sidebar';
 import Footer from 'components/footer/Footer';
 
-export default function Owner({ children }: { children: React.ReactNode }) {
+export default function Customer({ children }: { children: React.ReactNode }) {
   // states and functions
   const [open, setOpen] = useState(false);
   const pathname = usePathname();

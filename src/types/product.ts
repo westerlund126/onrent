@@ -21,7 +21,7 @@ export interface Product {
   ownerId: number;
   owner: {
     id: number;
-    name: string;
+    username: string;
   };
   VariantProducts: ProductVariant[];
 }

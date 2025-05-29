@@ -128,8 +128,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     if (onViewDetails) {
       onViewDetails(rentalId);
     } else {
-      // router.push(`/owner/transaction/${rentalId}`);
-      router.push(`/owner/transaction/mockDetails`);
+      router.push(`/owner/transaction/${rentalId}`);
+      // router.push(`/owner/transaction/mockDetails`);
     }
   };
 
@@ -178,7 +178,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       </button>
     </div>
   );
-
 
   if (loading) {
     return (
