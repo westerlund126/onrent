@@ -163,16 +163,11 @@ const TransactionDetailPage = () => {
   const discount = 0;
   const total = subtotal + tax + shippingFee - discount;
 
-
-  /* Early return                                       */
-  /* -------------------------------------------------- */
   if (loading) return <div className="p-6">Loading…</div>;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!rental) return <div className="p-6">Transaction not found</div>;
 
-  /* -------------------------------------------------- */
-  /* UI helpers (same as before)                        */
-  /* -------------------------------------------------- */
+
   const getStatusBadge = (status: RentalDetail['status']) => {
     const statusConfig = {
       BELUM_LUNAS: {
@@ -180,10 +175,10 @@ const TransactionDetailPage = () => {
         variant: 'destructive',
         icon: XCircle,
       },
-      LUNAS: { label: 'Lunas', variant: 'default', icon: CheckCircle },
+      LUNAS: { label: 'Lunas', variant: 'secondary', icon: CheckCircle },
       TERLAMBAT: {
         label: 'Terlambat',
-        variant: 'destructive',
+        variant: 'secondary',
         icon: AlertCircle,
       },
       SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
@@ -281,9 +276,6 @@ const TransactionDetailPage = () => {
     return { text: `${diffDays} hari lagi`, variant: 'default' as const };
   })();
 
-  /* -------------------------------------------------- */
-  /* JSX – identical to your original, minus mock data  */
-  /* -------------------------------------------------- */
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
@@ -376,9 +368,6 @@ const TransactionDetailPage = () => {
                               <h4 className="font-medium text-gray-900">
                                 {item.variantProduct.products.name}
                               </h4>
-                              <p className="mt-1 text-sm text-gray-600">
-                                {item.variantProduct.products.description}
-                              </p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <Badge variant="outline" className="text-xs">
                                   SKU: {item.variantProduct.sku}

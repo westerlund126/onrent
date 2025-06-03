@@ -97,7 +97,6 @@ export interface RentalUser {
     limit?: number;
   }
   
-  // API Response types
   export interface ApiResponse<T = any> {
     success: boolean;
     message?: string;
@@ -121,4 +120,43 @@ export interface RentalUser {
     startDate?: string;
     endDate?: string;
     variantId?: number;
+  }
+
+  export interface EditRentalFormProps {
+    isOpen: boolean;
+    onClose: () => void;
+    rentalId: number | null;
+    onSuccess?: (rental: any) => void;
+  }
+
+  export interface SelectedVariant {
+    id: number;
+    sku: string;
+    size: string;
+    color?: string;
+    price: number;
+    productName: string;
+    productId: number;
+  }
+
+  export interface RentalFormProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess?: (rental: any) => void;
+  }
+
+  export interface SelectedProduct {
+    id: number;
+    variantId: number;
+    productName: string;
+    sku: string;
+    size?: string;
+    color?: string;
+    price?: number;
+  }
+
+  export interface TransactionTableProps {
+    filters?: RentalFilters;
+    onViewDetails?: (rentalId: number) => void;
+    onEdit?: (rentalId: number) => void;
   }

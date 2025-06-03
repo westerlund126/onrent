@@ -5,19 +5,34 @@ import { skuPrefix, generateSku } from 'utils/sku';
 
 const prisma = new PrismaClient();
 
+export async function GET() {
+  try {
+    const products = await prisma.products.findMany({
+      include: {
+        VariantProducts: true,
+        owner: { select: { id: true, username: true } },
+      },
+    });
+    return NextResponse.json(products);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch products' },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(req: Request) {
   console.log('POST /api/products called');
   try {
     const body = await req.json();
 
-    // Check if it's an array of products (bulk creation)
     if (Array.isArray(body)) {
       const createdProducts = [];
       for (const productData of body) {
         const { name, category, images, ownerId, description, variants } =
           productData;
 
-        // Check if variants exists and is an array before processing
         if (!variants || !Array.isArray(variants)) {
           return NextResponse.json(
             {
@@ -78,10 +93,8 @@ export async function POST(req: Request) {
       return NextResponse.json(createdProducts, { status: 201 });
     }
 
-    // Single product creation
     const { name, category, images, ownerId, description, variants } = body;
 
-    // Check if variants exists and is an array before processing
     if (!variants || !Array.isArray(variants)) {
       return NextResponse.json(
         { error: 'Variants is required and must be an array' },
@@ -145,19 +158,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  try {
-    const products = await prisma.products.findMany({
-      include: {
-        VariantProducts: true,
-        owner: { select: { id: true, username: true } },
-      },
-    });
-    return NextResponse.json(products);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 },
-    );
-  }
-}

@@ -62,7 +62,6 @@ export async function PATCH(
     const body = await req.json();
     const { name, category, images, description, variants } = body;
 
-    // First, get the current product to access its name for SKU generation
     const currentProduct = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: { VariantProducts: true }
@@ -84,14 +83,11 @@ export async function PATCH(
       include: { VariantProducts: true },
     });
 
-    // Handle variants if provided
     if (variants && Array.isArray(variants)) {
-      // Get existing variant IDs to determine which ones to delete
       const existingVariantIds = currentProduct.VariantProducts.map(v => v.id);
       const providedVariantIds = variants.filter(v => v.id).map(v => v.id);
       const variantsToDelete = existingVariantIds.filter(id => !providedVariantIds.includes(id));
 
-      // Delete variants that are no longer present
       if (variantsToDelete.length > 0) {
         await prisma.variantProducts.deleteMany({
           where: {

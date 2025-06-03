@@ -44,24 +44,7 @@ import {
   X,
   Plus,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface EditRentalFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  rentalId: number | null;
-  onSuccess?: (rental: any) => void;
-}
-
-interface SelectedVariant {
-  id: number;
-  sku: string;
-  size: string;
-  color?: string;
-  price: number;
-  productName: string;
-  productId: number;
-}
+import { EditRentalFormProps, SelectedVariant } from 'types/rental';
 
 const EditRentalForm = ({
   isOpen,

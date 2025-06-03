@@ -5,9 +5,10 @@ import {
   MdEdit,
   MdDelete,
   MdVisibility,
+  MdRefresh,
+  MdMoreVert,
 } from 'react-icons/md';
 import Card from 'components/card';
-import CardMenu from 'components/card/CardMenu';
 import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { useRentalStore } from 'stores/useRentalStore';
 import EditRentalForm from 'components/form/owner/EditRentalForm';
@@ -23,15 +24,63 @@ import {
 } from 'utils/rental';
 import { sumBy } from 'lodash';
 import { useRouter } from 'next/navigation';
-
-interface TransactionTableProps {
-  filters?: RentalFilters;
-  onViewDetails?: (rentalId: number) => void;
-  onEdit?: (rentalId: number) => void;
-}
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { TransactionTableProps } from 'types/rental';
 
 const getTotalRentalPrice = (rental: any) =>
   sumBy(rental?.rentalItems ?? [], (ri: any) => ri.variantProduct?.price ?? 0);
+
+const getRentalItemsDisplay = (rental: any) => {
+  if (!rental.rentalItems || rental.rentalItems.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const items = rental.rentalItems.map((item: any) => {
+    const product = item.variantProduct?.products;
+    const variant = item.variantProduct;
+    if (product && variant) {
+      return `${product.name} (${variant.size}, ${variant.color})`;
+    }
+    return 'Item tidak diketahui';
+  });
+
+  if (items.length === 1) {
+    return items[0];
+  } else if (items.length <= 3) {
+    return items.join(', ');
+  } else {
+    return `${items.slice(0, 2).join(', ')} +${items.length - 2} lainnya`;
+  }
+};
+
+// Status color configurations
+const getStatusConfig = (status: RentalStatus) => {
+  switch (status) {
+    case 'BELUM_LUNAS':
+      return { color: 'text-orange-600', bgColor: 'bg-orange-50' };
+    case 'LUNAS':
+      return { color: 'text-blue-600', bgColor: 'bg-blue-50' };
+    case 'TERLAMBAT':
+      return { color: 'text-red-600', bgColor: 'bg-red-50' };
+    case 'SELESAI':
+      return { color: 'text-green-600', bgColor: 'bg-green-50' };
+    default:
+      return { color: 'text-gray-600', bgColor: 'bg-gray-50' };
+  }
+};
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   filters = {},
@@ -128,57 +177,47 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     if (onViewDetails) {
       onViewDetails(rentalId);
     } else {
-      // router.push(`/owner/transaction/${rentalId}`);
-      router.push(`/owner/transaction/mockDetails`);
+      router.push(`/owner/transaction/${rentalId}`);
     }
   };
 
-  const renderStatusBadge = (status: RentalStatus) => {
-    const config = getStatusBadgeConfig(status);
-    return (
-      <span
-        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}
-      >
-        {config.text}
-      </span>
-    );
-  };
-
-  const renderActionButtons = (rental: any) => (
-    <div className="flex items-center space-x-2">
-      <button
-        onClick={() => handleViewDetails(rental.id)}
-        className="rounded p-1 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
-        title="Lihat Detail"
-      >
-        <MdVisibility className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => handleEdit(rental.id)}
-        className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 hover:text-green-800"
-        title="Edit"
-      >
-        <MdEdit className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => openDeleteConfirmation(rental.id, rental.rentalCode)}
-        disabled={isDeletionDisabled(rental.status)}
-        className={`rounded p-1 transition-colors ${
-          isDeletionDisabled(rental.status)
-            ? 'cursor-not-allowed text-gray-400'
-            : 'text-red-600 hover:bg-red-50 hover:text-red-800'
-        }`}
-        title={
-          isDeletionDisabled(rental.status)
-            ? 'Cannot delete active rental'
-            : 'Hapus'
-        }
-      >
-        <MdDelete className="h-4 w-4" />
-      </button>
-    </div>
+  const renderActionDropdown = (rental: any) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MdMoreVert className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => handleViewDetails(rental.id)}
+          className="cursor-pointer"
+        >
+          <MdVisibility className="mr-2 h-4 w-4" />
+          Lihat Detail
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleEdit(rental.id)}
+          className="cursor-pointer"
+        >
+          <MdEdit className="mr-2 h-4 w-4" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => openDeleteConfirmation(rental.id, rental.rentalCode)}
+          disabled={isDeletionDisabled(rental.status)}
+          className={`cursor-pointer ${
+            isDeletionDisabled(rental.status)
+              ? 'cursor-not-allowed text-gray-400'
+              : 'text-red-600 focus:text-red-600'
+          }`}
+        >
+          <MdDelete className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
-
 
   if (loading) {
     return (
@@ -207,7 +246,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               onClick={refreshData}
               className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
             >
-              Caba Lagi
+              Coba Lagi
             </button>
           </div>
         </div>
@@ -221,7 +260,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Daftar Transaksi
         </div>
-        <CardMenu />
+        <Button
+          onClick={refreshData}
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          title="Refresh Table"
+        >
+          <MdRefresh className="h-4 w-4" />
+        </Button>
       </header>
 
       <div className="overflow-x-auto">
@@ -238,13 +285,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 </div>
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Item Rental
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
                 <div className="flex items-center">
                   Total
                   <MdKeyboardArrowDown className="ml-1" />
                 </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
-                Tanggal Mulai
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
                 Tanggal Selesai
@@ -261,58 +308,91 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {rentals.map((rental) => (
-              <tr
-                key={rental.id}
-                className="border-b border-gray-100 transition-colors hover:bg-gray-50"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-secondary-500">
-                      {getCustomerName(rental.user)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {rental.user.username}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-semibold text-secondary-500">
-                  {getCustomerContact(rental.user)}
-                </td>
-                <td className="px-4 py-3 font-semibold text-secondary-500">
-                  {formatCurrency(getTotalRentalPrice(rental))}
-                </td>
-                <td className="px-4 py-3 font-semibold text-secondary-500">
-                  {formatDate(rental.startDate)}
-                </td>
-                <td className="px-4 py-3 font-semibold text-secondary-500">
-                  {formatDate(rental.endDate)}
-                </td>
-                <td className="px-4 py-3">
-                  <select
-                    value={rental.status}
-                    onChange={({ target }) => {
-                      if (target.value !== rental.status) {
-                        handleStatusChange(rental.id, target.value);
-                      }
-                    }}
-                    disabled={statusUpdateLoading === rental.id}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="BELUM_LUNAS">Belum Lunas</option>
-                    <option value="LUNAS">Lunas</option>
-                    <option value="TERLAMBAT">Terlambat</option>
-                    <option value="SELESAI">Selesai</option>
-                  </select>
-                  {statusUpdateLoading === rental.id && (
-                    <div className="mt-1 text-xs text-blue-600">
-                      Memperbarui...
+            {rentals.map((rental) => {
+              const statusConfig = getStatusConfig(rental.status);
+              return (
+                <tr
+                  key={rental.id}
+                  className="border-b border-gray-100 transition-colors hover:bg-gray-50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-secondary-500">
+                        {getCustomerName(rental.user)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {rental.rentalCode}
+                      </span>
                     </div>
-                  )}
-                </td>
-                <td className="px-4 py-3">{renderActionButtons(rental)}</td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {getCustomerContact(rental.user)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="max-w-xs text-sm text-gray-700">
+                      <span
+                        className="block truncate"
+                        title={getRentalItemsDisplay(rental)}
+                      >
+                        {getRentalItemsDisplay(rental)}
+                      </span>
+                      {rental.rentalItems && rental.rentalItems.length > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {rental.rentalItems.length} item
+                          {rental.rentalItems.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {formatCurrency(getTotalRentalPrice(rental))}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {formatDate(rental.endDate)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Select
+                      value={rental.status}
+                      onValueChange={(value) => {
+                        if (value !== rental.status) {
+                          handleStatusChange(rental.id, value);
+                        }
+                      }}
+                      disabled={statusUpdateLoading === rental.id}
+                    >
+                      <SelectTrigger
+                        className={`h-8 w-32 text-xs font-medium ${statusConfig.color} ${statusConfig.bgColor} border-0`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          value="BELUM_LUNAS"
+                          className="text-orange-600"
+                        >
+                          Belum Lunas
+                        </SelectItem>
+                        <SelectItem value="LUNAS" className="text-blue-600">
+                          Lunas
+                        </SelectItem>
+                        <SelectItem value="TERLAMBAT" className="text-red-600">
+                          Terlambat
+                        </SelectItem>
+                        <SelectItem value="SELESAI" className="text-green-600">
+                          Selesai
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {statusUpdateLoading === rental.id && (
+                      <div className="mt-1 text-xs text-blue-600">
+                        Memperbarui...
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{renderActionDropdown(rental)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -333,7 +413,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         )}
       </div>
 
-      {/* edit dialog */}
+      {/* Edit dialog */}
       <EditRentalForm
         isOpen={isEditDialogOpen}
         onClose={() => {
@@ -344,7 +424,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         onSuccess={handleEditSuccess}
       />
 
-      {/* pagination */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
           <div className="text-sm text-gray-700">
@@ -376,7 +456,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
       )}
 
-      {/* delete confirmation */}
+      {/* Delete confirmation */}
       {deleteConfirmation.isOpen && (
         <ConfirmationPopup
           message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}

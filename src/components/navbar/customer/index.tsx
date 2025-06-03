@@ -11,6 +11,7 @@ import {
   IoMdInformationCircleOutline,
 } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 // import Loader from 'components/loader/Loader';
 // import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
@@ -31,16 +32,6 @@ const NavbarCustomer = (props: {
 
   return (
     <>
-      {/* {isLoading && <Loader />} */}
-
-      {/* {showConfirmPopup && (
-        <ConfirmationPopup
-          message="Anda yakin ingin keluar?"
-          onConfirm={handleConfirmLogout}
-          onCancel={handleCancelLogout}
-        />
-      )} */}
-
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
           <div className="h-6 w-[224px] pt-1">
@@ -61,6 +52,7 @@ const NavbarCustomer = (props: {
               {brandText}
             </NavLink>
           </div>
+          
           <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
             <NavLink
               href="#"
@@ -69,6 +61,14 @@ const NavbarCustomer = (props: {
               {brandText}
             </NavLink>
           </p>
+
+          
+          <NavLink
+            href="/customer/catalog"
+            className="ml-2 text-sm font-medium text-navy-700 hover:underline dark:text-white dark:hover:text-white"
+          >
+            Katalog
+          </NavLink>
         </div>
 
         <div className="relative mt-[3px] flex h-[61px] w-[255px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[265px] md:flex-grow-0 md:gap-1 xl:w-[265px] xl:gap-2">
@@ -78,6 +78,7 @@ const NavbarCustomer = (props: {
           >
             <FiAlignJustify className="h-5 w-5" />
           </span>
+
           {/* start Notification */}
           <Dropdown
             button={

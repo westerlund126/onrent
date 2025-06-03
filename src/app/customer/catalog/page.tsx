@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Product } from 'types/product';
 import ProductCard from 'components/card/ProductCard';
 
-const Marketplace = () => {
+const Catalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,4 +135,4 @@ const Marketplace = () => {
   );
 };
 
-export default Marketplace;
+export default Catalog;

@@ -339,7 +339,9 @@ export async function PATCH(
       }
 
       return rental;
-    });
+    },
+    { maxWait: 10000, timeout: 10000 },
+  );
 
     return NextResponse.json({
       success: true,
