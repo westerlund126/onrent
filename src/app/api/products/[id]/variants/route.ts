@@ -10,6 +10,7 @@ export async function GET(
   const productId = Number(params.id);
 
   try {
+    
     const variants = await prisma.variantProducts.findMany({
       where: { productsId: productId },
       orderBy: { createdAt: 'asc' },

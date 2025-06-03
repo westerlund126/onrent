@@ -89,7 +89,43 @@ input:checked.defaultCheckbox::before {
   opacity: 1;
 }
 
+/* ======= Cloudinary Widget Fixes ======= */
+.cloudinary-widget {
+  z-index: 10000 !important;
+}
 
+.cloudinary-widget iframe {
+  z-index: 10000 !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Fix for dialog when Cloudinary is open */
+[data-radix-dialog-overlay].cloudinary-open {
+  z-index: 9998 !important;
+}
+
+[data-radix-dialog-content].cloudinary-open {
+  z-index: 9998 !important;
+}
+
+/* Button styling fixes */
+.cloudinary-button {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Drag and drop area styling */
+.cld-drag-drop-area {
+  border: 2px dashed #ccc !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+  text-align: center !important;
+  background-color: #f9f9f9 !important;
+}
 
 @layer base {
   * {

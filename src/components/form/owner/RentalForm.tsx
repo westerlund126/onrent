@@ -43,23 +43,7 @@ import {
   X,
   Plus,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface RentalFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: (rental: any) => void;
-}
-
-interface SelectedProduct {
-  id: number;
-  variantId: number;
-  productName: string;
-  sku: string;
-  size?: string;
-  color?: string;
-  price?: number;
-}
+import { RentalFormProps, SelectedProduct } from 'types/rental';
 
 const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [formData, setFormData] = useState({
@@ -130,7 +114,6 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
         return;
       }
 
-      // Check cache first
       if (searchCache.has(search)) {
         const cachedResults = searchCache.get(search) || [];
         setOptions(cachedResults);

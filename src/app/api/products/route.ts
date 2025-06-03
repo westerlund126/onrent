@@ -27,14 +27,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Check if it's an array of products (bulk creation)
     if (Array.isArray(body)) {
       const createdProducts = [];
       for (const productData of body) {
         const { name, category, images, ownerId, description, variants } =
           productData;
 
-        // Check if variants exists and is an array before processing
         if (!variants || !Array.isArray(variants)) {
           return NextResponse.json(
             {
@@ -95,10 +93,8 @@ export async function POST(req: Request) {
       return NextResponse.json(createdProducts, { status: 201 });
     }
 
-    // Single product creation
     const { name, category, images, ownerId, description, variants } = body;
 
-    // Check if variants exists and is an array before processing
     if (!variants || !Array.isArray(variants)) {
       return NextResponse.json(
         { error: 'Variants is required and must be an array' },
@@ -161,3 +157,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

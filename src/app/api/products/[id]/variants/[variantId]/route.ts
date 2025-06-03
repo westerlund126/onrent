@@ -67,26 +67,49 @@ export async function DELETE(
 ) {
   try {
     const params = await Promise.resolve(context.params);
+    const productId = parseInt(params.id);
+    const variantId = parseInt(params.variantId);
     
     const variant = await prisma.variantProducts.findFirst({
       where: {
-        id: parseInt(params.variantId),
-        productsId: parseInt(params.id)
+        id: variantId,
+        productsId: productId
       }
     });
 
     if (!variant) {
-      return NextResponse.json({ error: 'Variant not found or does not belong to this product' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'Variant not found or does not belong to this product' 
+      }, { status: 404 });
     }
 
+    // Delete the variant
     const deleted = await prisma.variantProducts.delete({
-      where: { 
-        id: parseInt(params.variantId),
-      },
+      where: { id: variantId },
     });
 
+    // Check if this was the last variant for the product
+    const remainingVariants = await prisma.variantProducts.count({
+      where: { productsId: productId }
+    });
+
+    // If no variants remain, delete the product
+    if (remainingVariants === 0) {
+      await prisma.products.delete({
+        where: { id: productId }
+      });
+      
+      return NextResponse.json({ 
+        success: true, 
+        deleted,
+        productDeleted: true,
+        message: 'Variant and product deleted as no variants remain'
+      });
+    }
+
+    // Get updated product with remaining variants
     const updatedProduct = await prisma.products.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: productId },
       include: {
         VariantProducts: true,
         owner: { select: { id: true, username: true } },
@@ -96,6 +119,7 @@ export async function DELETE(
     return NextResponse.json({ 
       success: true, 
       deleted,
+      productDeleted: false,
       product: updatedProduct
     });
   } catch (error) {
