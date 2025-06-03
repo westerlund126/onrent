@@ -16,7 +16,15 @@ export async function GET(
       where: { id: parseInt(params.id) },
       include: {
         VariantProducts: true,
-        owner: { select: { id: true, username: true } },
+        owner: { 
+          select: { 
+            id: true, 
+            username: true, 
+            imageUrl: true,
+            businessName: true,
+            phone_numbers: true
+          } 
+        },
       },
     });
 
@@ -24,7 +32,21 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    return NextResponse.json(product);
+    // Count total products by this owner
+    const ownerProductCount = await prisma.products.count({
+      where: { ownerId: product.ownerId }
+    });
+
+    // Add totalProducts to the owner object
+    const productWithOwnerInfo = {
+      ...product,
+      owner: {
+        ...product.owner,
+        totalProducts: ownerProductCount
+      }
+    };
+
+    return NextResponse.json(productWithOwnerInfo);
   } catch (error) {
     console.error('Failed to fetch product:', error);
     return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
@@ -138,16 +160,38 @@ export async function PATCH(
       }
     }
 
-    // Fetch the updated product with variants
+    // Fetch the updated product with variants and owner info
     const productWithVariants = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: { 
         VariantProducts: true,
-        owner: { select: { id: true, username: true } }
+        owner: { 
+          select: { 
+            id: true, 
+            username: true, 
+            imageUrl: true,
+            businessName: true,
+            phone_numbers: true
+          } 
+        }
       },
     });
 
-    return NextResponse.json(productWithVariants);
+    // Count total products by this owner
+    const ownerProductCount = await prisma.products.count({
+      where: { ownerId: productWithVariants?.ownerId }
+    });
+
+    // Add totalProducts to the owner object
+    const finalProduct = productWithVariants ? {
+      ...productWithVariants,
+      owner: {
+        ...productWithVariants.owner,
+        totalProducts: ownerProductCount
+      }
+    } : null;
+
+    return NextResponse.json(finalProduct);
   } catch (error) {
     console.error('Failed to update product:', error);
     return NextResponse.json(

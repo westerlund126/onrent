@@ -18,8 +18,12 @@ export interface ProductVariant {
 }
 
 export interface Owner {
+  totalProducts: number;
   id: number;
   username: string;
+  imageUrl?: string;
+  businessName?: string;
+  phone_numbers?: string;
 }
 
 export interface Product {
