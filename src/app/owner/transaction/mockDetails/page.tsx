@@ -36,6 +36,7 @@ import {
   Download,
   CreditCard,
 } from 'lucide-react';
+import Image from 'next/image';
 
 const mockRentalData = {
   id: 1,
@@ -324,7 +325,7 @@ const TransactionDetailPage = () => {
                         <TableCell>
                           <div className="flex gap-3">
                             <div className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-100">
-                              <img
+                              <Image
                                 src={item.variantProduct.products.images[0]}
                                 alt={item.variantProduct.products.name}
                                 className="h-full w-full object-cover"

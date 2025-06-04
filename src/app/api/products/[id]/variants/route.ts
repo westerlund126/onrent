@@ -5,16 +5,17 @@ import { skuPrefix, generateSku } from 'utils/sku';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> }, // Changed: params is now a Promise
 ) {
-  const productId = Number(params.id);
-
   try {
-    
+    const resolvedParams = await params; // Changed: await the params
+    const productId = Number(resolvedParams.id);
+   
     const variants = await prisma.variantProducts.findMany({
       where: { productsId: productId },
       orderBy: { createdAt: 'asc' },
     });
+
     return NextResponse.json(variants);
   } catch (err) {
     console.error(err);
@@ -27,24 +28,26 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> }, // Changed: params is now a Promise
 ) {
-  const productId = Number(params.id);
-  const body = await req.json();
-  const { size, price, color, ...rest } = body;
-
-  if (!size || !price || !color) {
-    return NextResponse.json(
-      { error: 'Missing required fields: size, price, or color' },
-      { status: 400 },
-    );
-  }
-
   try {
+    const resolvedParams = await params; // Changed: await the params
+    const productId = Number(resolvedParams.id);
+    const body = await req.json();
+    const { size, price, color, ...rest } = body;
+
+    if (!size || !price || !color) {
+      return NextResponse.json(
+        { error: 'Missing required fields: size, price, or color' },
+        { status: 400 },
+      );
+    }
+
     const product = await prisma.products.findUnique({
       where: { id: productId },
       select: { category: true },
     });
+
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }

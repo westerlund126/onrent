@@ -1,7 +1,6 @@
 // components/ProductCatalog.tsx
 import Card from 'components/card';
 import CardMenu from 'components/card/CardMenu';
-import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import React, { useEffect, useState } from 'react';
 import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit, MdDelete } from 'react-icons/md';
 import { 
@@ -14,7 +13,6 @@ import { DeleteConfirmation, Product, StatusType } from 'types/product';
 import { ProductDetails } from 'components/catalog/ProductDetails';
 import { toast } from 'sonner';
 import { formatCategoryName } from 'utils/product';
-import EditProductDialog from 'components/catalog/EditProduct';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -28,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { AlertDialogOverlay } from '@radix-ui/react-alert-dialog';
+import { useRouter } from 'next/navigation';
 
 interface ProductDeleteConfirmation {
   isOpen: boolean;
@@ -36,12 +35,11 @@ interface ProductDeleteConfirmation {
 }
 
 const ProductCatalog = () => {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
     isOpen: false,
     variantId: null,
@@ -75,15 +73,8 @@ const ProductCatalog = () => {
     setExpandedProductId(expandedProductId === productId ? null : productId);
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleProductUpdated = (updatedProduct: Product) => {
-    setProducts(products.map(p => 
-      p.id === updatedProduct.id ? updatedProduct : p
-    ));
+   const handleEditProduct = (product: Product) => {
+    router.push(`/owner/catalog/editproduct/${product.id}`);
   };
 
   const openProductDeleteConfirmation = (productId: number, productName: string) => {
@@ -394,16 +385,6 @@ const ProductCatalog = () => {
 </AlertDialog>
         
       </Card>
-
-      <EditProductDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          setIsEditDialogOpen(false);
-          setEditingProduct(null);
-        }}
-        product={editingProduct}
-        onProductUpdated={handleProductUpdated}
-      />
     </>
   );
 };

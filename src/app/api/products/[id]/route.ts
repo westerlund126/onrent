@@ -7,24 +7,16 @@ const prisma = new PrismaClient();
 
 export async function GET(
   req: Request, 
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     
     const product = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: {
         VariantProducts: true,
-        owner: { 
-          select: { 
-            id: true, 
-            username: true, 
-            imageUrl: true,
-            businessName: true,
-            phone_numbers: true
-          } 
-        },
+        owner: { select: { id: true, username: true } },
       },
     });
 
@@ -32,21 +24,7 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Count total products by this owner
-    const ownerProductCount = await prisma.products.count({
-      where: { ownerId: product.ownerId }
-    });
-
-    // Add totalProducts to the owner object
-    const productWithOwnerInfo = {
-      ...product,
-      owner: {
-        ...product.owner,
-        totalProducts: ownerProductCount
-      }
-    };
-
-    return NextResponse.json(productWithOwnerInfo);
+    return NextResponse.json(product);
   } catch (error) {
     console.error('Failed to fetch product:', error);
     return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
@@ -55,10 +33,10 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     const body = await req.json();
     const { name, category, images, description, variants } = body;
 
@@ -156,38 +134,16 @@ export async function PATCH(
       }
     }
 
-    // Fetch the updated product with variants and owner info
+    // Fetch the updated product with variants
     const productWithVariants = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: { 
         VariantProducts: true,
-        owner: { 
-          select: { 
-            id: true, 
-            username: true, 
-            imageUrl: true,
-            businessName: true,
-            phone_numbers: true
-          } 
-        }
+        owner: { select: { id: true, username: true } }
       },
     });
 
-    // Count total products by this owner
-    const ownerProductCount = await prisma.products.count({
-      where: { ownerId: productWithVariants?.ownerId }
-    });
-
-    // Add totalProducts to the owner object
-    const finalProduct = productWithVariants ? {
-      ...productWithVariants,
-      owner: {
-        ...productWithVariants.owner,
-        totalProducts: ownerProductCount
-      }
-    } : null;
-
-    return NextResponse.json(finalProduct);
+    return NextResponse.json(productWithVariants);
   } catch (error) {
     console.error('Failed to update product:', error);
     return NextResponse.json(
@@ -202,10 +158,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     
     // First, delete all variants associated with the product
     await prisma.variantProducts.deleteMany({

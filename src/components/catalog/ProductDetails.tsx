@@ -1,4 +1,5 @@
 // components/product/ProductDetails.tsx
+import Image from 'next/image';
 import { Product, StatusType } from '../../types/product';
 import { ProductVariantCard } from './ProductVariantCard';
 
@@ -18,7 +19,7 @@ export const ProductDetails = ({ product, onStatusChange, onDeleteClick }: Produ
             product.images.slice(0, 4).map((img, idx) => (
               <div key={idx}>
                 <div className="w-24 h-36 bg-gray-200 rounded flex items-center justify-center">
-                  <img 
+                  <Image 
                     src={img} 
                     alt="..." 
                     className="w-full h-full object-cover rounded" 

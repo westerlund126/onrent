@@ -37,6 +37,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 /* ------------------------------------------------------------------ */
 /* Type helpers – adjust to your /types/* file if you already have it */
@@ -355,7 +356,7 @@ const TransactionDetailPage = () => {
                         <TableCell>
                           <div className="flex gap-3">
                             <div className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-100">
-                              <img
+                              <Image
                                 src={
                                   item.variantProduct.products.images[0] ??
                                   '/placeholder.svg'

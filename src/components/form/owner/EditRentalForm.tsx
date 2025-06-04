@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Popover,
   PopoverContent,
@@ -87,15 +87,9 @@ const EditRentalForm = ({
   // Debug state
   const [debugInfo, setDebugInfo] = useState('');
 
-  useEffect(() => {
-    if (isOpen && rentalId) {
-      loadRentalData();
-    } else if (!isOpen) {
-      resetForm();
-    }
-  }, [isOpen, rentalId]);
-
-  const loadRentalData = async () => {
+  const loadRentalData = useCallback(async () => {
+    if (!rentalId) return;
+    
     setLoadingRental(true);
     setSubmitError('');
 
@@ -144,9 +138,9 @@ const EditRentalForm = ({
     } finally {
       setLoadingRental(false);
     }
-  };
+  }, [rentalId]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       customerId: '',
       startDate: '',
@@ -165,7 +159,34 @@ const EditRentalForm = ({
     setOptions([]);
     setSearchCache(new Map());
     setDebugInfo('');
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && rentalId) {
+      loadRentalData();
+    } else if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen, rentalId, loadRentalData, resetForm]);
+
+  const filterAvailableVariants = useCallback((results: any[]) => {
+    const selectedVariantIds = selectedVariants.map((v) => v.id);
+
+    return results
+      .map((product) => {
+        const availableVariants =
+          product.VariantProducts?.filter((variant: any) => {
+            const isNotSelected = !selectedVariantIds.includes(variant.id);
+            return variant.isAvailable && !variant.isRented && isNotSelected;
+          }) || [];
+
+        return {
+          ...product,
+          VariantProducts: availableVariants,
+        };
+      })
+      .filter((product) => product.VariantProducts.length > 0);
+  }, [selectedVariants]);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -233,26 +254,7 @@ const EditRentalForm = ({
       clearTimeout(timer);
       setProductSearching(false);
     };
-  }, [search, searchCache, originalData, selectedVariants]);
-
-  const filterAvailableVariants = (results: any[]) => {
-    const selectedVariantIds = selectedVariants.map((v) => v.id);
-
-    return results
-      .map((product) => {
-        const availableVariants =
-          product.VariantProducts?.filter((variant: any) => {
-            const isNotSelected = !selectedVariantIds.includes(variant.id);
-            return variant.isAvailable && !variant.isRented && isNotSelected;
-          }) || [];
-
-        return {
-          ...product,
-          VariantProducts: availableVariants,
-        };
-      })
-      .filter((product) => product.VariantProducts.length > 0);
-  };
+  }, [search, searchCache, originalData, filterAvailableVariants]);
 
   const handleCustomerSearch = async (
     e: React.KeyboardEvent<HTMLInputElement>,
