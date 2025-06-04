@@ -70,11 +70,12 @@
     "zustand": "^5.0.4"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "export": "next export",
-    "lint": "next lint"
+	  "build": "prisma generate && prisma db push && next build",
+	  "dev": "prisma generate && next dev",
+	  "start": "next start",
+	  "lint": "next lint",
+	  "postinstall": "prisma generate",
+	  "sitemap": "next-sitemap"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
