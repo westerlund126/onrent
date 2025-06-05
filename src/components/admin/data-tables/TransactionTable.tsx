@@ -462,7 +462,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}
           onConfirm={handleDeleteRental}
           onCancel={cancelDelete}
-          loading={deleteLoading}
         />
       )}
     </Card>

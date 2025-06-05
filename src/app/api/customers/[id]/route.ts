@@ -4,7 +4,7 @@ import { prisma } from 'lib/prisma';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> }, // Changed: params is now a Promise
 ) {
   try {
     const { userId: callerClerkId } = await auth(); 
@@ -12,7 +12,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const id = Number(params.id);
+    // Changed: await the params Promise
+    const resolvedParams = await params;
+    const id = Number(resolvedParams.id);
+    
     if (Number.isNaN(id)) {
       return NextResponse.json(
         { error: 'Invalid customer ID' },
@@ -32,6 +35,7 @@ export async function GET(
         clerkUserId: true,
       },
     });
+
     if (!userRow) {
       return NextResponse.json(
         { error: 'Customer not found' },

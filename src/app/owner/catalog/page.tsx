@@ -2,7 +2,7 @@
 import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import ColumnsTable from 'components/admin/data-tables/CatalogTable';
+import CatalogTable from 'components/admin/data-tables/CatalogTable';
 import { Button } from '@/components/ui/button';
 import ProductForm from 'components/form/owner/ProductForm';
 import { FaPlus } from 'react-icons/fa';
@@ -93,7 +93,7 @@ const Tables = () => {
       </div>
 
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
-        <ColumnsTable />
+        <CatalogTable />
         {/* <CldUploadButton uploadPreset="onrent3636"/>
   <CldImage
   width="960"

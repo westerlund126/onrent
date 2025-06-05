@@ -52,7 +52,7 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
           Rp {minPrice.toLocaleString('id-ID')}
         </p>
         <button className="linear rounded-[20px] bg-brand-900 px-4 py-2 text-base font-medium text-white transition duration-200 hover:bg-brand-800 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90">
-          Sewa
+          Jadwalkan
         </button>
         </div>
       </div>

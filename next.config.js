@@ -1,11 +1,9 @@
 /** @type {import('next').NextConfig} */
 
-// const withTM = require('next-transpile-modules')(['@babel/preset-react']);
-//   '@fullcalendar/common',
-//   '@fullcalendar/common',
-//   '@fullcalendar/daygrid',
-//   '@fullcalendar/interaction',
-//   '@fullcalendar/react',
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development', 
+});
 
 const nextConfig = {
   basePath: process.env.NEXT_PUBLIC_BASE_PATH,
@@ -18,10 +16,8 @@ const nextConfig = {
       'onrent.onrent.live',
       'res.cloudinary.com',
     ],
-  
     unoptimized: true,
   },
-}
+};
 
-
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);

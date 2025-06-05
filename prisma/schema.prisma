@@ -165,7 +165,6 @@ enum FittingStatus {
   REJECTED
   COMPLETED
   CANCELED
-  RESCHEDULED
 }
 
 enum TrackingStatus {

@@ -5,14 +5,14 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function GET(
-  req: Request, 
-  context: { params: { id: string; variantId: string } }
+  req: Request,
+  context: { params: Promise<{ id: string; variantId: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
-    
+    const params = await context.params; // Changed: directly await params
+   
     const variant = await prisma.variantProducts.findUnique({
-      where: { 
+      where: {
         id: parseInt(params.variantId),
       },
     });
@@ -30,16 +30,16 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  context: { params: { id: string; variantId: string } }
+  context: { params: Promise<{ id: string; variantId: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
-    
+    const params = await context.params; // Changed: directly await params
+   
     const body = await req.json();
     const { size, color, price, isRented, isAvailable, bustlength, waistlength, length } = body;
 
     const updatedVariant = await prisma.variantProducts.update({
-      where: { 
+      where: {
         id: parseInt(params.variantId),
       },
       data: {
@@ -63,13 +63,13 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  context: { params: { id: string; variantId: string } }
+  context: { params: Promise<{ id: string; variantId: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     const productId = parseInt(params.id);
     const variantId = parseInt(params.variantId);
-    
+   
     const variant = await prisma.variantProducts.findFirst({
       where: {
         id: variantId,
@@ -78,8 +78,8 @@ export async function DELETE(
     });
 
     if (!variant) {
-      return NextResponse.json({ 
-        error: 'Variant not found or does not belong to this product' 
+      return NextResponse.json({
+        error: 'Variant not found or does not belong to this product'
       }, { status: 404 });
     }
 
@@ -98,9 +98,9 @@ export async function DELETE(
       await prisma.products.delete({
         where: { id: productId }
       });
-      
-      return NextResponse.json({ 
-        success: true, 
+     
+      return NextResponse.json({
+        success: true,
         deleted,
         productDeleted: true,
         message: 'Variant and product deleted as no variants remain'
@@ -116,8 +116,8 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       deleted,
       productDeleted: false,
       product: updatedProduct

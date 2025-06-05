@@ -6,7 +6,7 @@ import { TrackingStatus } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> }, // Updated type
 ) {
   try {
     const { userId } = await auth();
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Direct await, no Promise.resolve needed
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {
@@ -95,7 +95,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> }, // Updated type
 ) {
   try {
     const { userId } = await auth();
@@ -103,7 +103,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Direct await
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {
@@ -225,8 +225,8 @@ export async function PATCH(
 
               if (conflict) {
                 throw new Error(
-                  `Variant ${variant.sku} is already rented for the selected dates`,
-                );
+                  `Variant ${variant.sku} is already rented for the selected dates,
+                `);
               }
 
               return variant;
@@ -359,7 +359,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> }, // Updated type
 ) {
   try {
     const { userId } = await auth();
@@ -367,7 +367,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Direct await
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {

@@ -7,10 +7,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   req: Request, 
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     
     const product = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
@@ -33,10 +33,10 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     const body = await req.json();
     const { name, category, images, description, variants } = body;
 
@@ -158,10 +158,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
 ) {
   try {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params; // Changed: directly await params
     
     // First, delete all variants associated with the product
     await prisma.variantProducts.deleteMany({

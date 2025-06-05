@@ -4,7 +4,7 @@ import { prisma } from 'lib/prisma';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -12,7 +12,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const rentalId = Number(params.id);
+    const resolvedParams = await params; // Await the params Promise
+    const rentalId = Number(resolvedParams.id);
     if (Number.isNaN(rentalId)) {
       return NextResponse.json({ error: 'Invalid rental ID' }, { status: 400 });
     }
