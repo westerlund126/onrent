@@ -20,7 +20,9 @@ export const ProductDetails = ({ product, onStatusChange, onDeleteClick }: Produ
               <div key={idx}>
                 <div className="w-24 h-36 bg-gray-200 rounded flex items-center justify-center">
                   <Image 
-                    src={img} 
+                    src={img}
+                    width={96}
+                    height={144}
                     alt="..." 
                     className="w-full h-full object-cover rounded" 
                   />

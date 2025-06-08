@@ -28,6 +28,8 @@ model User {
   Wishlist          Wishlist[]
 
   FittingSlot FittingSlot[]
+  WeeklySlot  WeeklySlot[]
+  ScheduleBlock ScheduleBlock[]
 }
 
 model Products {
@@ -116,28 +118,48 @@ model Return {
 }
 
 model FittingSchedule {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   userId        Int
-  fittingSlotId Int      @unique
+  fittingSlotId Int       @unique
+  duration      Int
   note          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   status        FittingStatus @default(PENDING)
-  user          User     @relation(fields: [userId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
   fittingSlot   FittingSlot @relation(fields: [fittingSlotId], references: [id])
   FittingProduct FittingProduct[]
 }
 
 model FittingSlot {
-  id            Int      @id @default(autoincrement())
-  ownerId       Int
-  dateTime      DateTime
-  isAutoConfirm Boolean  @default(false)
-  isBooked      Boolean  @default(false)
-  owner         User     @relation(fields: [ownerId], references: [id])
+  id              Int         @id @default(autoincrement())
+  ownerId         Int
+  dateTime        DateTime
+  isAutoConfirm   Boolean     @default(false)
+  isBooked        Boolean     @default(false)
+  owner           User        @relation(fields: [ownerId], references: [id])
   fittingSchedule FittingSchedule?
 }
 
+model WeeklySlot {
+  id        Int     @id @default(autoincrement())
+  ownerId   Int
+  dayOfWeek Int
+  isEnabled  Boolean @default(true)
+  startTime String
+  endTime   String
+  owner           User        @relation(fields: [ownerId], references: [id])
+  @@unique([ownerId, dayOfWeek])
+}
+
+model ScheduleBlock {
+  id          Int      @id @default(autoincrement())
+  ownerId     Int
+  startTime   DateTime
+  endTime     DateTime
+  description String
+  owner           User        @relation(fields: [ownerId], references: [id])
+}
 model FittingProduct {
   fittingId  Int
   productId  Int
