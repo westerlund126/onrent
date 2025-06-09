@@ -24,6 +24,8 @@ export interface Owner {
   imageUrl?: string;
   businessName?: string;
   phone_numbers?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface Product {

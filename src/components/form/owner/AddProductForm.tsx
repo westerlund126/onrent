@@ -285,7 +285,7 @@ const AddProductForm = () => {
                   <Input
                     id={`color-${index}`}
                     name="color"
-                    placeholder="Merah, Biru, dll"
+                    placeholder="Red, Blue, dll"
                     value={variant.color}
                     onChange={(e) => handleVariantChange(index, e)}
                     disabled={isSubmitting}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -41,6 +42,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
           throw new Error('Product not found');
         }
         const data = await response.json();
+        console.log('Product data:', data); // Debug log
         setProduct(data);
         
         // Set the first available variant as selected by default, or first variant if none available
@@ -58,14 +60,16 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
     const fetchRelatedProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        const response = await fetch(`/api/products`);
         if (response.ok) {
           const data = await response.json();
           // Filter out current product and limit to 5 items
-          const filtered = data
-            .filter((p: Product) => p.id !== parseInt(productId))
-            .slice(0, 5);
-          setRelatedProducts(filtered);
+          if (Array.isArray(data)) {
+            const filtered = data
+              .filter((p: Product) => p.id !== parseInt(productId))
+              .slice(0, 5);
+            setRelatedProducts(filtered);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch related products:', err);
@@ -135,34 +139,37 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   };
 
   const handleWhatsAppContact = () => {
-  if (!product || !product.owner?.phone_numbers) {
-    toast.error("Nomor telepon tidak tersedia", {
-      description: "Pemilik produk tidak memiliki nomor telepon terdaftar",
+    console.log('Product owner:', product?.owner); // Debug log
+    
+    if (!product || !product.owner?.phone_numbers) {
+      toast.error("Nomor telepon tidak tersedia", {
+        description: "Pemilik produk tidak memiliki nomor telepon terdaftar",
+      });
+      return;
+    }
+
+    // Clean and format the phone number
+    let phoneNumber = product.owner.phone_numbers.replace(/\D/g, ''); // Remove non-digit characters
+    
+    // Convert to WhatsApp format (62xxxxxxxxxx)
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = '62' + phoneNumber.substring(1);
+    } else if (phoneNumber.startsWith('+62')) {
+      phoneNumber = phoneNumber.substring(1); // Remove the '+'
+    } else if (!phoneNumber.startsWith('62')) {
+      phoneNumber = '62' + phoneNumber;
+    }
+
+    const message = `Halo, saya tertarik dengan produk ${product.name}. Apakah masih tersedia?`;
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    console.log("WhatsApp URL:", url);
+    window.open(url, '_blank');
+    
+    toast.success("Membuka WhatsApp", {
+      description: "Mengarahkan ke WhatsApp untuk menghubungi pemilik",
+      className:"text-green-700",
     });
-    return;
-  }
-
-  // Clean and format the phone number
-  let phoneNumber = product.owner.phone_numbers.replace(/\D/g, ''); // Remove non-digit characters
-  
-  // Convert to WhatsApp format (62xxxxxxxxxx)
-  if (phoneNumber.startsWith('0')) {
-    phoneNumber = '62' + phoneNumber.substring(1);
-  } else if (phoneNumber.startsWith('+62')) {
-    phoneNumber = phoneNumber.substring(1); // Remove the '+'
-  } else if (!phoneNumber.startsWith('62')) {
-    phoneNumber = '62' + phoneNumber;
-  }
-
-  const message = `Halo, saya tertarik dengan produk ${product.name}. Apakah masih tersedia?`;
-  const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-  console.log("WhatsApp URL:", url);
-  window.open(url, '_blank');
-  
-  toast.success("Membuka WhatsApp", {
-    description: "Mengarahkan ke WhatsApp untuk menghubungi pemilik",
-  });
-};
+  };
 
   if (loading) {
     return (
@@ -199,6 +206,14 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
   const isVariantAvailable = (variant: ProductVariant) => {
     return variant.isAvailable && !variant.isRented;
+  };
+
+  // Helper function to get owner display name
+  const getOwnerDisplayName = () => {
+    if (product.owner?.firstName || product.owner?.lastName) {
+      return `${product.owner.firstName || ''} ${product.owner.lastName || ''}`.trim();
+    }
+    return product.owner?.username || 'Unknown Owner';
   };
 
   return (
@@ -375,9 +390,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </div>
                 )}
 
-                {/* Variant */}
-
-
                 {/* Action Buttons */}
                 <div className="space-y-4 pt-8">
                   <Button
@@ -387,10 +399,10 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                     size="lg"
                   >
                     {!selectedVariant 
-                      ? 'Select Variant First' 
+                      ? 'Pilih Varian Terlebih Dahulu' 
                       : !isVariantAvailable(selectedVariant)
-                      ? 'Variant Not Available'
-                      : 'Schedule Booking Now'}
+                      ? 'Varian Tidak Tersedia'
+                      : 'Jadwalkan Fitting Sekarang'}
                   </Button>
                   
                   <Button
@@ -400,33 +412,31 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                     className="w-full h-14 text-lg border-2 transition-all duration-300 hover:scale-105 rounded-2xl text-white hover:bg-green-800 shadow-xl bg-green-700 hover:text-white"
                     size="lg"
                   >
-<Image
-    src="/img/whatsapp.png"
-    alt="WhatsApp Icon"
-    width={24}
-    height={24}
-    className="mr-1"
-  />                    Kontak via WhatsApp
+                    <Image
+                      src="/img/whatsapp.png"
+                      alt="WhatsApp Icon"
+                      width={24}
+                      height={24}
+                      className="mr-1"
+                    />                    
+                    Kontak via WhatsApp
                   </Button>
-
-                  
                 </div>
 
-
-                {/* Owner Info Card */}
-                <Card className="bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80 border-2 border-blue-100/50 rounded-2xl shadow-lg overflow-hidden">
+                {/* Owner Info Card - Updated with soft orange styling */}
+                <Card className="bg-gradient-to-r from-orange-50/90 via-orange-100/80 to-amber-50/90 border-2 border-orange-200/60 rounded-2xl shadow-lg overflow-hidden">
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       <div className="flex items-center space-x-5">
                         {/* Owner Avatar */}
-                        <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-8877tyt;894white">
+                        <div className="h-20 w-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white">
                           {product.owner?.imageUrl ? (
                             <Image
                               src={product.owner.imageUrl}
                               alt={product.owner.username || 'Owner'}
                               width={80}
                               height={80}
-                              className="h-full w-full object-cover border-primary-200"
+                              className="h-full w-full object-cover"
                             />
                           ) : (
                             <User className="h-10 w-10 text-white" />
@@ -436,8 +446,11 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                         {/* Owner Info */}
                         <div className="flex-1">
                           <h4 className="font-bold text-xl text-gray-900">
-                            {product.owner?.businessName || product.owner?.username || 'Business Owner'}
+                            {product.owner?.businessName || 'Business Name'}
                           </h4>
+                          <p className="text-gray-700 mt-1">
+                            {getOwnerDisplayName()}
+                          </p>
                           <div className="flex items-center mt-2 space-x-4">
                             <div className="flex items-center text-sm text-gray-600">
                               <Package className="w-4 h-4 mr-1" />
@@ -455,7 +468,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                               description: "Owner profile functionality will be implemented soon",
                             });
                           }}
-                          className="border-2 hover:scale-105 transition-all duration-300 rounded-xl px-6 py-2 font-semibold border-primary-300 text-primary-600 hover:bg-primary-50"
+                          className="border-2 hover:scale-105 transition-all duration-300 rounded-xl px-6 py-2 font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
                         >
                           Lihat Profil
                         </Button>
@@ -472,43 +485,43 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                     <AccordionTrigger className="text-lg font-semibold">
                       Detail Varian
                     </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    {selectedVariant && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Info className="h-5 w-5 text-primary" />
-                          <h4 className="font-semibold text-lg">Varian Dipilih</h4>
-                          <Badge 
-                            variant={isVariantAvailable(selectedVariant) ? "default" : "destructive"}
-                            className="ml-auto"
-                          >
-                            {isVariantAvailable(selectedVariant) ? "Tersedia" : 
-                             selectedVariant.isRented ? "Disewa" : "Tidak Tersedia"}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="space-y-2">
-                            <p><span className="font-medium">Ukuran:</span> {selectedVariant.size}</p>
-                            <p><span className="font-medium">Warna:</span> {selectedVariant.color}</p>
-                            <p><span className="font-medium">Harga:</span> {formatCurrency(selectedVariant.price)}</p>
+                    <AccordionContent>
+                      <div className="space-y-4">
+                        {selectedVariant && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <Info className="h-5 w-5 text-primary" />
+                              <h4 className="font-semibold text-lg">Varian Dipilih</h4>
+                              <Badge 
+                                variant={isVariantAvailable(selectedVariant) ? "default" : "destructive"}
+                                className="ml-auto"
+                              >
+                                {isVariantAvailable(selectedVariant) ? "Tersedia" : 
+                                 selectedVariant.isRented ? "Disewa" : "Tidak Tersedia"}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="space-y-2">
+                                <p><span className="font-medium">Ukuran:</span> {selectedVariant.size}</p>
+                                <p><span className="font-medium">Warna:</span> {selectedVariant.color}</p>
+                                <p><span className="font-medium">Harga:</span> {formatCurrency(selectedVariant.price)}</p>
+                              </div>
+                              <div className="space-y-2">
+                                {selectedVariant.bustlength && (
+                                  <p><span className="font-medium">Lingkar Dada:</span> {selectedVariant.bustlength}cm</p>
+                                )}
+                                {selectedVariant.waistlength && (
+                                  <p><span className="font-medium">Lingkar Pinggang:</span> {selectedVariant.waistlength}cm</p>
+                                )}
+                                {selectedVariant.length && (
+                                  <p><span className="font-medium">Panjang:</span> {selectedVariant.length}cm</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            {selectedVariant.bustlength && (
-                              <p><span className="font-medium">Lingkar Dada:</span> {selectedVariant.bustlength}cm</p>
-                            )}
-                            {selectedVariant.waistlength && (
-                              <p><span className="font-medium">Lingkar Pinggang:</span> {selectedVariant.waistlength}cm</p>
-                            )}
-                            {selectedVariant.length && (
-                              <p><span className="font-medium">Panjang:</span> {selectedVariant.length}cm</p>
-                            )}
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </AccordionContent>
+                    </AccordionContent>
                   </AccordionItem>
 
                   {product.description && (

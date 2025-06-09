@@ -7,16 +7,27 @@ const prisma = new PrismaClient();
 
 export async function GET(
   req: Request, 
-  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params; // Changed: directly await params
+    const params = await context.params;
     
     const product = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: {
         VariantProducts: true,
-        owner: { select: { id: true, username: true } },
+        owner: { 
+          select: { 
+            id: true, 
+            username: true,
+            first_name: true,
+            last_name: true,
+            businessName: true,
+            phone_numbers: true,
+            imageUrl: true,
+            businessAddress: true
+          } 
+        },
       },
     });
 
@@ -24,7 +35,23 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    return NextResponse.json(product);
+    // Get total products count for this owner
+    const totalProducts = await prisma.products.count({
+      where: { ownerId: product.ownerId }
+    });
+
+    // Transform the response to match your frontend interface
+    const transformedProduct = {
+      ...product,
+      owner: {
+        ...product.owner,
+        firstName: product.owner.first_name,
+        lastName: product.owner.last_name,
+        totalProducts
+      }
+    };
+
+    return NextResponse.json(transformedProduct);
   } catch (error) {
     console.error('Failed to fetch product:', error);
     return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
@@ -33,10 +60,10 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params; // Changed: directly await params
+    const params = await context.params;
     const body = await req.json();
     const { name, category, images, description, variants } = body;
 
@@ -134,16 +161,43 @@ export async function PATCH(
       }
     }
 
-    // Fetch the updated product with variants
+    // Fetch the updated product with variants and owner info
     const productWithVariants = await prisma.products.findUnique({
       where: { id: parseInt(params.id) },
       include: { 
         VariantProducts: true,
-        owner: { select: { id: true, username: true } }
+        owner: { 
+          select: { 
+            id: true, 
+            username: true,
+            first_name: true,
+            last_name: true,
+            businessName: true,
+            phone_numbers: true,
+            imageUrl: true,
+            businessAddress: true
+          } 
+        }
       },
     });
 
-    return NextResponse.json(productWithVariants);
+    // Get total products count for this owner
+    const totalProducts = await prisma.products.count({
+      where: { ownerId: productWithVariants?.ownerId }
+    });
+
+    // Transform the response
+    const transformedProduct = {
+      ...productWithVariants,
+      owner: {
+        ...productWithVariants?.owner,
+        firstName: productWithVariants?.owner.first_name,
+        lastName: productWithVariants?.owner.last_name,
+        totalProducts
+      }
+    };
+
+    return NextResponse.json(transformedProduct);
   } catch (error) {
     console.error('Failed to update product:', error);
     return NextResponse.json(
@@ -158,10 +212,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  context: { params: Promise<{ id: string }> } // Changed: params is now a Promise
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params; // Changed: directly await params
+    const params = await context.params;
     
     // First, delete all variants associated with the product
     await prisma.variantProducts.deleteMany({

@@ -1,21 +1,11 @@
 // components/ProductCatalog.tsx
 import Card from 'components/card';
-import CardMenu from 'components/card/CardMenu';
-import React, { useEffect, useState } from 'react';
-import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit, MdDelete } from 'react-icons/md';
-import { 
-  fetchProducts, 
-  updateVariantStatus, 
-  deleteVariant,
-  deleteProduct 
-} from 'app/api/products/fetch/productApi';
-import { DeleteConfirmation, Product, StatusType } from 'types/product';
+import React, { useEffect } from 'react';
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit, MdDelete, MdMoreVert, MdRefresh } from 'react-icons/md';
 import { ProductDetails } from 'components/catalog/ProductDetails';
-import { toast } from 'sonner';
 import { formatCategoryName } from 'utils/product';
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -27,186 +17,78 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertDialogOverlay } from '@radix-ui/react-alert-dialog';
 import { useRouter } from 'next/navigation';
-
-interface ProductDeleteConfirmation {
-  isOpen: boolean;
-  productId: number | null;
-  productName: string;
-}
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
+import { useCatalogStore } from 'stores/useCatalogStore';
+import { Product } from 'types/product';
 
 const ProductCatalog = () => {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
-    isOpen: false,
-    variantId: null,
-    productId: null
-  });
-  const [productDeleteConfirmation, setProductDeleteConfirmation] = useState<ProductDeleteConfirmation>({
-    isOpen: false,
-    productId: null,
-    productName: ''
-  });
+  
+  // Zustand store state and actions
+  const {
+    products,
+    loading,
+    error,
+    expandedProductId,
+    deleteConfirmation,
+    productDeleteConfirmation,
+    loadProducts,
+    refreshData,
+    toggleExpand,
+    handleStatusChange,
+    openDeleteConfirmation,
+    handleDeleteVariant,
+    cancelDelete,
+    openProductDeleteConfirmation,
+    handleDeleteProduct,
+    cancelProductDelete
+  } = useCatalogStore();
 
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await fetchProducts();
-        setProducts(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to fetch products',
-        );
-        console.error('Failed to fetch products:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
-  const toggleExpand = (productId: number) => {
-    setExpandedProductId(expandedProductId === productId ? null : productId);
-  };
-
-   const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: Product) => {
     router.push(`/owner/catalog/editproduct/${product.id}`);
   };
 
-  const openProductDeleteConfirmation = (productId: number, productName: string) => {
-    setProductDeleteConfirmation({
-      isOpen: true,
-      productId,
-      productName
-    });
-  };
-
-  const handleDeleteProduct = async () => {
-    if (!productDeleteConfirmation.productId) return;
-    
-    try {
-      await deleteProduct(productDeleteConfirmation.productId);
-      
-      // Remove the product from the list
-      setProducts(products.filter(p => p.id !== productDeleteConfirmation.productId));
-      
-      toast.success('Produk berhasil dihapus!');
-      cancelProductDelete();
-      
-    } catch (err) {
-      console.error('Failed to delete product:', err);
-      toast.error('Gagal menghapus produk. Coba lagi.');
-    }
-  };
-
-  const cancelProductDelete = () => {
-    setProductDeleteConfirmation({
-      isOpen: false,
-      productId: null,
-      productName: ''
-    });
-  };
-
-  const handleStatusChange = async (
-    productId: number, 
-    variantId: number, 
-    newStatus: StatusType
-  ) => {
-    try {
-      console.log(`Changing status for variant ${variantId} to ${newStatus}`);
-      
-      const product = products.find(p => p.id === productId);
-      if (!product) return;
-      
-      const variant = product.VariantProducts.find(v => v.id === variantId);
-      if (!variant) return;
-      
-      const updatedVariant = await updateVariantStatus(
-        productId, 
-        variantId, 
-        newStatus, 
-        variant
-      );
-      
-      console.log('Updated variant data:', updatedVariant);
-      
-      setProducts(products.map(p => {
-        if (p.id === productId) {
-          return {
-            ...p,
-            VariantProducts: p.VariantProducts.map(v => 
-              v.id === variantId ? updatedVariant : v
-            )
-          };
-        }
-        return p;
-      }));
-      
-      toast.success('Status berhasil diubah');
-      
-    } catch (err) {
-      console.error('Failed to update variant status:', err);
-      toast.error('Gagal mengganti status. Coba lagi.');
-    }
-  };
-
-  const openDeleteConfirmation = (variantId: number, productId: number) => {
-    setDeleteConfirmation({
-      isOpen: true,
-      variantId,
-      productId
-    });
-  };
-
-  const handleDeleteVariant = async () => {
-    if (!deleteConfirmation.variantId || !deleteConfirmation.productId) return;
-    
-    try {
-      const productId = deleteConfirmation.productId;
-      const variantId = deleteConfirmation.variantId;
-      
-      const result = await deleteVariant(productId, variantId);
-      
-      if (result.productDeleted) {
-        // Remove the entire product from the list
-        setProducts(products.filter(p => p.id !== productId));
-        toast.success('Varian berhasil dihapus. Produk juga dihapus karena tidak ada varian yang tersisa.');
-      } else {
-        // Update the product with remaining variants
-        setProducts(products.map(p => {
-          if (p.id === productId && result.product) {
-            return result.product;
-          }
-          return p;
-        }));
-        toast.success('Variant berhasil dihapus!');
-      }
-      
-      cancelDelete();
-      
-    } catch (err) {
-      console.error('Failed to delete variant:', err);
-      toast.error('Gagal menghapus varian. Coba kembali!.');
-    }
-  };
-
-  const cancelDelete = () => {
-    setDeleteConfirmation({
-      isOpen: false,
-      variantId: null,
-      productId: null
-    });
-  };
+  const renderActionDropdown = (product: Product) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MdMoreVert className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => handleEditProduct(product)}
+          className="cursor-pointer"
+        >
+          <MdEdit className="mr-2 h-4 w-4" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => openProductDeleteConfirmation(product.id, product.name)}
+          className="cursor-pointer"
+        >
+          <MdDelete className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   if (loading) {
-    return (
+   return (
       <Card extra="w-full pb-10 p-4 h-full">
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg font-medium">Loading products...</p>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+            <p className="text-lg font-medium text-gray-600">
+              Loading Produk...
+            </p>
+          </div>
         </div>
       </Card>
     );
@@ -227,9 +109,17 @@ const ProductCatalog = () => {
       <Card extra="w-full h-full">
         <header className="relative flex items-center justify-between px-4 pt-4">
           <div className="text-xl font-bold text-navy-700 dark:text-white">
-            Katalog On-Rent
+            Katalog Produk
           </div>
-          <CardMenu />
+          <Button
+            onClick={refreshData}
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="Refresh Table"
+          >
+            <MdRefresh className="h-4 w-4" />
+          </Button>
         </header>
 
         <div className="overflow-x-auto">
@@ -249,8 +139,8 @@ const ProductCatalog = () => {
                     <MdKeyboardArrowDown className="ml-1" />
                   </div>
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Total Variasi</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Variasi Tersedia</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Total Varian</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Varian Tersedia</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Aksi</th>
               </tr>
             </thead>
@@ -309,24 +199,7 @@ const ProductCatalog = () => {
                         <td className="py-3 px-4 font-semibold text-secondary-500">{priceDisplay}</td>
                         <td className="py-3 px-4 font-semibold text-secondary-500">{totalVariants}</td>
                         <td className="py-3 px-4 font-semibold text-secondary-500">{availableVariants}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleEditProduct(product)}
-                              className="rounded p-1 text-green-600 transition-colors hover:bg-green-50 hover:text-green-800"
-                              title="Edit"
-                            >
-                              <MdEdit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => openProductDeleteConfirmation(product.id, product.name)}
-                              className="rounded p-1 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
-                              title="Hapus"
-                            >
-                              <MdDelete className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+                        <td className="px-4 py-3">{renderActionDropdown(product)}</td>
                       </tr>
                       
                       {isExpanded && (
@@ -350,40 +223,37 @@ const ProductCatalog = () => {
 
         {/* Variant Delete Confirmation */}
         <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelDelete()}>
-                      <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-
-  <AlertDialogContent className='bg-white'>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Hapus Varian?</AlertDialogTitle>
-      <AlertDialogDescription>
-        Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Batal</AlertDialogCancel>
-      <AlertDialogAction onClick={handleDeleteVariant}>Hapus</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+          <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+          <AlertDialogContent className='bg-white'>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Varian?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteVariant}>Hapus</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Product Delete Confirmation */}
-      
-          <AlertDialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()} >
-            <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-  <AlertDialogContent className='bg-white'>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Hapus Produk?</AlertDialogTitle>
-      <AlertDialogDescription>
-        Apakah Anda yakin ingin menghapus produk <b>"{productDeleteConfirmation.productName}"</b>? Semua varian dari produk ini akan ikut terhapus.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Batal</AlertDialogCancel>
-      <AlertDialogAction onClick={handleDeleteProduct}>Hapus</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-        
+        <AlertDialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()}>
+          <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+          <AlertDialogContent className='bg-white'>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Produk?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus produk <b>"{productDeleteConfirmation.productName}"</b>? Semua varian dari produk ini akan ikut terhapus.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteProduct}>Hapus</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Card>
     </>
   );
