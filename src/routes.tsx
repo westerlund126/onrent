@@ -1,7 +1,7 @@
-import React from 'react';
-import { FaMoneyBill } from 'react-icons/fa';
+// File: src/routes.tsx
 
-// Admin Imports
+import React, { JSX } from 'react';
+import { FaMoneyBill } from 'react-icons/fa';
 
 // Icon Imports
 import {
@@ -11,9 +11,20 @@ import {
   MdPerson,
   MdLock,
   MdOutlineCalendarMonth,
+  MdSchedule,
+  MdEventAvailable,
 } from 'react-icons/md';
 
-const routes = [
+export interface IRoute {
+  name: string;
+  layout: string;
+  path: string;
+  icon: JSX.Element;
+  secondary?: boolean;
+  subRoutes?: IRoute[];
+}
+
+const routes: IRoute[] = [
   {
     name: 'Menu Utama',
     layout: '/owner',
@@ -21,12 +32,25 @@ const routes = [
     icon: <MdHome className="h-6 w-6" />,
   },
   {
-    name: 'Jadwal Fitting',
+    name: 'Fitting',
     layout: '/owner',
-    path: 'nft-marketplace',
+    path: 'fitting',
     icon: <MdOutlineCalendarMonth className="h-6 w-6" />,
-
     secondary: true,
+    subRoutes: [
+      {
+        name: 'Schedule',
+        layout: '/owner',
+        path: 'fitting/schedule',
+        icon: <MdSchedule className="h-5 w-5" />,
+      },
+      {
+        name: 'Availability',
+        layout: '/owner',
+        path: 'fitting/availability',
+        icon: <MdEventAvailable className="h-5 w-5" />,
+      },
+    ],
   },
   {
     name: 'Katalog',
@@ -47,4 +71,5 @@ const routes = [
     icon: <FaMoneyBill className="h-6 w-6" />,
   },
 ];
+
 export default routes;

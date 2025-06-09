@@ -26,7 +26,6 @@ model User {
   UserRental           Rental[]          @relation("UserRental") 
   OwnerRental      Rental[]          @relation("OwnerRental")
   Wishlist          Wishlist[]
-
   FittingSlot FittingSlot[]
 }
 

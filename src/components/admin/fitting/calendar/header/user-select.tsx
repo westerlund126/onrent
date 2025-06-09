@@ -1,8 +1,48 @@
-import { useCalendar } from "contexts/calendar-context";
+import { useCalendar } from 'contexts/calendar-context';
 
-import { AvatarGroup } from "@/components/ui/avatar-group";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import React from 'react';
+
+interface AvatarGroupProps {
+  children: React.ReactNode[];
+  max?: number;
+  className?: string;
+}
+
+function AvatarGroup({ children, max = 3, className = '' }: AvatarGroupProps) {
+  const avatars = React.Children.toArray(children);
+  const displayAvatars = avatars.slice(0, max);
+  const remainingCount = avatars.length - max;
+
+  return (
+    <div className={`flex -space-x-2 ${className}`}>
+      {displayAvatars.map((avatar, index) => (
+        <div
+          key={index}
+          className="relative rounded-full ring-2 ring-background"
+        >
+          {avatar}
+        </div>
+      ))}
+      {remainingCount > 0 && (
+        <div className="relative rounded-full ring-2 ring-background">
+          <Avatar className="size-6">
+            <AvatarFallback className="bg-muted text-xs">
+              +{remainingCount}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function UserSelect() {
   const { users, selectedUserId, setSelectedUserId } = useCalendar();
@@ -15,25 +55,35 @@ export function UserSelect() {
 
       <SelectContent align="end">
         <SelectItem value="all">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <AvatarGroup max={2}>
-              {users.map(user => (
-                <Avatar key={user.id} className="size-6 text-xxs">
-                  <AvatarImage src={user.picturePath ?? undefined} alt={user.name} />
-                  <AvatarFallback className="text-xxs">{user.name[0]}</AvatarFallback>
+              {users.map((user) => (
+                <Avatar key={user.id} className="size-6">
+                  <AvatarImage
+                    src={user.picturePath ?? undefined}
+                    alt={user.name}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {user.name[0]}
+                  </AvatarFallback>
                 </Avatar>
               ))}
             </AvatarGroup>
-            All
+            <span>All Users</span>
           </div>
         </SelectItem>
 
-        {users.map(user => (
+        {users.map((user) => (
           <SelectItem key={user.id} value={user.id} className="flex-1">
             <div className="flex items-center gap-2">
-              <Avatar key={user.id} className="size-6">
-                <AvatarImage src={user.picturePath ?? undefined} alt={user.name} />
-                <AvatarFallback className="text-xxs">{user.name[0]}</AvatarFallback>
+              <Avatar className="size-6">
+                <AvatarImage
+                  src={user.picturePath ?? undefined}
+                  alt={user.name}
+                />
+                <AvatarFallback className="text-xs">
+                  {user.name[0]}
+                </AvatarFallback>
               </Avatar>
 
               <p className="truncate">{user.name}</p>

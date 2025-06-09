@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { UserSelect } from 'components/admin/fitting/calendar/header/user-select';
 import { TodayButton } from 'components/admin/fitting/calendar/header/today-button';
 import { DateNavigator } from 'components/admin/fitting/calendar/header/date-navigator';
-import { AddEventDialog } from 'components/admin/fitting/calendar/dialogs/add-event-dialog';
-
 import type { IEvent } from 'types/fitting';
 import type { TCalendarView } from 'types/fitting';
 
@@ -84,13 +82,6 @@ export function CalendarHeader({ view, events }: IProps) {
 
           <UserSelect />
         </div>
-
-        <AddEventDialog>
-          <Button className="w-full sm:w-auto">
-            <Plus />
-            Add Event
-          </Button>
-        </AddEventDialog>
       </div>
     </div>
   );

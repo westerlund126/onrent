@@ -2,12 +2,12 @@ import { useMemo } from "react";
 import { CalendarX2 } from "lucide-react";
 import { parseISO, format, endOfDay, startOfDay, isSameMonth } from "date-fns";
 
-import { useCalendar } from "@/calendar/contexts/calendar-context";
+import { useCalendar } from "contexts/calendar-context";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AgendaDayGroup } from "@/calendar/components/agenda-view/agenda-day-group";
+import { AgendaDayGroup } from 'components/admin/fitting/calendar/agenda-view/agenda-day-group';
 
-import type { IEvent } from "@/calendar/interfaces";
+import type { IEvent } from 'types/fitting';
 
 interface IProps {
   singleDayEvents: IEvent[];
