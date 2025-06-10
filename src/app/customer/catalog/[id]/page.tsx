@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Heart, Share2, Package, Info, Sparkles, User, MessageCircle } from 'lucide-react';
 import { Product, ProductVariant } from 'types/product';
@@ -25,6 +25,7 @@ interface ProductDetailProps {}
 const ProductDetail: React.FC<ProductDetailProps> = () => {
   const params = useParams();
   const productId = params.id as string;
+  const router = useRouter();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -124,19 +125,20 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   };
 
   const handleBookingSchedule = () => {
-    if (!selectedVariant) return;
-    
-    if (!selectedVariant.isAvailable || selectedVariant.isRented) {
-      toast.error("Variant not available", {
-        description: "This variant is currently not available for booking",
-      });
-      return;
-    }
-    
-    toast.info("Booking Request", {
-      description: "Booking functionality will be implemented soon",
+  if (!selectedVariant || !product) return; // Ensure product data is available
+
+  if (!selectedVariant.isAvailable || selectedVariant.isRented) {
+    toast.error("Variant not available", {
+      description: "This variant is currently not available for booking",
     });
-  };
+    return;
+  }
+
+  // Redirect to fitting schedule page with required parameters
+  router.push(
+    `/customer/fitting/schedule?type=product&productId=${product.id}&ownerId=${product.ownerId}`
+  );
+};
 
   const handleWhatsAppContact = () => {
     console.log('Product owner:', product?.owner); // Debug log

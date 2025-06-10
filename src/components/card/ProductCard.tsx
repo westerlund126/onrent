@@ -2,6 +2,7 @@ import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useState, useMemo } from 'react';
 import Card from 'components/card';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 type ProductCardProps = {
   product: {
@@ -19,10 +20,15 @@ type ProductCardProps = {
 
 const ProductCard = ({ product, extra }: ProductCardProps) => {
   const [liked, setLiked] = useState(false);
+  const router = useRouter();
 
   const minPrice = useMemo(() => {
     return Math.min(...product.VariantProducts.map((v) => v.price));
   }, [product.VariantProducts]);
+
+  const handleClick = () => {
+    router.push(`/customer/catalog/${product.id}`);
+  };
 
   return (
     <Card
@@ -51,7 +57,8 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
         <p className="mt-2 font-semibold text-brand-500">
           Rp {minPrice.toLocaleString('id-ID')}
         </p>
-        <button className="linear rounded-[20px] bg-brand-900 px-4 py-2 text-base font-medium text-white transition duration-200 hover:bg-brand-800 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90">
+        <button onClick={handleClick}
+        className="linear rounded-[20px] bg-brand-900 px-4 py-2 text-base font-medium text-white transition duration-200 hover:bg-brand-800 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90">
           Jadwalkan
         </button>
         </div>
