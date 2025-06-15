@@ -1,6 +1,8 @@
 // app/api/fitting/available-slots/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from 'lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +10,8 @@ export async function GET(request: NextRequest) {
     const ownerId = searchParams.get('ownerId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+
+    console.log('Available slots request:', { ownerId, startDate, endDate });
 
     if (!ownerId) {
       return NextResponse.json(
@@ -33,11 +37,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('Found slots:', availableSlots.length);
+
     return NextResponse.json(availableSlots);
   } catch (error) {
     console.error('Error fetching available slots:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
