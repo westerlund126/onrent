@@ -1,0 +1,341 @@
+// app/api/fitting/schedule/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server';
+
+const prisma = new PrismaClient();
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { userId: callerClerkId } = await auth();
+
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
+    });
+
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    const resolvedParams = await params; 
+    const scheduleId = parseInt(resolvedParams.id);
+
+    const schedule = await prisma.fittingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+            phone_numbers: true,
+          },
+        },
+        fittingSlot: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                businessName: true,
+                businessAddress: true,
+                phone_numbers: true,
+                email: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+        FittingProduct: {
+          include: {
+            variantProduct: {
+              select: {
+                id: true,
+                size: true,
+                color: true,
+                sku: true,
+                products: {
+                  select: {
+                    id: true,
+                    name: true,
+                    category: true,
+                    images: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: 'Fitting schedule not found' },
+        { status: 404 },
+      );
+    }
+
+    // Check authorization - users can only see their own schedules or schedules for their slots
+    const canAccess =
+      caller.role === 'ADMIN' ||
+      schedule.userId === caller.id ||
+      (caller.role === 'OWNER' && schedule.fittingSlot.ownerId === caller.id);
+
+    if (!canAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    return NextResponse.json(schedule);
+  } catch (error: any) {
+    console.error('Error fetching fitting schedule:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { userId: callerClerkId } = await auth();
+
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
+    });
+
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const resolvedParams = await params;
+    const scheduleId = parseInt(resolvedParams.id);
+
+    const schedule = await prisma.fittingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        fittingSlot: true,
+      },
+    });
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: 'Fitting schedule not found' },
+        { status: 404 },
+      );
+    }
+
+    // Check authorization for updates
+    const canUpdate =
+      caller.role === 'ADMIN' ||
+      schedule.userId === caller.id ||
+      (caller.role === 'OWNER' && schedule.fittingSlot.ownerId === caller.id);
+
+    if (!canUpdate) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const updates = await request.json();
+
+    // Validate status updates
+    if (updates.status) {
+      const validStatuses = [
+        'PENDING',
+        'CONFIRMED',
+        'REJECTED',
+        'COMPLETED',
+        'CANCELED',
+      ];
+      if (!validStatuses.includes(updates.status)) {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      }
+
+      // Validate status transitions
+      if (schedule.status === 'COMPLETED' && updates.status !== 'COMPLETED') {
+        return NextResponse.json(
+          { error: 'Cannot change status of completed appointment' },
+          { status: 400 },
+        );
+      }
+
+      if (schedule.status === 'CANCELED' && updates.status !== 'CANCELED') {
+        return NextResponse.json(
+          { error: 'Cannot change status of canceled appointment' },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Use transaction for status changes that affect slot booking
+    const updatedSchedule = await prisma.$transaction(async (tx) => {
+      // Handle cancellation - free up the slot
+      if (updates.status === 'CANCELED' && schedule.status !== 'CANCELED') {
+        await tx.fittingSlot.update({
+          where: { id: schedule.fittingSlotId },
+          data: { isBooked: false },
+        });
+      }
+
+      // Update the schedule
+      return await tx.fittingSchedule.update({
+        where: { id: scheduleId },
+        data: {
+          ...(updates.status && { status: updates.status }),
+          ...(updates.note !== undefined && { note: updates.note }),
+          ...(updates.duration && { duration: updates.duration }),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              email: true,
+              phone_numbers: true,
+            },
+          },
+          fittingSlot: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  businessAddress: true,
+                  phone_numbers: true,
+                  email: true,
+                  imageUrl: true,
+                },
+              },
+            },
+          },
+          FittingProduct: {
+            include: {
+              variantProduct: {
+                select: {
+                  id: true,
+                  size: true,
+                  color: true,
+                  sku: true,
+                  products: {
+                    select: {
+                      id: true,
+                      name: true,
+                      category: true,
+                      images: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Return just the schedule object to match Zustand store expectation
+    return NextResponse.json(updatedSchedule);
+  } catch (error: any) {
+    console.error('Error updating fitting schedule:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+// Also improve the DELETE function for transaction safety
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { userId: callerClerkId } = await auth();
+
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
+    });
+
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const resolvedParams = await params; 
+    const scheduleId = parseInt(resolvedParams.id);
+
+    const schedule = await prisma.fittingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        fittingSlot: true,
+        FittingProduct: true,
+      },
+    });
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: 'Fitting schedule not found' },
+        { status: 404 },
+      );
+    }
+
+    // Check authorization for deletion
+    const canDelete =
+      caller.role === 'ADMIN' ||
+      schedule.userId === caller.id ||
+      (caller.role === 'OWNER' && schedule.fittingSlot.ownerId === caller.id);
+
+    if (!canDelete) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Use transaction for safe deletion
+    await prisma.$transaction(async (tx) => {
+      // Delete fitting products first (due to foreign key constraints)
+      if (schedule.FittingProduct.length > 0) {
+        await tx.fittingProduct.deleteMany({
+          where: { fittingId: scheduleId },
+        });
+      }
+
+      // Delete the schedule
+      await tx.fittingSchedule.delete({
+        where: { id: scheduleId },
+      });
+
+      // Free up the slot
+      await tx.fittingSlot.update({
+        where: { id: schedule.fittingSlotId },
+        data: { isBooked: false },
+      });
+    });
+
+    return NextResponse.json({
+      message: 'Fitting schedule deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('Error deleting fitting schedule:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 },
+    );
+  }
+}

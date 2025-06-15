@@ -3,7 +3,7 @@
 import { createContext, useContext, useState } from 'react';
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { IEvent, IUser } from 'types/fitting';
+import type { IFittingSchedule, IUser } from 'types/fitting';
 import type {
   TBadgeVariant,
   TVisibleHours,
@@ -22,8 +22,8 @@ interface ICalendarContext {
   setWorkingHours: Dispatch<SetStateAction<TWorkingHours>>;
   visibleHours: TVisibleHours;
   setVisibleHours: Dispatch<SetStateAction<TVisibleHours>>;
-  events: IEvent[];
-  setLocalEvents: Dispatch<SetStateAction<IEvent[]>>;
+  schedule: IFittingSchedule[];
+  setLocalSchedule: Dispatch<SetStateAction<IFittingSchedule[]>>;
 }
 
 const CalendarContext = createContext({} as ICalendarContext);
@@ -43,11 +43,11 @@ const VISIBLE_HOURS = { from: 7, to: 18 };
 export function CalendarProvider({
   children,
   users,
-  events,
+  schedule,
 }: {
   children: React.ReactNode;
   users: IUser[];
-  events: IEvent[];
+  schedule: IFittingSchedule[];
 }) {
   const [badgeVariant, setBadgeVariant] = useState<TBadgeVariant>('colored');
   const [visibleHours, setVisibleHours] =
@@ -64,7 +64,7 @@ export function CalendarProvider({
   // It's used here just to simulate the update of the events.
   // In a real scenario, the events would be updated in the backend
   // and the request that fetches the events should be refetched
-  const [localEvents, setLocalEvents] = useState<IEvent[]>(events);
+  const [localSchedule, setLocalSchedule] = useState<IFittingSchedule[]>(schedule);
 
   const handleSelectDate = (date: Date | undefined) => {
     if (!date) return;
@@ -85,9 +85,8 @@ export function CalendarProvider({
         setVisibleHours,
         workingHours,
         setWorkingHours,
-        // If you go to the refetch approach, you can remove the localEvents and pass the events directly
-        events: localEvents,
-        setLocalEvents,
+        schedule: localSchedule,
+        setLocalSchedule,
       }}
     >
       {children}

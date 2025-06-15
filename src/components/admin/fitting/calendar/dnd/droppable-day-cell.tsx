@@ -2,12 +2,9 @@
 
 import { useDrop } from "react-dnd";
 import { parseISO, differenceInMilliseconds } from "date-fns";
-
 import { useUpdateEvent } from "hooks/use-update-event";
-
 import { cn } from "@/lib/utils";
 import { ItemTypes } from 'components/admin/fitting/calendar/dnd/draggable-event';
-
 import type { IEvent, ICalendarCell } from 'types/fitting';
 
 interface DroppableDayCellProps {
@@ -39,7 +36,7 @@ export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
           endDate: newEndDate.toISOString(),
         });
 
-        return { moved: true };
+        return { moved: false };
       },
       collect: monitor => ({
         isOver: monitor.isOver(),

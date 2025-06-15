@@ -8,8 +8,9 @@ import { useCalendar } from 'contexts/calendar-context';
 
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from "class-variance-authority";
+import ScheduleLayout from "app/owner/fitting/schedule/layout";
 
 const agendaEventCardVariants = cva(
   "flex select-none items-center justify-between gap-3 rounded-md border p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -42,18 +43,18 @@ const agendaEventCardVariants = cva(
 );
 
 interface IProps {
-  event: IEvent;
-  eventCurrentDay?: number;
-  eventTotalDays?: number;
+  schedule: IFittingSchedule;
+  scheduleCurrentDay?: number;
+  scheduleTotalDays?: number;
 }
 
-export function AgendaEventCard({ event, eventCurrentDay, eventTotalDays }: IProps) {
+export function AgendaEventCard({ schedule, scheduleCurrentDay, scheduleTotalDays }: IProps) {
   const { badgeVariant } = useCalendar();
 
-  const startDate = parseISO(event.startDate);
-  const endDate = parseISO(event.endDate);
+  const startDate = schedule.startTime;
+  const endDate = schedule.endTime;
 
-  const color = (badgeVariant === "dot" ? `${event.color}-dot` : event.color) as VariantProps<typeof agendaEventCardVariants>["color"];
+  const color = (badgeVariant === "dot" ? `${schedule.color}-dot` : schedule.color) as VariantProps<typeof agendaEventCardVariants>["color"];
 
   const agendaEventCardClasses = agendaEventCardVariants({ color });
 
@@ -65,7 +66,7 @@ export function AgendaEventCard({ event, eventCurrentDay, eventTotalDays }: IPro
   };
 
   return (
-    <EventDetailsDialog event={event}>
+    <EventDetailsDialog schedule={schedule}>
       <div role="button" tabIndex={0} className={agendaEventCardClasses} onKeyDown={handleKeyDown}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-1.5">
@@ -76,18 +77,18 @@ export function AgendaEventCard({ event, eventCurrentDay, eventTotalDays }: IPro
             )}
 
             <p className="font-medium">
-              {eventCurrentDay && eventTotalDays && (
+              {scheduleCurrentDay && scheduleTotalDays && (
                 <span className="mr-1 text-xs">
-                  Day {eventCurrentDay} of {eventTotalDays} •{" "}
+                  Day {scheduleCurrentDay} of {scheduleTotalDays} •{" "}
                 </span>
               )}
-              {event.title}
+              {schedule.title}
             </p>
           </div>
 
           <div className="mt-1 flex items-center gap-1">
             <User className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">{event.user.name}</p>
+            <p className="text-xs text-foreground">{schedule.user.username}</p>
           </div>
 
           <div className="flex items-center gap-1">
@@ -99,7 +100,7 @@ export function AgendaEventCard({ event, eventCurrentDay, eventTotalDays }: IPro
 
           <div className="flex items-center gap-1">
             <Text className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">{event.description}</p>
+            <p className="text-xs text-foreground">{schedule.note}</p>
           </div>
         </div>
       </div>

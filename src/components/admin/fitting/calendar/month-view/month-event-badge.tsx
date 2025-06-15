@@ -8,7 +8,7 @@ import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/ev
 
 import { cn } from "@/lib/utils";
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from "class-variance-authority";
 
 const eventBadgeVariants = cva(
@@ -16,7 +16,6 @@ const eventBadgeVariants = cva(
   {
     variants: {
       color: {
-        // Colored and mixed variants
         blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 [&_.event-dot]:fill-blue-600",
         green: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300 [&_.event-dot]:fill-green-600",
         red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300 [&_.event-dot]:fill-red-600",
@@ -47,76 +46,104 @@ const eventBadgeVariants = cva(
   }
 );
 
-interface IProps extends Omit<VariantProps<typeof eventBadgeVariants>, "color" | "multiDayPosition"> {
-  event: IEvent;
+interface IProps
+  extends Omit<
+    VariantProps<typeof eventBadgeVariants>,
+    'color' | 'multiDayPosition'
+  > {
+  schedule: IFittingSchedule;
   cellDate: Date;
-  eventCurrentDay?: number;
-  eventTotalDays?: number;
+  scheduleCurrentDay?: number;
+  scheduleTotalDays?: number;
   className?: string;
-  position?: "first" | "middle" | "last" | "none";
+  position?: 'first' | 'middle' | 'last' | 'none';
 }
 
-export function MonthEventBadge({ event, cellDate, eventCurrentDay, eventTotalDays, className, position: propPosition }: IProps) {
+export function MonthEventBadge({
+  schedule,
+  cellDate,
+  scheduleCurrentDay,
+  scheduleTotalDays,
+  className,
+  position: propPosition,
+}: IProps) {
   const { badgeVariant } = useCalendar();
 
-  const itemStart = startOfDay(parseISO(event.startDate));
-  const itemEnd = endOfDay(parseISO(event.endDate));
+  const itemStart = schedule.startTime;
+  const itemEnd = schedule.endTime;
 
   if (cellDate < itemStart || cellDate > itemEnd) return null;
 
-  let position: "first" | "middle" | "last" | "none" | undefined;
+  let position: 'first' | 'middle' | 'last' | 'none' | undefined;
 
   if (propPosition) {
     position = propPosition;
-  } else if (eventCurrentDay && eventTotalDays) {
-    position = "none";
+  } else if (scheduleCurrentDay && scheduleTotalDays) {
+    position = 'none';
   } else if (isSameDay(itemStart, itemEnd)) {
-    position = "none";
+    position = 'none';
   } else if (isSameDay(cellDate, itemStart)) {
-    position = "first";
+    position = 'first';
   } else if (isSameDay(cellDate, itemEnd)) {
-    position = "last";
+    position = 'last';
   } else {
-    position = "middle";
+    position = 'middle';
   }
 
-  const renderBadgeText = ["first", "none"].includes(position);
+  const renderBadgeText = ['first', 'none'].includes(position);
 
-  const color = (badgeVariant === "dot" ? `${event.color}-dot` : event.color) as VariantProps<typeof eventBadgeVariants>["color"];
+  const color = (
+    badgeVariant === 'dot' ? `${schedule.color}-dot` : schedule.color
+  ) as VariantProps<typeof eventBadgeVariants>['color'];
 
-  const eventBadgeClasses = cn(eventBadgeVariants({ color, multiDayPosition: position, className }));
+  const eventBadgeClasses = cn(
+    eventBadgeVariants({ color, multiDayPosition: position, className }),
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (e.currentTarget instanceof HTMLElement) e.currentTarget.click();
     }
   };
 
   return (
-    <DraggableEvent event={event}>
-      <EventDetailsDialog event={event}>
-        <div role="button" tabIndex={0} className={eventBadgeClasses} onKeyDown={handleKeyDown}>
+    <DraggableEvent schedule={schedule}>
+      <EventDetailsDialog schedule={schedule}>
+        <div
+          role="button"
+          tabIndex={0}
+          className={eventBadgeClasses}
+          onKeyDown={handleKeyDown}
+        >
           <div className="flex items-center gap-1.5 truncate">
-            {!["middle", "last"].includes(position) && ["mixed", "dot"].includes(badgeVariant) && (
-              <svg width="8" height="8" viewBox="0 0 8 8" className="event-dot shrink-0">
-                <circle cx="4" cy="4" r="4" />
-              </svg>
-            )}
+            {!['middle', 'last'].includes(position) &&
+              ['mixed', 'dot'].includes(badgeVariant) && (
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  className="event-dot shrink-0"
+                >
+                  <circle cx="4" cy="4" r="4" />
+                </svg>
+              )}
 
             {renderBadgeText && (
               <p className="flex-1 truncate font-semibold">
-                {eventCurrentDay && (
+                {scheduleCurrentDay && (
                   <span className="text-xs">
-                    Day {eventCurrentDay} of {eventTotalDays} •{" "}
+                    Day {scheduleCurrentDay} of {scheduleTotalDays} •{' '}
                   </span>
                 )}
-                {event.title}
+                {schedule.title}
               </p>
             )}
           </div>
 
-          {renderBadgeText && <span>{format(new Date(event.startDate), "h:mm a")}</span>}
+          {renderBadgeText && (
+            <span>{format(new Date(schedule.startTime), 'h:mm a')}</span>
+          )}
         </div>
       </EventDetailsDialog>
     </DraggableEvent>

@@ -39,13 +39,13 @@ const routes: IRoute[] = [
     secondary: true,
     subRoutes: [
       {
-        name: 'Schedule',
+        name: 'Jadwal Fitting',
         layout: '/owner',
         path: 'fitting/schedule',
         icon: <MdSchedule className="h-5 w-5" />,
       },
       {
-        name: 'Availability',
+        name: 'Waktu Operasional',
         layout: '/owner',
         path: 'fitting/availability',
         icon: <MdEventAvailable className="h-5 w-5" />,

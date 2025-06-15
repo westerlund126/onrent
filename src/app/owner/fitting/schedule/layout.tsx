@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-  getEvents,
+  getSchedule,
   getUsers,
 } from 'components/admin/fitting/calendar/requests';
 
@@ -18,11 +18,11 @@ export default async function ScheduleLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [events, users] = await Promise.all([getEvents(), getUsers()]);
+  const [schedule, users] = await Promise.all([getSchedule(), getUsers()]);
 
   return (
-    <CalendarProvider users={users} events={events}>
-      <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-8 py-4">
+    <CalendarProvider users={users} schedule={schedule}>
+      <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-8 py-4 ">
         {children}
         <Accordion type="single" collapsible>
           <AccordionItem value="item-1" className="border-none">

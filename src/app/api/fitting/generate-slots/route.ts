@@ -1,38 +1,39 @@
-// app/api/fitting/generate-slots/route.ts - Modified for testing without auth
+// app/api/fitting/generate-slots/route.ts 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    const { ownerId, startDate, endDate } = await request.json();
+    const { userId: callerClerkId } = await auth();
 
-    if (!ownerId || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: 'Owner ID, start date, and end date are required' },
-        { status: 400 }
-      );
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify owner exists
-    const owner = await prisma.user.findUnique({
-      where: { id: parseInt(ownerId) },
+    const { startDate, endDate } = await request.json(); 
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
     });
 
-    if (!owner) {
+    if (!caller) {
+      return NextResponse.json({ error: 'Caller not found' }, { status: 404 });
+    }
+
+    // Verify owner role
+    if (!caller || caller.role !== 'OWNER') {
       return NextResponse.json(
-        { error: 'Owner not found' },
-        { status: 404 }
+        { error: 'Forbidden - Owner access required' },
+        { status: 403 },
       );
     }
 
-    // Get owner's weekly slots
     const weeklySlots = await prisma.weeklySlot.findMany({
-      where: {
-        ownerId: parseInt(ownerId),
-        isEnabled: true,
-      },
+      where: { ownerId: caller.id, isEnabled: true },
     });
 
     if (weeklySlots.length === 0) {
@@ -46,7 +47,6 @@ export async function POST(request: NextRequest) {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Generate slots for each day in the range
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
       const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
@@ -56,22 +56,20 @@ export async function POST(request: NextRequest) {
         const [startHour, startMinute] = weeklySlot.startTime.split(':').map(Number);
         const [endHour, endMinute] = weeklySlot.endTime.split(':').map(Number);
         
-        // Generate hourly slots
         for (let hour = startHour; hour < endHour; hour++) {
           const slotDateTime = new Date(date);
           slotDateTime.setHours(hour, 0, 0, 0);
           
-          // Check if slot already exists
           const existingSlot = await prisma.fittingSlot.findFirst({
             where: {
-              ownerId: parseInt(ownerId),
+              ownerId: caller.id,
               dateTime: slotDateTime,
             },
           });
           
           if (!existingSlot) {
             slotsToCreate.push({
-              ownerId: parseInt(ownerId),
+              ownerId: caller.id,
               dateTime: slotDateTime,
               isAutoConfirm: true,
             });
@@ -80,7 +78,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Bulk create slots
     const createdSlots = await prisma.fittingSlot.createMany({
       data: slotsToCreate,
       skipDuplicates: true,
@@ -89,11 +86,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: `Generated ${createdSlots.count} fitting slots`,
       count: createdSlots.count,
-      ownerId: parseInt(ownerId),
+      ownerId: caller.id,
       dateRange: {
         start: startDate,
-        end: endDate
-      }
+        end: endDate,
+      },
     });
   } catch (error) {
     console.error('Error generating slots:', error);

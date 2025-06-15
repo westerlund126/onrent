@@ -5,23 +5,23 @@ import { useDrag } from "react-dnd";
 
 import { cn } from "@/lib/utils";
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 
 export const ItemTypes = {
   EVENT: "event",
 };
 
 interface DraggableEventProps {
-  event: IEvent;
+  schedule: IFittingSchedule;
   children: React.ReactNode;
 }
 
-export function DraggableEvent({ event, children }: DraggableEventProps) {
+export function DraggableEvent({ schedule, children }: DraggableEventProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ItemTypes.EVENT,
-    item: { event },
+    item: { schedule },
     collect: monitor => ({ isDragging: monitor.isDragging() }),
   }));
 

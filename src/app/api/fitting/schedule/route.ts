@@ -1,109 +1,129 @@
 // app/api/fitting/schedule/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server';
 
 const prisma = new PrismaClient();
 
-// POST: Create a fitting schedule
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      userId,
-      fittingSlotId,
-      duration = 60,
-      note,
-      phoneNumber,
-      productId,
-      variantId, // now single value, not array
-    } = await request.json();
+    const { userId } = await auth();
 
-    if (!userId || !fittingSlotId) {
-      return NextResponse.json(
-        { error: 'User ID and Fitting slot ID are required' },
-        { status: 400 }
-      );
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
+      where: { clerkUserId: userId },
     });
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const fittingSlot = await prisma.fittingSlot.findUnique({
-      where: { id: parseInt(fittingSlotId) },
-    });
-    if (!fittingSlot) {
+    const {
+      fittingSlotId,
+      duration = 60,
+      note,
+      phoneNumber,
+      productId, // Handle both productId and variantIds
+      variantId,
+      variantIds = [],
+    } = await request.json();
+
+    if (!fittingSlotId) {
       return NextResponse.json(
-        { error: 'Fitting slot not found' },
-        { status: 404 }
+        { error: 'Fitting slot ID is required' },
+        { status: 400 },
       );
     }
-    if (fittingSlot.isBooked) {
-      return NextResponse.json(
-        { error: 'Fitting slot is already booked' },
-        { status: 400 }
-      );
+
+    // Build variant IDs array from different possible inputs
+    let allVariantIds: number[] = [];
+
+    if (variantIds.length > 0) {
+      allVariantIds = [...variantIds];
     }
 
-    // Optional phone update
-    if (phoneNumber && !user.phone_numbers) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { phone_numbers: phoneNumber },
-      });
-    }
-
-    // Create fitting schedule
-    const fittingSchedule = await prisma.fittingSchedule.create({
-      data: {
-        userId: user.id,
-        fittingSlotId: parseInt(fittingSlotId),
-        duration,
-        note,
-        status: fittingSlot.isAutoConfirm ? 'CONFIRMED' : 'PENDING',
-      },
-    });
-
-    // Mark slot as booked
-    await prisma.fittingSlot.update({
-      where: { id: parseInt(fittingSlotId) },
-      data: { isBooked: true },
-    });
-
-    // Link selected product
-    if (productId) {
-      await prisma.fittingProduct.create({
-        data: {
-          fittingId: fittingSchedule.id,
-          productId: parseInt(productId),
-        },
-      });
-    }
-
-    // Attach variant info to note (as you don't have FittingVariant model)
     if (variantId) {
-      const variant = await prisma.variantProducts.findUnique({
-        where: { id: parseInt(variantId) },
+      allVariantIds.push(variantId);
+    }
+
+    const variantIdsNumeric: number[] = Array.from(
+      new Set(
+        allVariantIds.map((id: any) => parseInt(id)).filter((id) => !isNaN(id)),
+      ),
+    );
+
+    const result = await prisma.$transaction(async (tx) => {
+      const fittingSlot = await tx.fittingSlot.findUnique({
+        where: { id: parseInt(fittingSlotId) },
       });
 
-      if (variant) {
-        const variantInfo = `${variant.size}-${variant.color} (${variant.sku})`;
-        const updatedNote = note
-          ? `${note}\nVariant: ${variantInfo}`
-          : `Variant: ${variantInfo}`;
+      if (!fittingSlot) {
+        throw new Error('Fitting slot not found');
+      }
 
-        await prisma.fittingSchedule.update({
-          where: { id: fittingSchedule.id },
-          data: { note: updatedNote },
+      if (fittingSlot.isBooked) {
+        throw new Error('Fitting slot is already booked');
+      }
+
+      // Update user phone number if provided
+      if (phoneNumber && phoneNumber !== user.phone_numbers) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: { phone_numbers: phoneNumber },
         });
       }
-    }
 
-    // Return detailed schedule
+      // Create fitting schedule
+      const fittingSchedule = await tx.fittingSchedule.create({
+        data: {
+          userId: user.id,
+          fittingSlotId: parseInt(fittingSlotId),
+          duration,
+          note,
+          status: fittingSlot.isAutoConfirm ? 'CONFIRMED' : 'PENDING',
+        },
+      });
+
+      // Mark slot as booked
+      await tx.fittingSlot.update({
+        where: { id: parseInt(fittingSlotId) },
+        data: { isBooked: true },
+      });
+
+      // Associate products if variants are provided
+      if (variantIdsNumeric.length > 0) {
+        // Verify variants exist
+        const existingVariants = await tx.variantProducts.findMany({
+          where: { id: { in: variantIdsNumeric } },
+          select: { id: true },
+        });
+
+        if (existingVariants.length !== variantIdsNumeric.length) {
+          const missingIds = variantIdsNumeric.filter(
+            (id) => !existingVariants.some((v) => v.id === id),
+          );
+          throw new Error(`Variants not found: ${missingIds.join(', ')}`);
+        }
+
+        // Create fitting product associations
+        await tx.fittingProduct.createMany({
+          data: variantIdsNumeric.map((variantId: number) => ({
+            fittingId: fittingSchedule.id,
+            variantProductId: Number(variantId),
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return fittingSchedule.id;
+    });
+
+    // Fetch complete schedule with relations
     const completeSchedule = await prisma.fittingSchedule.findUnique({
-      where: { id: fittingSchedule.id },
+      where: { id: result },
       include: {
         user: {
           select: {
@@ -130,12 +150,19 @@ export async function POST(request: NextRequest) {
         },
         FittingProduct: {
           include: {
-            product: {
+            variantProduct: {
               select: {
                 id: true,
-                name: true,
-                images: true,
-                category: true,
+                size: true,
+                color: true,
+                sku: true,
+                products: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                  },
+                },
               },
             },
           },
@@ -149,35 +176,61 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error creating fitting schedule:', error);
+    const status = error.message.includes('not found') ? 404 : 500;
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      {
+        error: 'Error creating fitting schedule',
+        details: error.message,
+      },
+      { status },
     );
   }
 }
 
-// GET: Get user's fitting schedules
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const { userId: callerClerkId } = await auth();
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
     });
-    if (!user) {
+
+    if (!caller) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const ownerIdParam = searchParams.get('ownerId');
+
+    let whereClause: any = {};
+
+    if (caller.role === 'CUSTOMER') {
+      whereClause.userId = caller.id;
+    } else if (caller.role === 'OWNER') {
+      if (ownerIdParam) {
+        const requestedOwnerId = parseInt(ownerIdParam);
+        if (requestedOwnerId === caller.id) {
+          whereClause.fittingSlot = { ownerId: caller.id };
+        } else {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      } else {
+        // Default to caller's own schedules
+        whereClause.fittingSlot = { ownerId: caller.id };
+      }
+    } else if (caller.role === 'ADMIN') {
+      if (ownerIdParam) {
+        whereClause.fittingSlot = { ownerId: parseInt(ownerIdParam) };
+      }
+    }
+
     const schedules = await prisma.fittingSchedule.findMany({
-      where: { userId: user.id },
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -204,12 +257,19 @@ export async function GET(request: NextRequest) {
         },
         FittingProduct: {
           include: {
-            product: {
+            variantProduct: {
               select: {
                 id: true,
-                name: true,
-                images: true,
-                category: true,
+                size: true,
+                color: true,
+                sku: true,
+                products: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                  },
+                },
               },
             },
           },
@@ -225,7 +285,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching fitting schedules:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

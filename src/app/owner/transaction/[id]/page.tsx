@@ -361,6 +361,8 @@ const TransactionDetailPage = () => {
                                   item.variantProduct.products.images[0] ??
                                   '/placeholder.svg'
                                 }
+                                width={120}
+                                height={120}
                                 alt={item.variantProduct.products.name}
                                 className="h-full w-full object-cover"
                               />

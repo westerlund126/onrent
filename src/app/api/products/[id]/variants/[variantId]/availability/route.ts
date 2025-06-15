@@ -5,7 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ variantId: string }> }, // Changed: params is now a Promise
+  context: { params: Promise<{ variantId: string }> }, 
 ) {
   try {
     const { userId } = await auth();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const params = await context.params; // Changed: directly await params
+    const params = await context.params; 
     const variantId = parseInt(params.variantId);
 
     if (isNaN(variantId)) {

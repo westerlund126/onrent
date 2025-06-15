@@ -231,10 +231,15 @@ const TransactionDetailPage = () => {
     }).format(amount);
   };
 
-  const getDueDate = (): { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+  const getDueDate = (): {
+    text: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  } => {
     const endDate = new Date(rental.endDate);
     const today = new Date();
-    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     if (diffDays < 0) {
       return {
@@ -327,6 +332,8 @@ const TransactionDetailPage = () => {
                             <div className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-100">
                               <Image
                                 src={item.variantProduct.products.images[0]}
+                                width={120}
+                                height={120}
                                 alt={item.variantProduct.products.name}
                                 className="h-full w-full object-cover"
                               />
@@ -514,7 +521,8 @@ const TransactionDetailPage = () => {
                   <span className="text-sm text-gray-600">Durasi</span>
                   <p className="font-medium">
                     {Math.ceil(
-                      (new Date(rental.endDate).getTime() - new Date(rental.startDate).getTime()) /
+                      (new Date(rental.endDate).getTime() -
+                        new Date(rental.startDate).getTime()) /
                         (1000 * 60 * 60 * 24),
                     )}{' '}
                     hari

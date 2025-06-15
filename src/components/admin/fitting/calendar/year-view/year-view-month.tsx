@@ -6,14 +6,14 @@ import { useCalendar } from "contexts/calendar-context";
 
 import { YearViewDayCell } from 'components/admin/fitting/calendar/year-view/year-view-day-cell';
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   month: Date;
-  events: IEvent[];
+  schedule: IFittingSchedule[];
 }
 
-export function YearViewMonth({ month, events }: IProps) {
+export function YearViewMonth({ month, schedule }: IProps) {
   const { push } = useRouter();
   const { setSelectedDate } = useCalendar();
 
@@ -60,9 +60,13 @@ export function YearViewMonth({ month, events }: IProps) {
             if (day === null) return <div key={`blank-${index}`} className="h-10" />;
 
             const date = new Date(month.getFullYear(), month.getMonth(), day);
-            const dayEvents = events.filter(event => isSameDay(parseISO(event.startDate), date) || isSameDay(parseISO(event.endDate), date));
+            const daySchedule = schedule.filter(
+              (schedule) =>
+                isSameDay(schedule.startTime, date) ||
+                isSameDay(schedule.endTime, date),
+            );
 
-            return <YearViewDayCell key={`day-${day}`} day={day} date={date} events={dayEvents} />;
+            return <YearViewDayCell key={`day-${day}`} day={day} date={date} schedule={daySchedule} />;
           })}
         </div>
       </div>

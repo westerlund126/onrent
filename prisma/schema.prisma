@@ -42,8 +42,6 @@ model Products {
   owner           User              @relation(fields: [ownerId], references: [id])
   VariantProducts VariantProducts[]
   Wishlist        Wishlist[]
-
-  FittingProduct FittingProduct[]
 }
 
 model VariantProducts {
@@ -60,6 +58,7 @@ model VariantProducts {
   isRented    Boolean  @default(false)
   sku         String   @unique
   RentalItem  RentalItem[]
+  FittingProduct FittingProduct[]
   products    Products @relation(fields: [productsId], references: [id])
   @@unique([size, color, bustlength, waistlength, length, productsId, sku])
 }
@@ -89,6 +88,8 @@ model Rental {
   Return           Return[]
   rentalItems    RentalItem[] 
   Tracking         Tracking[]
+  @@index([status])
+  @@index([startDate])
 }
 
 model RentalItem {
@@ -143,11 +144,11 @@ model FittingSlot {
 model WeeklySlot {
   id        Int     @id @default(autoincrement())
   ownerId   Int
-  dayOfWeek Int
-  isEnabled  Boolean @default(true)
-  startTime String
-  endTime   String
-  owner           User        @relation(fields: [ownerId], references: [id])
+  dayOfWeek DayOfWeek
+  isEnabled Boolean @default(true)
+  startTime DateTime @db.Time
+  endTime   DateTime @db.Time
+  owner     User    @relation(fields: [ownerId], references: [id])
   @@unique([ownerId, dayOfWeek])
 }
 
@@ -161,10 +162,10 @@ model ScheduleBlock {
 }
 model FittingProduct {
   fittingId  Int
-  productId  Int
+  variantProductId Int
   fitting    FittingSchedule @relation(fields: [fittingId], references: [id])
-  product    Products        @relation(fields: [productId], references: [id])
-  @@id([fittingId, productId])
+  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+  @@id([fittingId, variantProductId])
 }
 
 enum UserRole {
@@ -186,6 +187,16 @@ enum FittingStatus {
   REJECTED
   COMPLETED
   CANCELED
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }
 
 enum TrackingStatus {

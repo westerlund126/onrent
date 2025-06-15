@@ -4,19 +4,18 @@ import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { EditEventDialog } from 'components/admin/fitting/calendar/dialogs/edit-event-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
-  event: IEvent;
+  schedule: IFittingSchedule;
   children: React.ReactNode;
 }
 
-export function EventDetailsDialog({ event, children }: IProps) {
-  const startDate = parseISO(event.startDate);
-  const endDate = parseISO(event.endDate);
+export function EventDetailsDialog({ schedule, children }: IProps) {
+  const startDate = schedule.startTime;
+  const endDate = schedule.endTime;
 
   return (
     <>
@@ -25,7 +24,7 @@ export function EventDetailsDialog({ event, children }: IProps) {
 
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{event.title}</DialogTitle>
+            <DialogTitle>{schedule.title}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -33,7 +32,7 @@ export function EventDetailsDialog({ event, children }: IProps) {
               <User className="mt-1 size-4 shrink-0" />
               <div>
                 <p className="text-sm font-medium">Responsible</p>
-                <p className="text-sm text-muted-foreground">{event.user.name}</p>
+                <p className="text-sm text-muted-foreground">{schedule.user.username}</p>
               </div>
             </div>
 
@@ -57,18 +56,10 @@ export function EventDetailsDialog({ event, children }: IProps) {
               <Text className="mt-1 size-4 shrink-0" />
               <div>
                 <p className="text-sm font-medium">Description</p>
-                <p className="text-sm text-muted-foreground">{event.description}</p>
+                <p className="text-sm text-muted-foreground">{schedule.note}</p>
               </div>
             </div>
           </div>
-
-          <DialogFooter>
-            <EditEventDialog event={event}>
-              <Button type="button" variant="outline">
-                Edit
-              </Button>
-            </EditEventDialog>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

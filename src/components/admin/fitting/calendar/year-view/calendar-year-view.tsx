@@ -5,13 +5,13 @@ import { useCalendar } from "contexts/calendar-context";
 
 import { YearViewMonth } from 'components/admin/fitting/calendar/year-view/year-view-month';
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
-  allEvents: IEvent[];
+  allSchedule: IFittingSchedule[];
 }
 
-export function CalendarYearView({ allEvents }: IProps) {
+export function CalendarYearView({ allSchedule }: IProps) {
   const { selectedDate } = useCalendar();
 
   const months = useMemo(() => {
@@ -23,7 +23,7 @@ export function CalendarYearView({ allEvents }: IProps) {
     <div className="p-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {months.map(month => (
-          <YearViewMonth key={month.toString()} month={month} events={allEvents} />
+          <YearViewMonth key={month.toString()} month={month} schedule={allSchedule} />
         ))}
       </div>
     </div>

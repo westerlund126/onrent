@@ -9,7 +9,7 @@ import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/ev
 import { cn } from "@/lib/utils";
 
 import type { HTMLAttributes } from "react";
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from "class-variance-authority";
 
 const calendarWeekEventCardVariants = cva(
@@ -17,7 +17,6 @@ const calendarWeekEventCardVariants = cva(
   {
     variants: {
       color: {
-        // Colored and mixed variants
         blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 [&_.event-dot]:fill-blue-600",
         green: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300 [&_.event-dot]:fill-green-600",
         red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300 [&_.event-dot]:fill-red-600",
@@ -26,7 +25,6 @@ const calendarWeekEventCardVariants = cva(
         orange: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300 [&_.event-dot]:fill-orange-600",
         gray: "border-neutral-200 bg-neutral-50 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 [&_.event-dot]:fill-neutral-600",
 
-        // Dot variants
         "blue-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-blue-600",
         "green-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-green-600",
         "red-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-red-600",
@@ -43,18 +41,20 @@ const calendarWeekEventCardVariants = cva(
 );
 
 interface IProps extends HTMLAttributes<HTMLDivElement>, Omit<VariantProps<typeof calendarWeekEventCardVariants>, "color"> {
-  event: IEvent;
+  schedule: IFittingSchedule[];
 }
 
-export function EventBlock({ event, className }: IProps) {
+export function EventBlock({ schedule, className }: IProps) {
   const { badgeVariant } = useCalendar();
 
-  const start = parseISO(event.startDate);
-  const end = parseISO(event.endDate);
+  const start = schedule[0]?.startTime;
+  const end = schedule[0]?.endTime;
   const durationInMinutes = differenceInMinutes(end, start);
   const heightInPixels = (durationInMinutes / 60) * 96 - 8;
 
-  const color = (badgeVariant === "dot" ? `${event.color}-dot` : event.color) as VariantProps<typeof calendarWeekEventCardVariants>["color"];
+  const color = (
+    badgeVariant === 'dot' ? `${schedule[0]?.color}-dot` : schedule[0]?.color
+  ) as VariantProps<typeof calendarWeekEventCardVariants>['color'];
 
   const calendarWeekEventCardClasses = cn(calendarWeekEventCardVariants({ color, className }), durationInMinutes < 35 && "py-0 justify-center");
 
@@ -66,22 +66,33 @@ export function EventBlock({ event, className }: IProps) {
   };
 
   return (
-    <DraggableEvent event={event}>
-      <EventDetailsDialog event={event}>
-        <div role="button" tabIndex={0} className={calendarWeekEventCardClasses} style={{ height: `${heightInPixels}px` }} onKeyDown={handleKeyDown}>
+    <DraggableEvent schedule={schedule[0]}>
+      <EventDetailsDialog schedule={schedule[0]}>
+        <div
+          role="button"
+          tabIndex={0}
+          className={calendarWeekEventCardClasses}
+          style={{ height: `${heightInPixels}px` }}
+          onKeyDown={handleKeyDown}
+        >
           <div className="flex items-center gap-1.5 truncate">
-            {["mixed", "dot"].includes(badgeVariant) && (
-              <svg width="8" height="8" viewBox="0 0 8 8" className="event-dot shrink-0">
+            {['mixed', 'dot'].includes(badgeVariant) && (
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 8 8"
+                className="event-dot shrink-0"
+              >
                 <circle cx="4" cy="4" r="4" />
               </svg>
             )}
 
-            <p className="truncate font-semibold">{event.title}</p>
+            <p className="truncate font-semibold">{schedule[0]?.title}</p>
           </div>
 
           {durationInMinutes > 25 && (
             <p>
-              {format(start, "h:mm a")} - {format(end, "h:mm a")}
+              {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
             </p>
           )}
         </div>

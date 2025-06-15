@@ -1,13 +1,9 @@
 'use client';
 
-import { parseISO, format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-
 import { useDisclosure } from 'hooks/use-disclosure';
 import { useCalendar } from 'contexts/calendar-context';
-import { useUpdateEvent } from 'hooks/use-update-event';
-
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,67 +33,58 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-
-// Import the DateTimeInput component
 import { DateTimeInput } from 'components/date-time-range-picker/date-time-input';
 
-import { eventSchema } from 'variables/fitting/schemas';
-
-import type { IEvent } from 'types/fitting';
-import type { TEventFormData } from 'variables/fitting/schemas';
+import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
 
 interface IProps {
   children: React.ReactNode;
-  event: IEvent;
+  startDate?: Date;
+  startTime?: { hour: number; minute: number };
 }
 
-export function EditEventDialog({ children, event }: IProps) {
-  const { isOpen, onClose, onToggle } = useDisclosure();
-
+export function AddEventDialog({ children, startDate, startTime }: IProps) {
   const { users } = useCalendar();
 
-  const { updateEvent } = useUpdateEvent();
+  const { isOpen, onClose, onToggle } = useDisclosure();
+
+  const getInitialDateTime = () => {
+    if (startDate) {
+      const date = new Date(startDate);
+      if (startTime) {
+        date.setHours(startTime.hour, startTime.minute, 0, 0);
+      }
+      return date;
+    }
+    return undefined;
+  };
 
   const form = useForm<TEventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      user: event.user.id,
-      title: event.title,
-      description: event.description,
-      startDateTime: parseISO(event.startDate),
-      endDateTime: parseISO(event.endDate),
-      color: event.color,
+      title: '',
+      description: '',
+      startDateTime: getInitialDateTime(),
+      endDateTime: undefined,
     },
   });
 
-  const onSubmit = (values: TEventFormData) => {
-    const user = users.find((user) => user.id === values.user);
-
-    if (!user) throw new Error('User not found');
-
-    updateEvent({
-      ...event,
-      user,
-      title: values.title,
-      color: values.color,
-      description: values.description,
-      startDate: values.startDateTime.toISOString(),
-      endDate: values.endDateTime.toISOString(),
-    });
-
+  const onSubmit = (_values: TEventFormData) => {
+    // TO DO: Create use-add-event hook
     onClose();
+    form.reset();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onToggle}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Event</DialogTitle>
+          <DialogTitle>Add New Event</DialogTitle>
           <DialogDescription>
-            Update your event details. All changes will be saved when you
-            submit.
+            This is just an example of how to use the form. In a real
+            application, you would call the API to create the event
           </DialogDescription>
         </DialogHeader>
 
@@ -107,47 +94,6 @@ export function EditEventDialog({ children, event }: IProps) {
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid gap-4 py-4"
           >
-            <FormField
-              control={form.control}
-              name="user"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Responsible</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger data-invalid={fieldState.invalid}>
-                        <SelectValue placeholder="Select an option" />
-                      </SelectTrigger>
-
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem
-                            key={user.id}
-                            value={user.id}
-                            className="flex-1"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Avatar key={user.id} className="size-6">
-                                <AvatarImage
-                                  src={user.picturePath ?? undefined}
-                                  alt={user.name}
-                                />
-                                <AvatarFallback className="text-xs">
-                                  {user.name[0]}
-                                </AvatarFallback>
-                              </Avatar>
-
-                              <p className="truncate">{user.name}</p>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
@@ -223,51 +169,10 @@ export function EditEventDialog({ children, event }: IProps) {
                       </SelectTrigger>
 
                       <SelectContent>
-                        <SelectItem value="blue">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-blue-600" />
-                            Blue
-                          </div>
-                        </SelectItem>
-
-                        <SelectItem value="green">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-green-600" />
-                            Green
-                          </div>
-                        </SelectItem>
-
-                        <SelectItem value="red">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-red-600" />
-                            Red
-                          </div>
-                        </SelectItem>
-
-                        <SelectItem value="yellow">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-yellow-600" />
-                            Yellow
-                          </div>
-                        </SelectItem>
-
-                        <SelectItem value="purple">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-purple-600" />
-                            Purple
-                          </div>
-                        </SelectItem>
-
-                        <SelectItem value="orange">
-                          <div className="flex items-center gap-2">
-                            <div className="size-3.5 rounded-full bg-orange-600" />
-                            Orange
-                          </div>
-                        </SelectItem>
 
                         <SelectItem value="gray">
                           <div className="flex items-center gap-2">
-                            <div className="bg-neutral-600 size-3.5 rounded-full" />
+                            <div className="bg-gray-600 size-3.5 rounded-full" />
                             Gray
                           </div>
                         </SelectItem>
@@ -309,7 +214,7 @@ export function EditEventDialog({ children, event }: IProps) {
           </DialogClose>
 
           <Button form="event-form" type="submit">
-            Save changes
+            Create Event
           </Button>
         </DialogFooter>
       </DialogContent>

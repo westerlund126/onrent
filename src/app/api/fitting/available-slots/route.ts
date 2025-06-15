@@ -16,11 +16,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Default to next 30 days if no date range provided
     const start = startDate ? new Date(startDate) : new Date();
     const end = endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    // Get available slots for the owner within date range
     const availableSlots = await prisma.fittingSlot.findMany({
       where: {
         ownerId: parseInt(ownerId),

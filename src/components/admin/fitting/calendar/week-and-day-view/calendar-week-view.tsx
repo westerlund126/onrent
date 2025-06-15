@@ -6,44 +6,45 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
 import { CalendarTimeline } from 'components/admin/fitting/calendar/week-and-day-view/calendar-time-line';
-import { WeekViewMultiDayEventsRow } from 'components/admin/fitting/calendar/week-and-day-view/week-view-multi-day-events-row';
-
 import { cn } from "@/lib/utils";
-import { groupEvents, getEventBlockStyle, isWorkingHour, getVisibleHours } from "utils/helpers";
+import { groupSchedule, getScheduleBlockStyle, isWorkingHour, getVisibleHours } from "utils/helpers";
 
-import type { IEvent } from 'types/fitting';
+import type { IEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
-  singleDayEvents: IEvent[];
-  multiDayEvents: IEvent[];
+  singleDaySchedule: IFittingSchedule[];
 }
 
-export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
+export function CalendarWeekView({ singleDaySchedule }: IProps) {
   const { selectedDate, workingHours, visibleHours } = useCalendar();
 
-  const { hours, earliestEventHour, latestEventHour } = getVisibleHours(visibleHours, singleDayEvents);
+  const { hours, earliestScheduleHour, latestScheduleHour } = getVisibleHours(visibleHours, singleDaySchedule);
 
   const weekStart = startOfWeek(selectedDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center border-b py-4 text-sm text-muted-foreground sm:hidden">
+      <div className="flex flex-col items-center justify-center border-b py-4 text-sm text-muted-foreground sm:hidden ">
         <p>Weekly view is not available on smaller devices.</p>
         <p>Please switch to daily or monthly view.</p>
       </div>
 
       <div className="hidden flex-col sm:flex">
         <div>
-          <WeekViewMultiDayEventsRow selectedDate={selectedDate} multiDayEvents={multiDayEvents} />
-
           {/* Week header */}
           <div className="relative z-20 flex border-b">
             <div className="w-18"></div>
             <div className="grid flex-1 grid-cols-7 divide-x border-l">
               {weekDays.map((day, index) => (
-                <span key={index} className="py-2 text-center text-xs font-medium text-muted-foreground">
-                  {format(day, "EE")} <span className="ml-1 font-semibold text-foreground">{format(day, "d")}</span>
+                <span
+                  key={index}
+                  className="py-2 text-center text-xs font-medium text-muted-foreground"
+                >
+                  {format(day, 'EE')}{' '}
+                  <span className="ml-1 font-semibold text-foreground">
+                    {format(day, 'd')}
+                  </span>
                 </span>
               ))}
             </div>
@@ -53,11 +54,15 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
         <ScrollArea className="h-[736px]" type="always">
           <div className="flex overflow-hidden">
             {/* Hours column */}
-            <div className="relative w-18">
+            <div className="w-18 relative">
               {hours.map((hour, index) => (
-                <div key={hour} className="relative" style={{ height: "96px" }}>
+                <div key={hour} className="relative" style={{ height: '96px' }}>
                   <div className="absolute -top-3 right-2 flex h-6 items-center">
-                    {index !== 0 && <span className="text-xs text-muted-foreground">{format(new Date().setHours(hour, 0, 0, 0), "hh a")}</span>}
+                    {index !== 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date().setHours(hour, 0, 0, 0), 'hh a')}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -67,50 +72,90 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
             <div className="relative flex-1 border-l">
               <div className="grid grid-cols-7 divide-x">
                 {weekDays.map((day, dayIndex) => {
-                  const dayEvents = singleDayEvents.filter(event => isSameDay(parseISO(event.startDate), day) || isSameDay(parseISO(event.endDate), day));
-                  const groupedEvents = groupEvents(dayEvents);
+                  const daySchedule = singleDaySchedule.filter(
+                    (schedule) =>
+                      isSameDay(schedule.startTime, day) ||
+                      isSameDay(schedule.endTime, day),
+                  );
+                  const groupedSchedule = groupSchedule(daySchedule);
 
                   return (
                     <div key={dayIndex} className="relative">
                       {hours.map((hour, index) => {
-                        const isDisabled = !isWorkingHour(day, hour, workingHours);
+                        const isDisabled = !isWorkingHour(
+                          day,
+                          hour,
+                          workingHours,
+                        );
 
                         return (
-                          <div key={hour} className={cn("relative", isDisabled && "bg-calendar-disabled-hour")} style={{ height: "96px" }}>
-                            {index !== 0 && <div className="pointer-events-none absolute inset-x-0 top-0 border-b"></div>}
+                          <div
+                            key={hour}
+                            className={cn(
+                              'relative',
+                              isDisabled && 'bg-calendar-disabled-hour',
+                            )}
+                            style={{ height: '96px' }}
+                          >
+                            {index !== 0 && (
+                              <div className="pointer-events-none absolute inset-x-0 top-0 border-b"></div>
+                            )}
                           </div>
                         );
                       })}
 
-                      {groupedEvents.map((group, groupIndex) =>
-                        group.map(event => {
-                          let style = getEventBlockStyle(event, day, groupIndex, groupedEvents.length, { from: earliestEventHour, to: latestEventHour });
-                          const hasOverlap = groupedEvents.some(
+                      {groupedSchedule.map((group, groupIndex) =>
+                        group.map((schedule) => {
+                          let style = getScheduleBlockStyle(
+                            schedule,
+                            day,
+                            groupIndex,
+                            groupedSchedule.length,
+                            {
+                              from: earliestScheduleHour,
+                              to: latestScheduleHour,
+                            },
+                          );
+                          const hasOverlap = groupedSchedule.some(
                             (otherGroup, otherIndex) =>
                               otherIndex !== groupIndex &&
-                              otherGroup.some(otherEvent =>
+                              otherGroup.some((otherSchedule) =>
                                 areIntervalsOverlapping(
-                                  { start: parseISO(event.startDate), end: parseISO(event.endDate) },
-                                  { start: parseISO(otherEvent.startDate), end: parseISO(otherEvent.endDate) }
-                                )
-                              )
+                                  {
+                                    start: schedule.startTime,
+                                    end: schedule.endTime,
+                                  },
+                                  {
+                                    start: otherSchedule.startTime,
+                                    end: otherSchedule.endTime,
+                                  },
+                                ),
+                              ),
                           );
 
-                          if (!hasOverlap) style = { ...style, width: "100%", left: "0%" };
+                          if (!hasOverlap)
+                            style = { ...style, width: '100%', left: '0%' };
 
                           return (
-                            <div key={event.id} className="absolute p-1" style={style}>
-                              <EventBlock event={event} />
+                            <div
+                              key={schedule.id}
+                              className="absolute p-1"
+                              style={style}
+                            >
+                              <EventBlock schedule={schedule[0]} />
                             </div>
                           );
-                        })
+                        }),
                       )}
                     </div>
                   );
                 })}
               </div>
 
-              <CalendarTimeline firstVisibleHour={earliestEventHour} lastVisibleHour={latestEventHour} />
+              <CalendarTimeline
+                firstVisibleHour={earliestScheduleHour}
+                lastVisibleHour={latestScheduleHour}
+              />
             </div>
           </div>
         </ScrollArea>
