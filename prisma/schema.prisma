@@ -8,60 +8,60 @@ datasource db {
 }
 
 model User {
-  id                Int                 @id @default(autoincrement())
-  first_name        String
-  last_name         String?
-  username          String              @unique
-  email             String              @unique
-  createdAt         DateTime            @default(now())
-  password          String?
-  businessAddress   String?
-  businessName      String?
-  phone_numbers     String?
-  role              UserRole            @default(CUSTOMER)
-  clerkUserId       String              @unique
-  imageUrl          String?
-  FittingSchedule   FittingSchedule[]
-  Products          Products[]
-  UserRental           Rental[]          @relation("UserRental") 
-  OwnerRental      Rental[]          @relation("OwnerRental")
-  Wishlist          Wishlist[]
-
-  FittingSlot FittingSlot[]
-  WeeklySlot  WeeklySlot[]
-  ScheduleBlock ScheduleBlock[]
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  createdAt       DateTime          @default(now())
+  password        String?
+  businessAddress String?
+  businessName    String?
+  role            UserRole          @default(CUSTOMER)
+  clerkUserId     String            @unique
+  imageUrl        String?
+  phone_numbers   String?
+  first_name      String
+  last_name       String?
+  username        String            @unique
+  FittingSchedule FittingSchedule[]
+  FittingSlot     FittingSlot[]
+  Products        Products[]
+  OwnerRental     Rental[]          @relation("OwnerRental")
+  UserRental      Rental[]          @relation("UserRental")
+  ScheduleBlock   ScheduleBlock[]
+  WeeklySlot      WeeklySlot[]
+  Wishlist        Wishlist[]
 }
 
 model Products {
   id              Int               @id @default(autoincrement())
   name            String
-  category        ProductCategory   @default(LAINNYA)
   createdAt       DateTime          @default(now())
   images          String[]
   description     String
   ownerId         Int
+  category        ProductCategory   @default(LAINNYA)
   owner           User              @relation(fields: [ownerId], references: [id])
   VariantProducts VariantProducts[]
   Wishlist        Wishlist[]
-
   FittingProduct FittingProduct[]
 }
 
 model VariantProducts {
-  id          Int      @id @default(autoincrement())
-  size        String
-  color       String
-  price       Float
-  isAvailable Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  productsId  Int
-  bustlength  Float?
-  waistlength Float?
-  length      Float?
-  isRented    Boolean  @default(false)
-  sku         String   @unique
-  RentalItem  RentalItem[]
-  products    Products @relation(fields: [productsId], references: [id])
+  id             Int              @id @default(autoincrement())
+  size           String
+  color          String
+  price          Float
+  isAvailable    Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  productsId     Int
+  bustlength     Float?
+  waistlength    Float?
+  length         Float?
+  isRented       Boolean          @default(false)
+  sku            String           @unique
+  FittingProduct FittingProduct[]
+  RentalItem     RentalItem[]
+  products       Products         @relation(fields: [productsId], references: [id])
+
   @@unique([size, color, bustlength, waistlength, length, productsId, sku])
 }
 
@@ -75,25 +75,28 @@ model Wishlist {
 }
 
 model Rental {
-  id               Int             @id @default(autoincrement())
-  userId           Int                              
-  ownerId          Int                             
-  rentalCode       String          @unique
-  startDate        DateTime
-  endDate          DateTime
-  status           RentalStatus    @default(BELUM_LUNAS)
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  startDate      DateTime
+  endDate        DateTime
+  status         RentalStatus @default(BELUM_LUNAS)
+  createdAt      DateTime     @default(now())
+  rentalCode     String       @unique
+  updatedAt      DateTime     @updatedAt
+  ownerId        Int
   additionalInfo String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  user             User            @relation("UserRental", fields: [userId], references: [id])
-  owner            User            @relation("OwnerRental", fields: [ownerId], references: [id])
-  Return           Return[]
-  rentalItems    RentalItem[] 
-  Tracking         Tracking[]
+  owner          User         @relation("OwnerRental", fields: [ownerId], references: [id])
+  user           User         @relation("UserRental", fields: [userId], references: [id])
+  rentalItems    RentalItem[]
+  Return         Return[]
+  Tracking       Tracking[]
+
+  @@index([startDate])
+  @@index([status])
 }
 
 model RentalItem {
-  id               Int              @id @default(autoincrement())
+  id               Int             @id @default(autoincrement())
   rentalId         Int
   variantProductId Int
   rental           Rental          @relation(fields: [rentalId], references: [id])
@@ -118,37 +121,38 @@ model Return {
 }
 
 model FittingSchedule {
-  id            Int       @id @default(autoincrement())
-  userId        Int
-  fittingSlotId Int       @unique
-  duration      Int
-  note          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  status        FittingStatus @default(PENDING)
-  user          User      @relation(fields: [userId], references: [id])
-  fittingSlot   FittingSlot @relation(fields: [fittingSlotId], references: [id])
+  id             Int              @id @default(autoincrement())
+  userId         Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  status         FittingStatus    @default(PENDING)
+  fittingSlotId  Int              @unique
+  note           String?
+  duration       Int
   FittingProduct FittingProduct[]
+  fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
 }
 
 model FittingSlot {
-  id              Int         @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   ownerId         Int
   dateTime        DateTime
-  isAutoConfirm   Boolean     @default(false)
-  isBooked        Boolean     @default(false)
-  owner           User        @relation(fields: [ownerId], references: [id])
+  isAutoConfirm   Boolean          @default(false)
+  isBooked        Boolean          @default(false)
   fittingSchedule FittingSchedule?
+  owner           User             @relation(fields: [ownerId], references: [id])
 }
 
 model WeeklySlot {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   ownerId   Int
-  dayOfWeek Int
-  isEnabled  Boolean @default(true)
-  startTime String
-  endTime   String
-  owner           User        @relation(fields: [ownerId], references: [id])
+  isEnabled Boolean   @default(true)
+  dayOfWeek DayOfWeek
+  startTime DateTime  @db.Time(6)
+  endTime   DateTime  @db.Time(6)
+  owner     User      @relation(fields: [ownerId], references: [id])
+
   @@unique([ownerId, dayOfWeek])
 }
 
@@ -158,14 +162,17 @@ model ScheduleBlock {
   startTime   DateTime
   endTime     DateTime
   description String
-  owner           User        @relation(fields: [ownerId], references: [id])
+  owner       User     @relation(fields: [ownerId], references: [id])
 }
+
 model FittingProduct {
-  fittingId  Int
-  productId  Int
-  fitting    FittingSchedule @relation(fields: [fittingId], references: [id])
-  product    Products        @relation(fields: [productId], references: [id])
-  @@id([fittingId, productId])
+  fittingId        Int
+  productId        Int
+  variantProductId Int
+  id               Int             @id @default(autoincrement())
+  fitting          FittingSchedule @relation(fields: [fittingId], references: [id])
+  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+  product          Products        @relation(fields: [productId], references: [id])
 }
 
 enum UserRole {
@@ -211,4 +218,14 @@ enum ProductCategory {
   BESKAP
   SELENDANG
   LAINNYA
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }

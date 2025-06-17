@@ -8,34 +8,38 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-const resolvedParams = await params;    
-const ownerId = parseInt(resolvedParams.id);
+    const resolvedParams = await params;
+    const ownerId = parseInt(resolvedParams.id);
 
+    if (isNaN(ownerId)) {
+      return NextResponse.json({ error: 'Invalid owner ID' }, { status: 400 });
+    }
 
+    // Fetch owner details
     const owner = await prisma.user.findUnique({
-      where: { id: ownerId },
+      where: { 
+        id: ownerId,
+        role: 'OWNER'
+      },
       select: {
         id: true,
+        username: true,
+        email: true,
         businessName: true,
         businessAddress: true,
-        phone_numbers: true,
-        email: true,
         imageUrl: true,
-        role: true, // we need this to verify OWNER
-      },
+        phone_numbers: true,
+        role: true,
+      }
     });
 
-    // 2. Check if role is OWNER
-    if (!owner || owner.role !== 'OWNER') {
+    if (!owner) {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
     }
 
-    // 3. Omit role before returning
-    const { role, ...ownerData } = owner;
-
-    return NextResponse.json(ownerData);
+    return NextResponse.json(owner);
   } catch (error) {
-    console.error('Error fetching owner details:', error);
+    console.error('Error fetching owner:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

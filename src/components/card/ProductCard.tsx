@@ -30,37 +30,57 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
     router.push(`/customer/catalog/${product.id}`);
   };
 
+  const handleSchedule = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/customer/fitting/schedule?type=product&productId=${product.id}&ownerId=${product.owner.id}`);
+  };
+
   return (
     <Card
-      extra={`flex flex-col w-full h-full !p-4 3xl:p-![18px] bg-white ${extra}`}
+      extra={`flex flex-col w-full h-full !p-0 bg-white overflow-hidden cursor-pointer ${extra}`}
+      onClick={handleClick}
     >
-      <div className="relative w-full">
+      {/* Image Section */}
+      <div className="relative w-full aspect-square">
         <Image
-          width={500}
-          height={800}
-          className="mb-3 h-80 w-full rounded-xl object-cover"
+          fill
+          className="object-cover"
           src={product.images[0]}
           alt={product.name}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <button
-          onClick={() => setLiked(!liked)}
-          className="absolute right-3 top-3 flex items-center justify-center rounded-full bg-white p-2 text-brand-500 hover:cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLiked(!liked);
+          }}
+          className="absolute right-3 top-3 flex items-center justify-center rounded-full bg-white p-2 text-brand-500 hover:text-red-500 transition-colors shadow-md"
         >
-          {liked ? <IoHeart className="text-brand-500" /> : <IoHeartOutline />}
+          {liked ? (
+            <IoHeart className="text-red-500 text-lg" />
+          ) : (
+            <IoHeartOutline className="text-lg" />
+          )}
         </button>
       </div>
 
-      <div className="mt-2">
-        <p className="text-lg font-bold text-navy-700">{product.name}</p>
-        {/* <p className="text-sm text-gray-500">By {product.owner.name}</p> */}
-        <div className='col-span-2 flex items-center justify-between'>
-        <p className="mt-2 font-semibold text-brand-500">
-          Rp {minPrice.toLocaleString('id-ID')}
-        </p>
-        <button onClick={handleClick}
-        className="linear rounded-[20px] bg-brand-900 px-4 py-2 text-base font-medium text-white transition duration-200 hover:bg-brand-800 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90">
-          Jadwalkan
-        </button>
+      {/* Content Section */}
+      <div className="p-4 flex flex-col gap-3">
+        <h3 className="text-xl font-bold text-navy-700 line-clamp-2 h-14 overflow-hidden">
+          {product.name}
+        </h3>
+        
+        <div className="mt-2">
+          <p className="text-lg font-bold text-brand-500 mb-3">
+            Rp {minPrice.toLocaleString('id-ID')}
+          </p>
+          
+          <button 
+            onClick={handleSchedule}
+            className="w-full bg-brand-900 hover:bg-brand-800 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            Jadwalkan Fitting
+          </button>
         </div>
       </div>
     </Card>

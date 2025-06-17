@@ -1,6 +1,8 @@
 // utils/rental.ts
 import { RentalUser, RentalStatus } from 'types/rental';
 
+// Export the RentalStatus type so it can be imported elsewhere
+export type { RentalStatus } from 'types/rental';
 
 export const getStatusBadgeConfig = (status: RentalStatus) => {
   const statusConfig = {
@@ -29,6 +31,7 @@ export const getStatusBadgeConfig = (status: RentalStatus) => {
   );
 };
 
+// Rest of your existing code remains the same...
 /**
  * Format date string to localized format
  */

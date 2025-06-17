@@ -89,17 +89,20 @@ export async function POST(request: NextRequest) {
     });
 
     // Link product if available
-    if (productId) {
-      const parsedProductId = parseInt(productId);
-      if (!isNaN(parsedProductId)) {
-        await prisma.fittingProduct.create({
-          data: {
-            fittingId: fittingSchedule.id,
-            productId: parsedProductId,
-          },
-        });
-      }
-    }
+    if (productId && variantId) {
+  const parsedProductId = parseInt(productId);
+  const parsedVariantId = parseInt(variantId);
+
+  if (!isNaN(parsedProductId) && !isNaN(parsedVariantId)) {
+    await prisma.fittingProduct.create({
+      data: {
+        fittingId: fittingSchedule.id,
+        productId: parsedProductId,
+        variantProductId: parsedVariantId,
+      },
+    });
+  }
+}
 
     // Return full schedule detail
     const completeSchedule = await prisma.fittingSchedule.findUnique({

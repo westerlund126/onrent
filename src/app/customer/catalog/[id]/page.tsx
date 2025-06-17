@@ -463,17 +463,21 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                         
                         {/* See Profile Button */}
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            toast.info("Profile View", {
-                              description: "Owner profile functionality will be implemented soon",
-                            });
-                          }}
-                          className="border-2 hover:scale-105 transition-all duration-300 rounded-xl px-6 py-2 font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
-                        >
-                          Lihat Profil
-                        </Button>
+  variant="outline" 
+  size="sm"
+  onClick={() => {
+    if (!product?.ownerId) {
+      toast.error("Owner ID tidak ditemukan", {
+        description: "Tidak dapat membuka profil pemilik produk",
+      });
+      return;
+    }
+    router.push(`/customer/owner/profile/${product.ownerId}`);
+  }}
+  className="border-2 hover:scale-105 transition-all duration-300 rounded-xl px-6 py-2 font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
+>
+  Lihat Profil
+</Button>
                       </div>
                     </div>
                   </CardContent>
