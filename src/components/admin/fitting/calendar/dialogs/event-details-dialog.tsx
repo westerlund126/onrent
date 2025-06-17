@@ -1,0 +1,67 @@
+"use client";
+
+import { format, parseISO } from "date-fns";
+import { Calendar, Clock, Text, User } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+import type { IEvent, IFittingSchedule } from 'types/fitting';
+
+interface IProps {
+  schedule: IFittingSchedule;
+  children: React.ReactNode;
+}
+
+export function EventDetailsDialog({ schedule, children }: IProps) {
+  const startDate = schedule.startTime;
+  const endDate = schedule.endTime;
+
+  return (
+    <>
+      <Dialog>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{schedule.title}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-start gap-2">
+              <User className="mt-1 size-4 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Responsible</p>
+                <p className="text-sm text-muted-foreground">{schedule.user.username}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Calendar className="mt-1 size-4 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Start Date</p>
+                <p className="text-sm text-muted-foreground">{format(startDate, "MMM d, yyyy h:mm a")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Clock className="mt-1 size-4 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">End Date</p>
+                <p className="text-sm text-muted-foreground">{format(endDate, "MMM d, yyyy h:mm a")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Text className="mt-1 size-4 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Description</p>
+                <p className="text-sm text-muted-foreground">{schedule.note}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

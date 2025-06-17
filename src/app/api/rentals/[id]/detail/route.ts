@@ -12,7 +12,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await params; // Await the params Promise
+    const resolvedParams = await params;
     const rentalId = Number(resolvedParams.id);
     if (Number.isNaN(rentalId)) {
       return NextResponse.json({ error: 'Invalid rental ID' }, { status: 400 });

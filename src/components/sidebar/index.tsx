@@ -1,4 +1,4 @@
-/* eslint-disable */
+//components/sidebar/index.tsx
 
 import { HiX } from 'react-icons/hi';
 import Links from './components/Links';

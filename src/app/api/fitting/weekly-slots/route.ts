@@ -1,90 +1,416 @@
-// app/api/fitting/weekly-slots/route.ts - Modified for testing without auth
+// app/api/fitting/weekly-slots/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server';
+import {
+  WorkingHours,
+  UpdateWorkingHoursRequest,
+  UpdateWorkingHoursResponse,
+  GetWorkingHoursResponse,
+  ApiError,
+  DEFAULT_WORKING_HOURS,
+} from 'types/working-hours';
+import {
+  validateWorkingHours,
+  sanitizeWorkingHours,
+  transformToDatabaseFormat,
+  transformFromDatabaseFormat,
+} from 'utils/working-hours-validation';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest) {
+/**
+ * Auto-generate fitting slots based on weekly slots
+ */
+async function generateFittingSlotsForOwner(
+  ownerId: number,
+  daysAhead: number = 60,
+) {
+  const weeklySlots = await prisma.weeklySlot.findMany({
+    where: { ownerId, isEnabled: true },
+  });
+
+  if (weeklySlots.length === 0) {
+    return { count: 0, message: 'No enabled weekly slots found' };
+  }
+
+  const slotsToCreate = [];
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(startDate.getDate() + daysAhead);
+
+  for (
+    let date = new Date(startDate);
+    date <= endDate;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const dayOfWeek = date.getDay(); 
+    const DAY_OF_WEEK_MAP = {
+      0: 'SUNDAY',
+      1: 'MONDAY',
+      2: 'TUESDAY',
+      3: 'WEDNESDAY',
+      4: 'THURSDAY',
+      5: 'FRIDAY',
+      6: 'SATURDAY',
+    } as const;
+
+    const weeklySlot = weeklySlots.find(
+      (slot) =>
+        slot.dayOfWeek ===
+        DAY_OF_WEEK_MAP[dayOfWeek as keyof typeof DAY_OF_WEEK_MAP],
+    );
+    if (weeklySlot) {
+      const startHour = weeklySlot.startTime.getHours();
+      const startMinute = weeklySlot.startTime.getMinutes();
+      const endHour = weeklySlot.endTime.getHours();
+      const endMinute = weeklySlot.endTime.getMinutes();
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        const slotDateTime = new Date(date);
+        slotDateTime.setHours(hour, 0, 0, 0);
+
+        if (slotDateTime <= new Date()) continue;
+
+        const existingSlot = await prisma.fittingSlot.findFirst({
+          where: {
+            ownerId,
+            dateTime: slotDateTime,
+          },
+        });
+
+        if (!existingSlot) {
+          slotsToCreate.push({
+            ownerId,
+            dateTime: slotDateTime,
+            isAutoConfirm: true,
+          });
+        }
+      }
+    }
+  }
+
+  const result = await prisma.fittingSlot.createMany({
+    data: slotsToCreate,
+    skipDuplicates: true,
+  });
+
+  return {
+    count: result.count,
+    message: `Generated ${result.count} booking slots for the next ${daysAhead} days`,
+  };
+}
+
+/**
+ * Check if owner has any existing bookings that would conflict with working hours changes
+ */
+async function checkForExistingBookings(ownerId: number) {
+  const existingBookings = await prisma.fittingSchedule.findMany({
+    where: {
+      fittingSlot: {
+        ownerId,
+        dateTime: {
+          gte: new Date(), // Only future bookings
+        },
+      },
+      status: {
+        in: ['PENDING', 'CONFIRMED'], // Active bookings only
+      },
+    },
+    include: {
+      fittingSlot: true,
+    },
+  });
+
+  return existingBookings;
+}
+
+/**
+ * GET - Fetch working hours for a user
+ */
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse<GetWorkingHoursResponse | ApiError>> {
   try {
-    const body = await request.json();
-    const { ownerId, weeklySlots } = body;
+    const { userId: callerClerkId } = await auth();
 
-    // Check if ownerId is provided
-    if (!ownerId) {
-      return NextResponse.json(
-        { error: 'Owner ID is required' },
-        { status: 400 }
-      );
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify owner exists
-    const owner = await prisma.user.findUnique({
-      where: { id: parseInt(ownerId) },
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
     });
 
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner not found' },
-        { status: 404 }
-      );
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Delete existing weekly slots for this owner
-    await prisma.weeklySlot.deleteMany({
-      where: { ownerId: parseInt(ownerId) },
+    let ownerId: number;
+
+    if (caller.role === 'OWNER') {
+      ownerId = caller.id;
+    } else if (caller.role === 'CUSTOMER') {
+      const { searchParams } = new URL(request.url);
+      const ownerIdParam = searchParams.get('ownerId');
+
+      if (!ownerIdParam) {
+        return NextResponse.json(
+          { error: 'Owner ID is required for customers' },
+          { status: 400 },
+        );
+      }
+
+      const parsedOwnerId = parseInt(ownerIdParam);
+      if (isNaN(parsedOwnerId)) {
+        return NextResponse.json(
+          { error: 'Invalid owner ID format' },
+          { status: 400 },
+        );
+      }
+
+      ownerId = parsedOwnerId;
+
+      const targetOwner = await prisma.user.findUnique({
+        where: { id: ownerId, role: 'OWNER' },
+      });
+
+      if (!targetOwner) {
+        return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+      }
+    } else if (caller.role === 'ADMIN') {
+      const { searchParams } = new URL(request.url);
+      const ownerIdParam = searchParams.get('ownerId');
+
+      if (!ownerIdParam) {
+        return NextResponse.json(
+          { error: 'Owner ID is required for admins' },
+          { status: 400 },
+        );
+      }
+
+      const parsedOwnerId = parseInt(ownerIdParam);
+      if (isNaN(parsedOwnerId)) {
+        return NextResponse.json(
+          { error: 'Invalid owner ID format' },
+          { status: 400 },
+        );
+      }
+
+      ownerId = parsedOwnerId;
+
+      const targetOwner = await prisma.user.findUnique({
+        where: { id: ownerId, role: 'OWNER' },
+      });
+
+      if (!targetOwner) {
+        return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+      }
+    } else {
+      return NextResponse.json({ error: 'Invalid user role' }, { status: 403 });
+    }
+
+    const weeklySlots = await prisma.weeklySlot.findMany({
+      where: { ownerId },
+      orderBy: { dayOfWeek: 'asc' },
     });
 
-    // Create new weekly slots
-    const slotsToCreate = weeklySlots.map((slot: any) => ({
-      ownerId: parseInt(ownerId),
-      dayOfWeek: slot.dayOfWeek,
-      isEnabled: slot.isEnabled,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-    }));
+    const workingHours =
+      weeklySlots.length > 0
+        ? transformFromDatabaseFormat(weeklySlots)
+        : DEFAULT_WORKING_HOURS;
 
-    await prisma.weeklySlot.createMany({
-      data: slotsToCreate,
-    });
-
-    return NextResponse.json({ 
-      message: 'Weekly slots updated successfully',
-      ownerId: parseInt(ownerId),
-      slotsCreated: slotsToCreate.length
-    });
+    return NextResponse.json({ workingHours });
   } catch (error) {
-    console.error('Error updating weekly slots:', error);
+    console.error('Error fetching working hours:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// GET method remains the same
-export async function GET(request: NextRequest) {
+/**
+ * POST - Create initial working hours (for new owners)
+ */
+export async function POST(
+  request: NextRequest,
+): Promise<NextResponse<UpdateWorkingHoursResponse | ApiError>> {
   try {
-    const { searchParams } = new URL(request.url);
-    const ownerId = searchParams.get('ownerId');
+    const { userId: callerClerkId } = await auth();
 
-    if (!ownerId) {
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
+    });
+
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (caller.role !== 'OWNER') {
       return NextResponse.json(
-        { error: 'Owner ID is required' },
-        { status: 400 }
+        { error: 'Only owners can create working hours' },
+        { status: 403 },
       );
     }
 
-    const weeklySlots = await prisma.weeklySlot.findMany({
-      where: { ownerId: parseInt(ownerId) },
-      orderBy: { dayOfWeek: 'asc' },
+    const existingSlots = await prisma.weeklySlot.findFirst({
+      where: { ownerId: caller.id },
     });
 
-    return NextResponse.json(weeklySlots);
+    if (existingSlots) {
+      return NextResponse.json(
+        { error: 'Working hours already exist. Use PATCH to update.' },
+        { status: 409 },
+      );
+    }
+
+    const body: UpdateWorkingHoursRequest = await request.json();
+    const { workingHours } = body;
+
+    const validation = validateWorkingHours(workingHours);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'Invalid working hours data',
+          details: validation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join('; '),
+        },
+        { status: 400 },
+      );
+    }
+
+    const sanitizedWorkingHours = sanitizeWorkingHours(workingHours);
+    const weeklySlots = transformToDatabaseFormat(
+      sanitizedWorkingHours,
+      caller.id,
+    );
+
+    await prisma.weeklySlot.createMany({
+      data: weeklySlots,
+    });
+
+    const slotGeneration = await generateFittingSlotsForOwner(caller.id, 60);
+
+    return NextResponse.json({
+      message: 'Working hours created successfully',
+      ownerId: caller.id,
+      workingHours: sanitizedWorkingHours,
+      slotGeneration,
+    });
   } catch (error) {
-    console.error('Error fetching weekly slots:', error);
+    console.error('Error creating working hours:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH - Update existing working hours with automatic slot generation
+ */
+export async function PATCH(
+  request: NextRequest,
+): Promise<NextResponse<UpdateWorkingHoursResponse | ApiError>> {
+  try {
+    const { userId: callerClerkId } = await auth();
+
+    if (!callerClerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const caller = await prisma.user.findUnique({
+      where: { clerkUserId: callerClerkId },
+      select: { id: true, role: true },
+    });
+
+    if (!caller) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (caller.role !== 'OWNER') {
+      return NextResponse.json(
+        { error: 'Only owners can update working hours' },
+        { status: 403 },
+      );
+    }
+
+    // Check for existing bookings that would be affected
+    const existingBookings = await checkForExistingBookings(caller.id);
+    if (existingBookings.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot update working hours while you have active bookings. Please cancel or complete existing bookings first.',
+          bookingCount: existingBookings.length,
+        },
+        { status: 409 },
+      );
+    }
+
+    const body: UpdateWorkingHoursRequest = await request.json();
+    const { workingHours } = body;
+
+    const validation = validateWorkingHours(workingHours);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'Invalid working hours data',
+          details: validation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join('; '),
+        },
+        { status: 400 },
+      );
+    }
+
+    const sanitizedWorkingHours = sanitizeWorkingHours(workingHours);
+    const weeklySlots = transformToDatabaseFormat(
+      sanitizedWorkingHours,
+      caller.id,
+    );
+
+    await prisma.$transaction(async (tx) => {
+      await tx.weeklySlot.deleteMany({
+        where: { ownerId: caller.id },
+      });
+
+      await tx.weeklySlot.createMany({
+        data: weeklySlots,
+      });
+
+      await tx.fittingSlot.deleteMany({
+        where: {
+          ownerId: caller.id,
+          isBooked: false,
+          dateTime: {
+            gt: new Date(),
+          },
+        },
+      });
+    });
+
+    const slotGeneration = await generateFittingSlotsForOwner(caller.id, 60);
+
+    return NextResponse.json({
+      message: 'Working hours updated successfully',
+      ownerId: caller.id,
+      workingHours: sanitizedWorkingHours,
+      slotGeneration,
+    });
+  } catch (error) {
+    console.error('Error updating working hours:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }

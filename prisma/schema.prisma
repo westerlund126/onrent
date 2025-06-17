@@ -8,27 +8,27 @@ datasource db {
 }
 
 model User {
-  id              Int               @id @default(autoincrement())
-  email           String            @unique
-  createdAt       DateTime          @default(now())
-  password        String?
-  businessAddress String?
-  businessName    String?
-  role            UserRole          @default(CUSTOMER)
-  clerkUserId     String            @unique
-  imageUrl        String?
-  phone_numbers   String?
-  first_name      String
-  last_name       String?
-  username        String            @unique
-  FittingSchedule FittingSchedule[]
-  FittingSlot     FittingSlot[]
-  Products        Products[]
-  OwnerRental     Rental[]          @relation("OwnerRental")
-  UserRental      Rental[]          @relation("UserRental")
-  ScheduleBlock   ScheduleBlock[]
-  WeeklySlot      WeeklySlot[]
-  Wishlist        Wishlist[]
+  id                Int                 @id @default(autoincrement())
+  first_name        String
+  last_name         String?
+  username          String              @unique
+  email             String              @unique
+  createdAt         DateTime            @default(now())
+  password          String?
+  businessAddress   String?
+  businessName      String?
+  phone_numbers     String?
+  role              UserRole            @default(CUSTOMER)
+  clerkUserId       String              @unique
+  imageUrl          String?
+  FittingSchedule   FittingSchedule[]
+  Products          Products[]
+  UserRental           Rental[]          @relation("UserRental") 
+  OwnerRental      Rental[]          @relation("OwnerRental")
+  Wishlist          Wishlist[]
+  FittingSlot FittingSlot[]
+  WeeklySlot  WeeklySlot[]
+  ScheduleBlock ScheduleBlock[]
 }
 
 model Products {
@@ -46,22 +46,21 @@ model Products {
 }
 
 model VariantProducts {
-  id             Int              @id @default(autoincrement())
-  size           String
-  color          String
-  price          Float
-  isAvailable    Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  productsId     Int
-  bustlength     Float?
-  waistlength    Float?
-  length         Float?
-  isRented       Boolean          @default(false)
-  sku            String           @unique
+  id          Int      @id @default(autoincrement())
+  size        String
+  color       String
+  price       Float
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  productsId  Int
+  bustlength  Float?
+  waistlength Float?
+  length      Float?
+  isRented    Boolean  @default(false)
+  sku         String   @unique
+  RentalItem  RentalItem[]
   FittingProduct FittingProduct[]
-  RentalItem     RentalItem[]
-  products       Products         @relation(fields: [productsId], references: [id])
-
+  products    Products @relation(fields: [productsId], references: [id])
   @@unique([size, color, bustlength, waistlength, length, productsId, sku])
 }
 
@@ -85,14 +84,13 @@ model Rental {
   updatedAt      DateTime     @updatedAt
   ownerId        Int
   additionalInfo String?
-  owner          User         @relation("OwnerRental", fields: [ownerId], references: [id])
-  user           User         @relation("UserRental", fields: [userId], references: [id])
-  rentalItems    RentalItem[]
-  Return         Return[]
-  Tracking       Tracking[]
-
-  @@index([startDate])
+  user             User            @relation("UserRental", fields: [userId], references: [id])
+  owner            User            @relation("OwnerRental", fields: [ownerId], references: [id])
+  Return           Return[]
+  rentalItems    RentalItem[] 
+  Tracking         Tracking[]
   @@index([status])
+  @@index([startDate])
 }
 
 model RentalItem {
@@ -147,12 +145,11 @@ model FittingSlot {
 model WeeklySlot {
   id        Int       @id @default(autoincrement())
   ownerId   Int
-  isEnabled Boolean   @default(true)
   dayOfWeek DayOfWeek
-  startTime DateTime  @db.Time(6)
-  endTime   DateTime  @db.Time(6)
-  owner     User      @relation(fields: [ownerId], references: [id])
-
+  isEnabled Boolean @default(true)
+  startTime DateTime @db.Time
+  endTime   DateTime @db.Time
+  owner     User    @relation(fields: [ownerId], references: [id])
   @@unique([ownerId, dayOfWeek])
 }
 
@@ -196,6 +193,16 @@ enum FittingStatus {
   CANCELED
 }
 
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
 enum TrackingStatus {
   RENTAL_ONGOING
   RETURN_PENDING
@@ -218,14 +225,4 @@ enum ProductCategory {
   BESKAP
   SELENDANG
   LAINNYA
-}
-
-enum DayOfWeek {
-  SUNDAY
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
 }

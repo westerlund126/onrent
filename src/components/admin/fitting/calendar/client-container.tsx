@@ -1,0 +1,141 @@
+'use client';
+
+import { useMemo } from 'react';
+import {
+  useSelectedDate,
+  useSelectedUserId,
+  useFittingSchedules,
+} from 'stores';
+import { DndProviderWrapper } from './dnd/dnd-provider';
+import { CalendarHeader } from './header/calendar-header';
+import { CalendarYearView } from './year-view/calendar-year-view';
+import { CalendarMonthView } from './month-view/calendar-month-view';
+import { CalendarAgendaView } from './agenda-view/calendar-agenda-view';
+import { CalendarDayView } from './week-and-day-view/calendar-day-view';
+import { CalendarWeekView } from './week-and-day-view/calendar-week-view';
+
+import type { TCalendarView } from 'types/fitting';
+
+interface IProps {
+  view: TCalendarView;
+}
+
+export function ClientContainer({ view }: IProps) {
+  const selectedDate = useSelectedDate();
+  const selectedUserId = useSelectedUserId();
+  const fittingSchedules = useFittingSchedules();
+
+  const filteredSchedule = useMemo(() => {
+    return fittingSchedules.filter((schedule) => {
+      const scheduleStartTime = schedule.startTime;
+
+      if (view === 'year') {
+        const yearStart = new Date(selectedDate.getFullYear(), 0, 1);
+        const yearEnd = new Date(
+          selectedDate.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999,
+        );
+        const isInSelectedYear =
+          scheduleStartTime >= yearStart && scheduleStartTime <= yearEnd;
+        const isUserMatch =
+          selectedUserId === 'all' || schedule.user.id === selectedUserId;
+        return isInSelectedYear && isUserMatch;
+      }
+
+      if (view === 'month' || view === 'agenda') {
+        const monthStart = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          1,
+        );
+        const monthEnd = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        const isInSelectedMonth =
+          scheduleStartTime >= monthStart && scheduleStartTime <= monthEnd;
+        const isUserMatch =
+          selectedUserId === 'all' || schedule.user.id === selectedUserId;
+        return isInSelectedMonth && isUserMatch;
+      }
+
+      if (view === 'week') {
+        const dayOfWeek = selectedDate.getDay();
+
+        const weekStart = new Date(selectedDate);
+        weekStart.setDate(selectedDate.getDate() - dayOfWeek);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const isInSelectedWeek =
+          scheduleStartTime >= weekStart && scheduleStartTime <= weekEnd;
+        const isUserMatch =
+          selectedUserId === 'all' || schedule.user.id === selectedUserId;
+        return isInSelectedWeek && isUserMatch;
+      }
+
+      if (view === 'day') {
+        const dayStart = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate(),
+          0,
+          0,
+          0,
+        );
+        const dayEnd = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate(),
+          23,
+          59,
+          59,
+        );
+        const isInSelectedDay =
+          scheduleStartTime >= dayStart && scheduleStartTime <= dayEnd;
+        const isUserMatch =
+          selectedUserId === 'all' || schedule.user.id === selectedUserId;
+        return isInSelectedDay && isUserMatch;
+      }
+
+      return false;
+    });
+  }, [selectedDate, selectedUserId, fittingSchedules, view]);
+
+  const singleDaySchedule = filteredSchedule;
+
+  return (
+    <div className="overflow-hidden rounded-xl border-2 bg-white px-5">
+      <CalendarHeader view={view} schedule={filteredSchedule} />
+
+      <DndProviderWrapper>
+        {view === 'day' && (
+          <CalendarDayView singleDaySchedule={singleDaySchedule} />
+        )}
+        {view === 'month' && (
+          <CalendarMonthView singleDaySchedule={singleDaySchedule} />
+        )}
+        {view === 'week' && (
+          <CalendarWeekView singleDaySchedule={singleDaySchedule} />
+        )}
+        {view === 'year' && <CalendarYearView allSchedule={filteredSchedule} />}
+        {view === 'agenda' && (
+          <CalendarAgendaView singleDaySchedule={singleDaySchedule} />
+        )}
+      </DndProviderWrapper>
+    </div>
+  );
+}
