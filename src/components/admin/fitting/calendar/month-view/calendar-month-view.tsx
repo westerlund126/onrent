@@ -48,10 +48,9 @@ export function CalendarMonthView({ ownerId }: IProps) {
   ]);
 
   const { singleDaySchedule, multiDaySchedule } = useMemo(() => {
-    const schedule: IFittingSchedule[] = []; // Keep using 'schedule'
+    const schedule: IFittingSchedule[] = []; 
 
     fittingSchedules.forEach((fittingSchedule) => {
-      // Rename to avoid confusion
       const slot = fittingSlots.find(
         (s) => s.id === fittingSchedule.fittingSlotId,
       );
@@ -69,8 +68,7 @@ export function CalendarMonthView({ ownerId }: IProps) {
         );
 
         schedule.push({
-          // Fixed: use 'schedule.push'
-          ...fittingSchedule, // Spread existing properties
+          ...fittingSchedule,
           startTime: startDateTime,
           endTime: endDateTime,
           title: fittingSchedule.title || 'Fitting Appointment', // Fixed: use note instead of [0]?.description
@@ -94,14 +92,13 @@ export function CalendarMonthView({ ownerId }: IProps) {
       .filter((slot) => !slot.isBooked)
       .forEach((slot) => {
         const startDateTime = new Date(slot.dateTime);
-        const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // Default 1 hour
+        const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); 
 
         schedule.push({
-          // Fixed: use 'schedule.push'
           id: slot.id,
           userId: slot.ownerId,
           fittingSlotId: slot.id,
-          duration: 60, // Default 1 hour
+          duration: 60,
           startTime: startDateTime,
           endTime: endDateTime,
           title: 'Available Slot',
@@ -122,7 +119,6 @@ export function CalendarMonthView({ ownerId }: IProps) {
     const multiDay: IFittingSchedule[] = [];
 
     schedule.forEach((scheduleItem) => {
-      // Use scheduleItem to avoid confusion
       const startDate = scheduleItem.startTime.toISOString().split('T')[0];
       const endDate = scheduleItem.endTime.toISOString().split('T')[0];
 

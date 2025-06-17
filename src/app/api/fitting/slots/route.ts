@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
 
-    // Build where clause based on role and parameters
     let whereClause: any = {};
 
     if (caller.role === 'OWNER') {
@@ -36,7 +35,6 @@ export async function GET(request: NextRequest) {
       whereClause.ownerId = parseInt(ownerId);
     }
 
-    // Add date filtering if provided
     if (dateFrom || dateTo) {
       whereClause.dateTime = {};
       if (dateFrom) {

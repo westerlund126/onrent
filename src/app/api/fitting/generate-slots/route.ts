@@ -1,4 +1,4 @@
-// app/api/fitting/generate-slots/route.ts 
+// app/api/fitting/generate-slots/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { startDate, endDate } = await request.json(); 
+    const { startDate, endDate } = await request.json();
 
     const caller = await prisma.user.findUnique({
       where: { clerkUserId: callerClerkId },
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (weeklySlots.length === 0) {
       return NextResponse.json(
         { error: 'No weekly slots configured for this owner' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,26 +47,36 @@ export async function POST(request: NextRequest) {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+    for (
+      let date = new Date(start);
+      date <= end;
+      date.setDate(date.getDate() + 1)
+    ) {
       const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      
-      const weeklySlot = weeklySlots.find(slot => slot.dayOfWeek === dayOfWeek);
-      
+
+      const weeklySlot = weeklySlots.find(
+        (slot) => slot.dayOfWeek === dayOfWeek.toString(),
+      );
+
       if (weeklySlot) {
-        const [startHour, startMinute] = weeklySlot.startTime.split(':').map(Number);
-        const [endHour, endMinute] = weeklySlot.endTime.split(':').map(Number);
-        
+        // FIX: Extract hours and minutes from DateTime objects
+        const startHour = weeklySlot.startTime.getHours();
+        const startMinute = weeklySlot.startTime.getMinutes();
+        const endHour = weeklySlot.endTime.getHours();
+        const endMinute = weeklySlot.endTime.getMinutes();
+
+        // Generate hourly slots between start and end time
         for (let hour = startHour; hour < endHour; hour++) {
           const slotDateTime = new Date(date);
           slotDateTime.setHours(hour, 0, 0, 0);
-          
+
           const existingSlot = await prisma.fittingSlot.findFirst({
             where: {
               ownerId: caller.id,
               dateTime: slotDateTime,
             },
           });
-          
+
           if (!existingSlot) {
             slotsToCreate.push({
               ownerId: caller.id,
@@ -96,7 +106,7 @@ export async function POST(request: NextRequest) {
     console.error('Error generating slots:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

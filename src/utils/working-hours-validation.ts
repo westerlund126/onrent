@@ -11,6 +11,27 @@ import {
   ValidHour,
 } from 'types/working-hours';
 
+// Day mapping constants
+const DAY_NUMBER_TO_ENUM = {
+  0: 'SUNDAY',
+  1: 'MONDAY',
+  2: 'TUESDAY',
+  3: 'WEDNESDAY',
+  4: 'THURSDAY',
+  5: 'FRIDAY',
+  6: 'SATURDAY',
+} as const;
+
+const DAY_ENUM_TO_NUMBER = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+} as const;
+
 /**
  * Validates if a number is a valid hour (0-23)
  */
@@ -180,40 +201,58 @@ export function isDayEnabled(day: DayWorkingHours): boolean {
 }
 
 /**
- * Formats an hour number to HH:mm string
+ * Formats an hour number to DateTime object (for Prisma @db.Time fields)
  */
-export function formatHourToTime(hour: number): string {
+export function formatHourToTime(hour: number): Date {
   if (!isValidHour(hour)) {
     throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
   }
-  return `${hour.toString().padStart(2, '0')}:00`;
+  // Create a Date object with the time set to the specified hour
+  // Prisma will extract only the time portion due to @db.Time
+  const date = new Date();
+  date.setHours(hour, 0, 0, 0); // Set hour, minute=0, second=0, millisecond=0
+  return date;
 }
 
 /**
- * Parses HH:mm string to hour number
+ * Parses DateTime object (from Prisma @db.Time fields) to hour number
  */
-export function parseTimeToHour(timeString: string): number {
-  if (typeof timeString !== 'string') {
-    throw new Error('Time string must be a string');
+export function parseTimeToHour(timeValue: string | Date): number {
+  let date: Date;
+
+  if (typeof timeValue === 'string') {
+    // Handle string format like "09:00:00" or "09:00"
+    const match = timeValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!match) {
+      throw new Error(
+        `Invalid time format: ${timeValue}. Expected HH:mm or HH:mm:ss`,
+      );
+    }
+
+    const hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+
+    if (!isValidHour(hour)) {
+      throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
+    }
+
+    if (minute !== 0) {
+      throw new Error(`Minutes must be 00. Got: ${minute}`);
+    }
+
+    return hour;
+  } else if (timeValue instanceof Date) {
+    // Handle Date object
+    const hour = timeValue.getHours();
+
+    if (!isValidHour(hour)) {
+      throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
+    }
+
+    return hour;
+  } else {
+    throw new Error('Time value must be a string or Date object');
   }
-
-  const match = timeString.match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) {
-    throw new Error(`Invalid time format: ${timeString}. Expected HH:mm`);
-  }
-
-  const hour = parseInt(match[1], 10);
-  const minute = parseInt(match[2], 10);
-
-  if (!isValidHour(hour)) {
-    throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
-  }
-
-  if (minute !== 0) {
-    throw new Error(`Minutes must be 00. Got: ${minute}`);
-  }
-
-  return hour;
 }
 
 /**
@@ -247,7 +286,7 @@ export function transformToDatabaseFormat(
 
     weeklySlots.push({
       ownerId,
-      dayOfWeek: dayIndex,
+      dayOfWeek: DAY_NUMBER_TO_ENUM[dayIndex],
       isEnabled,
       startTime: formatHourToTime(dayHours.from),
       endTime: formatHourToTime(dayHours.to),
@@ -268,12 +307,14 @@ export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
   }
 
   weeklySlots.forEach((slot) => {
-    if (slot && isValidDayIndex(slot.dayOfWeek) && slot.isEnabled) {
+    const dayIndex =
+      DAY_ENUM_TO_NUMBER[slot.dayOfWeek as keyof typeof DAY_ENUM_TO_NUMBER];
+    if (slot && isValidDayIndex(dayIndex) && slot.isEnabled) {
       try {
         const from = parseTimeToHour(slot.startTime);
         const to = parseTimeToHour(slot.endTime);
 
-        workingHours[slot.dayOfWeek] = { from, to };
+        workingHours[dayIndex] = { from, to };
       } catch (error) {
         console.error(`Error parsing slot for day ${slot.dayOfWeek}:`, error);
       }

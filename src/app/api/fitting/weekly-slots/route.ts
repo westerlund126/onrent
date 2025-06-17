@@ -20,6 +20,112 @@ import {
 const prisma = new PrismaClient();
 
 /**
+ * Auto-generate fitting slots based on weekly slots
+ */
+async function generateFittingSlotsForOwner(
+  ownerId: number,
+  daysAhead: number = 60,
+) {
+  const weeklySlots = await prisma.weeklySlot.findMany({
+    where: { ownerId, isEnabled: true },
+  });
+
+  if (weeklySlots.length === 0) {
+    return { count: 0, message: 'No enabled weekly slots found' };
+  }
+
+  const slotsToCreate = [];
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(startDate.getDate() + daysAhead);
+
+  for (
+    let date = new Date(startDate);
+    date <= endDate;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const dayOfWeek = date.getDay(); 
+    const DAY_OF_WEEK_MAP = {
+      0: 'SUNDAY',
+      1: 'MONDAY',
+      2: 'TUESDAY',
+      3: 'WEDNESDAY',
+      4: 'THURSDAY',
+      5: 'FRIDAY',
+      6: 'SATURDAY',
+    } as const;
+
+    const weeklySlot = weeklySlots.find(
+      (slot) =>
+        slot.dayOfWeek ===
+        DAY_OF_WEEK_MAP[dayOfWeek as keyof typeof DAY_OF_WEEK_MAP],
+    );
+    if (weeklySlot) {
+      const startHour = weeklySlot.startTime.getHours();
+      const startMinute = weeklySlot.startTime.getMinutes();
+      const endHour = weeklySlot.endTime.getHours();
+      const endMinute = weeklySlot.endTime.getMinutes();
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        const slotDateTime = new Date(date);
+        slotDateTime.setHours(hour, 0, 0, 0);
+
+        if (slotDateTime <= new Date()) continue;
+
+        const existingSlot = await prisma.fittingSlot.findFirst({
+          where: {
+            ownerId,
+            dateTime: slotDateTime,
+          },
+        });
+
+        if (!existingSlot) {
+          slotsToCreate.push({
+            ownerId,
+            dateTime: slotDateTime,
+            isAutoConfirm: true,
+          });
+        }
+      }
+    }
+  }
+
+  const result = await prisma.fittingSlot.createMany({
+    data: slotsToCreate,
+    skipDuplicates: true,
+  });
+
+  return {
+    count: result.count,
+    message: `Generated ${result.count} booking slots for the next ${daysAhead} days`,
+  };
+}
+
+/**
+ * Check if owner has any existing bookings that would conflict with working hours changes
+ */
+async function checkForExistingBookings(ownerId: number) {
+  const existingBookings = await prisma.fittingSchedule.findMany({
+    where: {
+      fittingSlot: {
+        ownerId,
+        dateTime: {
+          gte: new Date(), // Only future bookings
+        },
+      },
+      status: {
+        in: ['PENDING', 'CONFIRMED'], // Active bookings only
+      },
+    },
+    include: {
+      fittingSlot: true,
+    },
+  });
+
+  return existingBookings;
+}
+
+/**
  * GET - Fetch working hours for a user
  */
 export async function GET(
@@ -65,7 +171,6 @@ export async function GET(
       }
 
       ownerId = parsedOwnerId;
-
 
       const targetOwner = await prisma.user.findUnique({
         where: { id: ownerId, role: 'OWNER' },
@@ -192,10 +297,13 @@ export async function POST(
       data: weeklySlots,
     });
 
+    const slotGeneration = await generateFittingSlotsForOwner(caller.id, 60);
+
     return NextResponse.json({
       message: 'Working hours created successfully',
       ownerId: caller.id,
       workingHours: sanitizedWorkingHours,
+      slotGeneration,
     });
   } catch (error) {
     console.error('Error creating working hours:', error);
@@ -207,7 +315,7 @@ export async function POST(
 }
 
 /**
- * PATCH - Update existing working hours
+ * PATCH - Update existing working hours with automatic slot generation
  */
 export async function PATCH(
   request: NextRequest,
@@ -232,6 +340,19 @@ export async function PATCH(
       return NextResponse.json(
         { error: 'Only owners can update working hours' },
         { status: 403 },
+      );
+    }
+
+    // Check for existing bookings that would be affected
+    const existingBookings = await checkForExistingBookings(caller.id);
+    if (existingBookings.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot update working hours while you have active bookings. Please cancel or complete existing bookings first.',
+          bookingCount: existingBookings.length,
+        },
+        { status: 409 },
       );
     }
 
@@ -265,12 +386,25 @@ export async function PATCH(
       await tx.weeklySlot.createMany({
         data: weeklySlots,
       });
+
+      await tx.fittingSlot.deleteMany({
+        where: {
+          ownerId: caller.id,
+          isBooked: false,
+          dateTime: {
+            gt: new Date(),
+          },
+        },
+      });
     });
+
+    const slotGeneration = await generateFittingSlotsForOwner(caller.id, 60);
 
     return NextResponse.json({
       message: 'Working hours updated successfully',
       ownerId: caller.id,
       workingHours: sanitizedWorkingHours,
+      slotGeneration,
     });
   } catch (error) {
     console.error('Error updating working hours:', error);

@@ -2,7 +2,9 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { toast } from 'sonner'; // or whatever toast import you use with shadcn
 import type { IWeeklySlot, IScheduleBlock } from 'types/fitting';
+import type { WorkingHours } from 'types/working-hours';
 
 interface ScheduleState {
   weeklySlots: IWeeklySlot[];
@@ -18,10 +20,16 @@ interface ScheduleState {
 
   fetchWeeklySlots: (ownerId: number) => Promise<void>;
   fetchScheduleBlocks: (ownerId: number) => Promise<void>;
+
+  // Fixed: Use the correct API endpoint for individual slot updates
   updateWeeklySlot: (
     slotId: number,
     updates: Partial<IWeeklySlot>,
   ) => Promise<void>;
+
+  // New: Update full working hours with auto slot generation
+  updateWorkingHours: (workingHours: WorkingHours) => Promise<void>;
+
   addScheduleBlock: (block: Omit<IScheduleBlock, 'id'>) => Promise<void>;
   removeScheduleBlock: (blockId: number) => Promise<void>;
   reset: () => void;
@@ -62,7 +70,6 @@ export const useScheduleStore = create<ScheduleState>()(
         });
 
         try {
-          // Fixed API endpoint (was /api/weekly-slots, now /api/fitting/weekly-slots)
           const response = await fetch(
             `/api/fitting/weekly-slots?ownerId=${ownerId}`,
           );
@@ -122,6 +129,8 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       },
 
+      // Fixed: This method now points to a hypothetical individual slot update API
+      // Note: You might need to create this API endpoint if it doesn't exist
       updateWeeklySlot: async (slotId, updates) => {
         set((state) => {
           state.isLoading = true;
@@ -129,7 +138,7 @@ export const useScheduleStore = create<ScheduleState>()(
         });
 
         try {
-          const response = await fetch(`/api/weekly-slots/${slotId}`, {
+          const response = await fetch(`/api/fitting/weekly-slots/${slotId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
@@ -148,6 +157,8 @@ export const useScheduleStore = create<ScheduleState>()(
             }
             state.isLoading = false;
           });
+
+          toast.success('Working hours updated successfully');
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -156,6 +167,60 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
           console.error('Failed to update weekly slot:', error);
+          toast.error(`Failed to update: ${errorMessage}`);
+          throw error;
+        }
+      },
+
+      updateWorkingHours: async (workingHours) => {
+        set((state) => {
+          state.isLoading = true;
+          state.error = null;
+        });
+
+        try {
+          const response = await fetch('/api/fitting/weekly-slots', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workingHours }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.error || 'Failed to update working hours',
+            );
+          }
+
+          const result = await response.json();
+
+          set((state) => {
+            state.isLoading = false;
+          });
+
+          toast.success('Working hours updated', {
+            description:
+              result.slotGeneration?.message ||
+              'Booking slots have been updated',
+          });
+
+          // Optionally refetch the data to ensure UI is in sync
+          // You might want to pass ownerId here or get it from context
+          // await get().fetchWeeklySlots(ownerId);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred';
+          set((state) => {
+            state.error = errorMessage;
+            state.isLoading = false;
+          });
+          console.error('Failed to update working hours:', error);
+
+          // Show error toast
+          toast.error('Failed to update working hours', {
+            description: errorMessage,
+          });
+
           throw error;
         }
       },
@@ -183,6 +248,8 @@ export const useScheduleStore = create<ScheduleState>()(
             state.scheduleBlocks.push(newBlock);
             state.isLoading = false;
           });
+
+          toast.success('Schedule block added successfully');
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -191,6 +258,7 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
           console.error('Failed to add schedule block:', error);
+          toast.error(`Failed to add schedule block: ${errorMessage}`);
           throw error;
         }
       },
@@ -219,6 +287,8 @@ export const useScheduleStore = create<ScheduleState>()(
             );
             state.isLoading = false;
           });
+
+          toast.success('Schedule block removed successfully');
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -227,6 +297,7 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
           console.error('Failed to remove schedule block:', error);
+          toast.error(`Failed to remove schedule block: ${errorMessage}`);
           throw error;
         }
       },

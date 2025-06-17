@@ -1,4 +1,5 @@
 // stores/useWorkingHoursStore.ts
+import { toast } from 'sonner';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
@@ -95,6 +96,12 @@ export const useWorkingHoursStore = create<WorkingHoursState>()(
             workingHours: data.workingHours || workingHours,
             isLoading: false,
           });
+
+          toast(
+            data.slotsGenerated
+              ? `Generated ${data.slotsGenerated} booking slots for the next 60 days.`
+              : 'Your working hours have been saved.',
+          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';

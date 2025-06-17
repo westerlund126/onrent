@@ -19,9 +19,16 @@ export interface WorkingHours {
 export interface WeeklySlot {
   id?: number;
   ownerId: number;
-  dayOfWeek: number; 
+  dayOfWeek:
+    | 'SUNDAY'
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY';
   isEnabled: boolean;
-  startTime: string; 
+  startTime: string;
   endTime: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -47,7 +54,10 @@ export interface ApiError {
 }
 
 export const VALID_DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
-export const VALID_HOURS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as const;
+export const VALID_HOURS = [
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+  22, 23,
+] as const;
 
 export type ValidDayIndex = (typeof VALID_DAY_INDICES)[number];
 export type ValidHour = (typeof VALID_HOURS)[number];
@@ -64,7 +74,7 @@ export interface WorkingHoursValidationResult {
 }
 
 export const DEFAULT_WORKING_HOURS: WorkingHours = {
-  0: { from: 0, to: 0 }, // Sunday 
+  0: { from: 0, to: 0 }, // Sunday
   1: { from: 9, to: 17 }, // Monday
   2: { from: 9, to: 17 }, // Tuesday
   3: { from: 9, to: 17 }, // Wednesday
