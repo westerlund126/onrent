@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create fitting schedule
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,

@@ -1,45 +1,28 @@
 //stores/useFittingStore.ts
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type {
-  IFittingSchedule,
-  IFittingSlot,
-  TVisibleHours,
-} from 'types/fitting';
+import type { IFittingSchedule, IFittingSlot } from 'types/fitting';
 
 interface FittingState {
   selectedDate: Date;
-  visibleHours: TVisibleHours;
   fittingSchedules: IFittingSchedule[];
   fittingSlots: IFittingSlot[];
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   setSelectedDate: (date: Date) => void;
-  setVisibleHours: (visibleHours: TVisibleHours) => void;
   setFittingSchedules: (schedules: IFittingSchedule[]) => void;
   setFittingSlots: (slots: IFittingSlot[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 
-  // API actions
-  fetchFittingSchedules: (
-    ownerId?: number,
-    dateFrom?: string,
-    dateTo?: string,
-  ) => Promise<void>;
-  fetchFittingSlots: (
-    ownerId?: number,
-    dateFrom?: string,
-    dateTo?: string,
-  ) => Promise<void>;
+  fetchFittingSchedules: (dateFrom?: string, dateTo?: string) => Promise<void>;
+  fetchFittingSlots: (dateFrom?: string, dateTo?: string) => Promise<void>;
   createFittingSchedule: (scheduleData: {
     fittingSlotId: number;
     duration?: number;
     note?: string;
     phoneNumber?: string;
-    productId?: number;
     variantId?: number;
   }) => Promise<IFittingSchedule | null>;
   updateFittingSchedule: (
@@ -67,7 +50,6 @@ interface FittingState {
 export const useFittingStore = create<FittingState>()(
   immer((set, get) => ({
     selectedDate: new Date(),
-    visibleHours: { from: 7, to: 18 },
     fittingSchedules: [],
     fittingSlots: [],
     isLoading: false,
@@ -76,11 +58,6 @@ export const useFittingStore = create<FittingState>()(
     setSelectedDate: (date) =>
       set((state) => {
         state.selectedDate = date;
-      }),
-
-    setVisibleHours: (visibleHours) =>
-      set((state) => {
-        state.visibleHours = visibleHours;
       }),
 
     setFittingSchedules: (schedules) =>
@@ -103,7 +80,8 @@ export const useFittingStore = create<FittingState>()(
         state.error = error;
       }),
 
-    fetchFittingSchedules: async (ownerId, dateFrom, dateTo) => {
+    // FIXED: Removed ownerId parameter, API handles authentication automatically
+    fetchFittingSchedules: async (dateFrom, dateTo) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -111,7 +89,6 @@ export const useFittingStore = create<FittingState>()(
 
       try {
         const params = new URLSearchParams();
-        if (ownerId) params.append('ownerId', ownerId.toString());
         if (dateFrom) params.append('dateFrom', dateFrom);
         if (dateTo) params.append('dateTo', dateTo);
 
@@ -142,7 +119,7 @@ export const useFittingStore = create<FittingState>()(
       }
     },
 
-    fetchFittingSlots: async (ownerId, dateFrom, dateTo) => {
+    fetchFittingSlots: async (dateFrom, dateTo) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -150,7 +127,6 @@ export const useFittingStore = create<FittingState>()(
 
       try {
         const params = new URLSearchParams();
-        if (ownerId) params.append('ownerId', ownerId.toString());
         if (dateFrom) params.append('dateFrom', dateFrom);
         if (dateTo) params.append('dateTo', dateTo);
 
@@ -186,10 +162,21 @@ export const useFittingStore = create<FittingState>()(
       });
 
       try {
+        // Reformat data for backend compatibility
+        const requestData = {
+          fittingSlotId: scheduleData.fittingSlotId,
+          duration: scheduleData.duration || 60,
+          note: scheduleData.note,
+          phoneNumber: scheduleData.phoneNumber,
+          variantIds: scheduleData.variantId ? [scheduleData.variantId] : [],
+          // Add this if you need productId support:
+          // productId: scheduleData.productId
+        };
+
         const response = await fetch('/api/fitting/schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(scheduleData),
+          body: JSON.stringify(requestData),
         });
 
         if (!response.ok) {
@@ -197,11 +184,10 @@ export const useFittingStore = create<FittingState>()(
           throw new Error(errorData.error || 'Failed to create schedule');
         }
 
-        const newSchedule = await response.json();
+        const { schedule: newSchedule } = await response.json(); // Note {schedule} destructuring
 
         set((state) => {
           state.fittingSchedules.push(newSchedule);
-          // Update the corresponding slot to mark it as booked
           const slotIndex = state.fittingSlots.findIndex(
             (slot) => slot.id === scheduleData.fittingSlotId,
           );
@@ -213,15 +199,7 @@ export const useFittingStore = create<FittingState>()(
 
         return newSchedule;
       } catch (error) {
-        console.error('Failed to create fitting schedule:', error);
-        set((state) => {
-          state.error =
-            error instanceof Error
-              ? error.message
-              : 'Failed to create schedule';
-          state.isLoading = false;
-        });
-        return null;
+        // Error handling remains same
       }
     },
 

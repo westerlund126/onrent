@@ -161,11 +161,11 @@ model ScheduleBlock {
   owner           User        @relation(fields: [ownerId], references: [id])
 }
 model FittingProduct {
-  fittingId  Int
+  id               Int               @id @default(autoincrement())
+  fittingSchedule  FittingSchedule   @relation(fields: [fittingId], references: [id])
+  variantProduct   VariantProducts   @relation(fields: [variantProductId], references: [id])
+  fittingId        Int
   variantProductId Int
-  fitting    FittingSchedule @relation(fields: [fittingId], references: [id])
-  variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
-  @@id([fittingId, variantProductId])
 }
 
 enum UserRole {

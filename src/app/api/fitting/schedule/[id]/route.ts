@@ -247,7 +247,6 @@ export async function PATCH(
       });
     });
 
-    // Return just the schedule object to match Zustand store expectation
     return NextResponse.json(updatedSchedule);
   } catch (error: any) {
     console.error('Error updating fitting schedule:', error);
@@ -258,7 +257,6 @@ export async function PATCH(
   }
 }
 
-// Also improve the DELETE function for transaction safety
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

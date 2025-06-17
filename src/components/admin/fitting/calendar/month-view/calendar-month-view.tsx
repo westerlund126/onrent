@@ -1,21 +1,20 @@
 // CalendarMonthView.tsx
 import { useMemo, useEffect } from 'react';
 import { DayCell } from 'components/admin/fitting/calendar/month-view/day-cell';
-import { getCalendarCells, calculateMonthSchedulePositions } from 'utils/helpers';
+import {
+  getCalendarCells,
+  calculateMonthSchedulePositions,
+  getStatusColor
+} from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
 import { useCalendarStore } from 'stores/useCalendarStore';
 import { useFittingStore } from 'stores';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
-interface IProps {
-  ownerId?: number;
-  singleDaySchedule: IFittingSchedule[];
-}
-
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function CalendarMonthView({ ownerId }: IProps) {
-  const { selectedDate, selectedUserId, visibleHours } = useCalendarStore();
+export function CalendarMonthView() {
+  const { selectedDate } = useCalendarStore();
 
   const {
     fittingSchedules,
@@ -33,87 +32,39 @@ export function CalendarMonthView({ ownerId }: IProps) {
     const dateFrom = format(monthStart, 'yyyy-MM-dd');
     const dateTo = format(monthEnd, 'yyyy-MM-dd');
 
-    const userIdToFetch =
-      selectedUserId !== 'all' ? Number(selectedUserId) : ownerId;
-
-    fetchFittingSchedules(userIdToFetch);
-    fetchFittingSlots(userIdToFetch, dateFrom, dateTo);
-  }, [
-    monthStart,
-    monthEnd,
-    ownerId,
-    selectedUserId,
-    fetchFittingSchedules,
-    fetchFittingSlots,
-  ]);
+    fetchFittingSchedules(dateFrom, dateTo);
+    fetchFittingSlots(dateFrom, dateTo);
+  }, [monthStart, monthEnd, fetchFittingSchedules, fetchFittingSlots]);
 
   const { singleDaySchedule, multiDaySchedule } = useMemo(() => {
-    const schedule: IFittingSchedule[] = []; 
+    const schedule: IFittingSchedule[] = [];
 
     fittingSchedules.forEach((fittingSchedule) => {
       const slot = fittingSlots.find(
         (s) => s.id === fittingSchedule.fittingSlotId,
       );
-      if (slot) {
-        if (
-          selectedUserId !== 'all' &&
-          fittingSchedule.userId.toString() !== selectedUserId
-        ) {
-          return;
-        }
 
+      if (slot) {
         const startDateTime = new Date(slot.dateTime);
         const endDateTime = new Date(
           startDateTime.getTime() + fittingSchedule.duration * 60000,
         );
 
+        const customerName = fittingSchedule.user
+          ? `${fittingSchedule.user.first_name} ${fittingSchedule.user.last_name}`.trim()
+          : 'Unknown Customer';
+
         schedule.push({
           ...fittingSchedule,
           startTime: startDateTime,
           endTime: endDateTime,
-          title: fittingSchedule.title || 'Fitting Appointment', // Fixed: use note instead of [0]?.description
-          color:
-            fittingSchedule.status === 'CONFIRMED'
-              ? 'green'
-              : fittingSchedule.status === 'CANCELED'
-              ? 'red'
-              : fittingSchedule.status === 'COMPLETED'
-              ? 'blue'
-              : 'yellow',
+          title: `Fitting appointment with ${customerName}`,
+          color: getStatusColor(fittingSchedule.status),
           note: fittingSchedule.note || 'No additional notes',
-          fittingSlot: slot, // Add the slot reference
+          fittingSlot: slot,
         });
       }
     });
-
-    // For available slots, you'll need to create IFittingSchedule objects
-    // This might not be the best approach - consider creating a separate interface for available slots
-    fittingSlots
-      .filter((slot) => !slot.isBooked)
-      .forEach((slot) => {
-        const startDateTime = new Date(slot.dateTime);
-        const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); 
-
-        schedule.push({
-          id: slot.id,
-          userId: slot.ownerId,
-          fittingSlotId: slot.id,
-          duration: 60,
-          startTime: startDateTime,
-          endTime: endDateTime,
-          title: 'Available Slot',
-          color: 'gray',
-          note: slot.isAutoConfirm
-            ? 'Auto-confirm enabled'
-            : 'Manual confirmation required',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          status: 'PENDING' as const,
-          user: slot.owner,
-          fittingSlot: slot,
-          FittingProduct: [],
-        });
-      });
 
     const singleDay: IFittingSchedule[] = [];
     const multiDay: IFittingSchedule[] = [];
@@ -130,9 +81,9 @@ export function CalendarMonthView({ ownerId }: IProps) {
     });
 
     return { singleDaySchedule: singleDay, multiDaySchedule: multiDay };
-  }, [fittingSchedules, fittingSlots, selectedUserId]);
+  }, [fittingSchedules, fittingSlots]);
 
-  const allSchedule = [ ...multiDaySchedule, ...singleDaySchedule];
+  const allSchedule = [...multiDaySchedule, ...singleDaySchedule];
 
   const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
 
@@ -185,3 +136,5 @@ export function CalendarMonthView({ ownerId }: IProps) {
     </div>
   );
 }
+
+
