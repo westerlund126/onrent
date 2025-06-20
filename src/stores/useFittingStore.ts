@@ -32,6 +32,7 @@ interface FittingState {
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
 
+  
   createFittingSlot: (slotData: {
     dateTime: string;
     isAutoConfirm?: boolean;
@@ -194,7 +195,7 @@ export const useFittingStore = create<FittingState>()(
 
         return newSchedule;
       } catch (error) {
-        // Error handling remains same
+        
       }
     },
 

@@ -41,7 +41,7 @@ const OwnerProfilePage = ({ ownerId }) => {
         const slotsResponse = await fetch(`/api/fitting/weekly-slots?ownerId=${ownerId}`);
         if (slotsResponse.ok) {
           const slotsData = await slotsResponse.json();
-          setWeeklySlots(slotsData);
+          setWeeklySlots(slotsData.workingHours);
         }
         
         setOwnerData(ownerData);
@@ -115,21 +115,18 @@ const OwnerProfilePage = ({ ownerId }) => {
   };
 
   const formatOperationalHours = (slots) => {
-    if (!slots || slots.length === 0) return 'Tidak tersedia';
-    
-    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const enabledSlots = slots.filter(slot => slot.isEnabled);
-    
-    if (enabledSlots.length === 0) return 'Tutup';
-    
-    // Find the most common operating hours
-    const timeRanges = enabledSlots.map(slot => `${slot.startTime} - ${slot.endTime}`);
-    const mostCommonTime = timeRanges.reduce((a, b, i, arr) =>
-      arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-    );
-    
-    return mostCommonTime;
-  };
+  if (!Array.isArray(slots) || slots.length === 0) return 'Tidak tersedia';
+
+  const enabledSlots = slots.filter(slot => slot.isEnabled);
+  if (enabledSlots.length === 0) return 'Tutup';
+
+  const timeRanges = enabledSlots.map(slot => `${slot.startTime} - ${slot.endTime}`);
+  const mostCommonTime = timeRanges.reduce((a, b, i, arr) =>
+    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+  );
+
+  return mostCommonTime;
+};
 
   const sortedProducts = [...products].sort((a, b) => {
   switch (sortBy) {

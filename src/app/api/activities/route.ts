@@ -87,14 +87,18 @@ export async function GET(request) {
           }
         },
         FittingProduct: {
-          include: {
-            product: {
-              select: {
-                name: true
-              }
-            }
+  include: {
+    variantProduct: {
+      include: {
+        products: {
+          select: {
+            name: true
           }
         }
+      }
+    }
+  }
+}
       },
       orderBy: {
         createdAt: 'desc'
@@ -144,8 +148,9 @@ export async function GET(request) {
     // Transform fittings to activity format
     const fittingActivities = fittings.map(fitting => {
       // Get product names from FittingProduct relation
-      const products = fitting.FittingProduct.map(fp => fp.product.name);
-
+const products = fitting.FittingProduct.map(fp =>
+  `${fp.variantProduct.products.name} (${fp.variantProduct.size}${fp.variantProduct.color ? `, ${fp.variantProduct.color}` : ''})`
+);
       // Get owner name from fitting slot owner
       const ownerName = fitting.fittingSlot.owner.businessName || 
         `${fitting.fittingSlot.owner.first_name} ${fitting.fittingSlot.owner.last_name || ''}`.trim();

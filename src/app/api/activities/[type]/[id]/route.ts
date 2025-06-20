@@ -139,19 +139,23 @@ export async function GET(request, { params }) {
               }
             }
           },
-          FittingProduct: {
-            include: {
-              product: {
-                select: {
+           FittingProduct: {
+  include: {
+    variantProduct: {
+      include: {
+        products: {
+          select: {
                   id: true,
                   name: true,
                   images: true,
                   description: true,
                   category: true
                 }
-              }
-            }
-          }
+        }
+      }
+    }
+  }
+}
         }
       });
 
@@ -176,7 +180,7 @@ export async function GET(request, { params }) {
           businessAddress: fitting.fittingSlot.owner.businessAddress,
           phoneNumbers: fitting.fittingSlot.owner.phone_numbers
         },
-        products: fitting.FittingProduct.map(fp => fp.product)
+        products: fitting.FittingProduct.map(fp => fp.variantProduct.products)
       };
 
     } else {

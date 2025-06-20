@@ -1,4 +1,3 @@
-// stores/useCatalogStore.ts
 import { create } from 'zustand';
 import { 
   fetchProducts, 

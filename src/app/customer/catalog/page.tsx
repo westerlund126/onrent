@@ -53,10 +53,11 @@ const Catalog = () => {
       <div className="col-span-1 h-full w-full rounded-xl 2xl:col-span-1">
         {/* <div className="mb-5" /> */}
         {/* <HistoryItem /> */}
+        <TopCreatorTable/>
       </div>
       <div className="col-span-4 h-fit w-full xl:col-span-1 2xl:col-span-4">
         {/* NFt Banner */}
-
+        <Banner/>
         {/* NFt Header */}
         <div className="mb-4 mt-5 flex flex-col justify-between px-4 md:flex-row md:items-center">
           <h4 className="ml-1 text-2xl font-bold text-navy-700 dark:text-white">

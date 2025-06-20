@@ -8,7 +8,6 @@ import {
   formatDateTime,
   formatCurrency,
   getStatusBadgeConfig,
-  getStatusDisplayText,
   isValidStatus as isValidRentalStatus,
   RentalStatus
 } from 'utils/rental';
