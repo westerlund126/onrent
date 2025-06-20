@@ -42,7 +42,6 @@ model Products {
   owner           User              @relation(fields: [ownerId], references: [id])
   VariantProducts VariantProducts[]
   Wishlist        Wishlist[]
-  FittingProduct FittingProduct[]
 }
 
 model VariantProducts {
@@ -164,12 +163,10 @@ model ScheduleBlock {
 
 model FittingProduct {
   fittingId        Int
-  productId        Int
   variantProductId Int
   id               Int             @id @default(autoincrement())
   fitting          FittingSchedule @relation(fields: [fittingId], references: [id])
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
-  product          Products        @relation(fields: [productId], references: [id])
 }
 
 enum UserRole {

@@ -55,7 +55,7 @@ export interface IFittingSchedule {
   userId: number;
   fittingSlotId: number;
   duration: number;
-  startTime: Date; // Add t
+  startTime: Date; 
   endTime: Date;
   title: string;
   color: TEventColor;
@@ -83,8 +83,8 @@ export interface IWeeklySlot {
   ownerId: number;
   dayOfWeek: 'SUNDAY' | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
   isEnabled: boolean;
-  startTime: string; // Time format
-  endTime: string; // Time format
+  startTime: string; 
+  endTime: string; 
   owner: IUser;
 }
 

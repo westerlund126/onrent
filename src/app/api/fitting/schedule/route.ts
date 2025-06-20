@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create fitting schedule
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
@@ -92,49 +91,31 @@ export async function POST(request: NextRequest) {
         data: { isBooked: true },
       });
 
-    // Link product if available
-    if (productId && variantId) {
-  const parsedProductId = parseInt(productId);
-  const parsedVariantId = parseInt(variantId);
-
-  if (!isNaN(parsedProductId) && !isNaN(parsedVariantId)) {
-    await prisma.fittingProduct.create({
-      data: {
-        fittingId: fittingSchedule.id,
-        productId: parsedProductId,
-        variantProductId: parsedVariantId,
-      },
-    });
-  }
-}
       // Associate products if variants are provided
-      if (variantIdsNumeric.length > 0 && productId) {
-  const parsedProductId = parseInt(productId);
+      if (variantIdsNumeric.length > 0) {
+        // Verify variants exist
+        const existingVariants = await tx.variantProducts.findMany({
+          where: { id: { in: variantIdsNumeric } },
+          select: { id: true },
+        });
+        console.log('existingVariants:', existingVariants);
 
-  // Verify variants exist
-  const existingVariants = await tx.variantProducts.findMany({
-    where: { id: { in: variantIdsNumeric } },
-    select: { id: true },
-  });
+        if (existingVariants.length !== variantIdsNumeric.length) {
+          const missingIds = variantIdsNumeric.filter(
+            (id) => !existingVariants.some((v) => v.id === id),
+          );
+          throw new Error(`Variants not found: ${missingIds.join(', ')}`);
+        }
 
-  if (existingVariants.length !== variantIdsNumeric.length) {
-    const missingIds = variantIdsNumeric.filter(
-      (id) => !existingVariants.some((v) => v.id === id),
-    );
-    throw new Error(`Variants not found: ${missingIds.join(', ')}`);
-  }
-
-  // Create fitting product associations with productId
-  await tx.fittingProduct.createMany({
-    data: variantIdsNumeric.map((variantId: number) => ({
-      fittingId: fittingSchedule.id,
-      variantProductId: Number(variantId),
-      productId: parsedProductId,
-    })),
-    skipDuplicates: true,
-  });
-}
-
+        // Create fitting product associations
+        await tx.fittingProduct.createMany({
+          data: variantIdsNumeric.map((variantId: number) => ({
+            fittingId: fittingSchedule.id,
+            variantProductId: Number(variantId),
+          })),
+          skipDuplicates: true,
+        });
+      }
 
       return fittingSchedule.id;
     });

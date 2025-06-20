@@ -25,12 +25,13 @@ import {
   isSameYear,
   isWithinInterval,
 } from 'date-fns';
-
 import type { ICalendarCell, IFittingSchedule } from 'types/fitting';
 import type {
   TCalendarView,
   TVisibleHours,
   TWorkingHours,
+  TEventColor,
+  FittingStatus
 } from 'types/fitting';
 
 // ================ Header helper functions ================ //
@@ -347,4 +348,17 @@ export function getMonthCellSchedule(
       if (!a.isMultiDay && b.isMultiDay) return 1;
       return a.position - b.position;
     });
+}
+
+
+const STATUS_COLOR_MAP: Record<FittingStatus, TEventColor> = {
+  CONFIRMED: 'green',
+  CANCELED: 'red',
+  COMPLETED: 'blue',
+  PENDING: 'yellow',
+  REJECTED: 'gray',
+};
+
+export function getStatusColor(status: FittingStatus): TEventColor {
+  return STATUS_COLOR_MAP[status] ?? 'gray'; // fallback if status is somehow not mapped
 }
