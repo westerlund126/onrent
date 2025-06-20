@@ -1,9 +1,6 @@
 'use client';
-import Banner from 'components/admin/nft-marketplace/Banner';
-import tableDataTopCreators from 'variables/nfts/marketplace/tableDataTopCreators';
-import HistoryItem from 'components/admin/nft-marketplace/HistoryItem';
-import TopCreatorTable from 'components/admin/nft-marketplace/TableTopCreators';
-import NftCard from 'components/card/NftCard';
+import Banner from 'components/admin/catalog/Banner';
+import TopCreatorTable from 'components/admin/catalog/TableTopCreators';
 import { useEffect, useState } from 'react';
 import { Product } from 'types/product';
 import ProductCard from 'components/card/ProductCard';
