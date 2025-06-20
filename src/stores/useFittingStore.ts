@@ -32,7 +32,6 @@ interface FittingState {
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
 
-  // Slot management (for owners)
   createFittingSlot: (slotData: {
     dateTime: string;
     isAutoConfirm?: boolean;
@@ -80,7 +79,6 @@ export const useFittingStore = create<FittingState>()(
         state.error = error;
       }),
 
-    // FIXED: Removed ownerId parameter, API handles authentication automatically
     fetchFittingSchedules: async (dateFrom, dateTo) => {
       set((state) => {
         state.isLoading = true;
@@ -162,15 +160,12 @@ export const useFittingStore = create<FittingState>()(
       });
 
       try {
-        // Reformat data for backend compatibility
         const requestData = {
           fittingSlotId: scheduleData.fittingSlotId,
           duration: scheduleData.duration || 60,
           note: scheduleData.note,
           phoneNumber: scheduleData.phoneNumber,
           variantIds: scheduleData.variantId ? [scheduleData.variantId] : [],
-          // Add this if you need productId support:
-          // productId: scheduleData.productId
         };
 
         const response = await fetch('/api/fitting/schedule', {

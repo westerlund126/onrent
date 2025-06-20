@@ -27,24 +27,33 @@ const Navbar = (props: {
     document.body.classList.contains('dark'),
   );
   const router = useRouter();
-  // const [isLoading, setIsLoading] = useState(false);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const DotIcon = () => {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 512 512"
+        fill="currentColor"
+      >
+        <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+      </svg>
+    );
+  };
+
+  const CustomPage = () => {
+    return (
+      <div>
+        <h1>Custom page</h1>
+        <p>This is the content of the custom page.</p>
+      </div>
+    );
+  };
 
   return (
     <>
-      {/* {isLoading && <Loader />} */}
-
-      {/* {showConfirmPopup && (
-        <ConfirmationPopup
-          message="Anda yakin ingin keluar?"
-          onConfirm={handleConfirmLogout}
-          onCancel={handleCancelLogout}
-        />
-      )} */}
-
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
         <div className="ml-[6px]">
-        <div className="h-6 w-[224px] pt-1">
+          <div className="h-6 w-[224px] pt-1">
             <a
               className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
               href=" "
@@ -135,54 +144,18 @@ const Navbar = (props: {
                 userButtonAvatarBox: 'h-10 w-10',
               },
             }}
-          />
-
-          {/* Profile & Dropdown */}
-          {/* <Dropdown
-            button={
-              <Image
-                width="2"
-                height="20"
-                className="h-10 w-10 rounded-full"
-                src={avatar}
-                alt="Elon Musk"
-              />
-            }
-            classNames={'py-2 top-8 -left-[180px] w-max'}
           >
-            <div className="flex h-48 w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
-              <div className="ml-4 mt-3">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-navy-700 dark:text-white">
-                    👋 Hey, Adela
-                  </p>{' '}
-                </div>
+            <UserButton.UserProfilePage
+              label="Kontak"
+              labelIcon={<DotIcon />}
+              url="terms"
+            >
+              <div>
+                <h1>Custom Terms Page</h1>
+                <p>This is the content of the custom terms page.</p>
               </div>
-              <div className="mt-3 h-px w-full bg-gray-200 dark:bg-white/20 " />
-
-              <div className="ml-4 mt-3 flex flex-col">
-                <a
-                  href=" "
-                  className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Profile Settings
-                </a>
-                <a
-                  href=" "
-                  className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Newsletter Settings
-                </a>
-                <button
-                  onClick={handleLogoutClick}
-                  disabled={isLoading}
-                  className="mt-3 text-left text-sm font-medium text-red-500 hover:text-red-500"
-                >
-                  Keluar
-                </button>
-              </div>
-            </div>
-          </Dropdown> */}
+            </UserButton.UserProfilePage>
+          </UserButton>
         </div>
       </nav>
     </>

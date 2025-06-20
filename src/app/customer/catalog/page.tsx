@@ -51,13 +51,11 @@ const Catalog = () => {
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-5">
       <div className="col-span-1 h-full w-full rounded-xl 2xl:col-span-1">
-        <TopCreatorTable/>
         {/* <div className="mb-5" /> */}
         {/* <HistoryItem /> */}
       </div>
       <div className="col-span-4 h-fit w-full xl:col-span-1 2xl:col-span-4">
         {/* NFt Banner */}
-        <Banner />
 
         {/* NFt Header */}
         <div className="mb-4 mt-5 flex flex-col justify-between px-4 md:flex-row md:items-center">
@@ -101,12 +99,11 @@ const Catalog = () => {
         </div>
 
         {/* NFTs trending card */}
-          <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        
+        <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
 
         {/* Recenlty Added setion */}
         <div className="mb-5 mt-5 flex items-center justify-between px-[26px]">
@@ -117,17 +114,15 @@ const Catalog = () => {
 
         {/* Recently Add NFTs */}
         {/* <div className="grid grid-cols-1 gap-5 md:grid-cols-3"> */}
-          <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <div className="z-20 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
         </div>
+      </div>
       {/* </div> */}
 
       {/* right side section */}
-
-      
     </div>
   );
 };

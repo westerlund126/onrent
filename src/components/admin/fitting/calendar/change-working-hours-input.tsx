@@ -107,7 +107,6 @@ export function ChangeWorkingHoursInput() {
       await updateWorkingHours(localWorkingHours);
       setSuccess('Working hours updated successfully.');
     } catch (err) {
-      // Already handled in store
     } finally {
       setIsSaving(false);
     }
