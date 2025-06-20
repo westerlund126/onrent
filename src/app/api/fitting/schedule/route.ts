@@ -1,3 +1,4 @@
+//api/fitting/schedule/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
       duration = 60,
       note,
       phoneNumber,
-      productId, // Handle both productId and variantIds
       variantId,
       variantIds = [],
     } = await request.json();

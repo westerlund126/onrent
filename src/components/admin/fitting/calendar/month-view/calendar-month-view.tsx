@@ -7,14 +7,14 @@ import {
   getStatusColor
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
-import { useCalendarStore } from 'stores/useCalendarStore';
 import { useFittingStore } from 'stores';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
+
 
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function CalendarMonthView() {
-  const { selectedDate } = useCalendarStore();
+  const { selectedDate } = useFittingStore();
 
   const {
     fittingSchedules,

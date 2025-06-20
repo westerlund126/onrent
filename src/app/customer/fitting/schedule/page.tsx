@@ -3,22 +3,41 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { Calendar, Clock, MapPin, Phone, Mail, User, Package, Loader2, Ruler } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  Package,
+  Loader2,
+  Ruler,
+  CheckCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Product } from 'types/product';
-import { formatCurrency} from 'utils/product';
+import { formatCurrency } from 'utils/product';
 import Image from 'next/image';
 
-
-// ADDED: Delayed toast function
-const showDelayedToast = (message: string, isError: boolean = true, delay: number = 500) => {
+const showDelayedToast = (
+  message: string,
+  isError: boolean = true,
+  delay: number = 500,
+) => {
   setTimeout(() => {
     if (isError) {
       toast.error(message);
@@ -32,11 +51,11 @@ const FittingSchedulePage = () => {
   const { user, isLoaded } = useUser();
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const pageType = searchParams.get('type') || 'owner';
   const productId = searchParams.get('productId');
   const ownerId = searchParams.get('ownerId');
-  
+
   // Form state
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -44,39 +63,40 @@ const FittingSchedulePage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [isPhoneNumberUpdated, setIsPhoneNumberUpdated] = useState(false);
-  
-  // Data state
+
+  const [selectedVariants, setSelectedVariants] = useState([]);
+
   const [ownerData, setOwnerData] = useState(null);
-  const [productData, setProductData] = useState<Product | null>(null); // ADDED TYPE
+  const [productData, setProductData] = useState<Product | null>(null);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [currentUserData, setCurrentUserData] = useState(null);
-  
-  // Loading states
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingUserData, setLoadingUserData] = useState(false);
-  const [loadingOwner, setLoadingOwner] = useState(false); // ADDED
-  const [loadingProduct, setLoadingProduct] = useState(false); // ADDED
+  const [loadingOwner, setLoadingOwner] = useState(false);
+  const [loadingProduct, setLoadingProduct] = useState(false);
 
-  // Fetch current user data from database
   useEffect(() => {
     const fetchCurrentUserData = async () => {
       if (!isLoaded || !user) return;
-      
+
       setLoadingUserData(true);
       try {
         const response = await fetch(`/api/user/profile`);
         if (response.ok) {
           const userData = await response.json();
           setCurrentUserData(userData);
-          
+
           if (userData.first_name || userData.last_name) {
-            const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+            const fullName = `${userData.first_name || ''} ${
+              userData.last_name || ''
+            }`.trim();
             setCustomerName(fullName);
           }
-          
+
           if (userData.phone_numbers) {
             setPhoneNumber(userData.phone_numbers);
           }
@@ -104,14 +124,13 @@ const FittingSchedulePage = () => {
     }
   }, [isLoaded, user, currentUserData, loadingUserData]);
 
-  // Validate required parameters
   useEffect(() => {
     if (!ownerId) {
       showDelayedToast('Parameter owner ID tidak ditemukan');
       router.push('/customer/catalog');
       return;
     }
-    
+
     if (pageType === 'product' && !productId) {
       showDelayedToast('Parameter product ID tidak ditemukan');
       router.push('/customer/catalog');
@@ -119,7 +138,6 @@ const FittingSchedulePage = () => {
     }
   }, [ownerId, productId, pageType, router]);
 
-  // ADDED: Fetch with retry logic
   const fetchWithRetry = async (url: string, options = {}, retries = 2) => {
     for (let i = 0; i < retries; i++) {
       try {
@@ -127,17 +145,16 @@ const FittingSchedulePage = () => {
         if (response.ok) return await response.json();
       } catch (error) {
         if (i === retries - 1) throw error;
-        await new Promise(res => setTimeout(res, 1000));
+        await new Promise((res) => setTimeout(res, 1000));
       }
     }
     throw new Error(`Failed after ${retries} retries`);
   };
 
-  // Fetch owner data with retry
   useEffect(() => {
     const fetchOwnerData = async () => {
       if (!ownerId) return;
-      
+
       setLoadingOwner(true);
       try {
         const data = await fetchWithRetry(`/api/fitting/owner/${ownerId}`);
@@ -153,11 +170,10 @@ const FittingSchedulePage = () => {
     fetchOwnerData();
   }, [ownerId]);
 
-  // Fetch product data with retry
   useEffect(() => {
     const fetchProductData = async () => {
       if (pageType !== 'product' || !productId) return;
-      
+
       setLoadingProduct(true);
       try {
         const data = await fetchWithRetry(`/api/products/${productId}`);
@@ -173,21 +189,34 @@ const FittingSchedulePage = () => {
     fetchProductData();
   }, [pageType, productId]);
 
-  // Fetch available slots with retry
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!ownerId) return;
-      
+
+      console.log('Fetching slots for ownerId:', ownerId);
       setLoadingSlots(true);
+
       try {
         const startDate = new Date();
         const endDate = new Date();
         endDate.setDate(startDate.getDate() + 30);
-        
-        const data = await fetchWithRetry(
-          `/api/fitting/available-slots?ownerId=${ownerId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-        );
-        
+
+        const url = `/api/fitting/available-slots?ownerId=${ownerId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+        console.log('Fetching from URL:', url);
+
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error Response:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Received slots data:', data);
+        console.log('Number of slots:', data.length);
+
         setAvailableSlots(data);
       } catch (error) {
         console.error('Error fetching available slots:', error);
@@ -201,128 +230,61 @@ const FittingSchedulePage = () => {
     fetchAvailableSlots();
   }, [ownerId]);
 
-  // Add this debug section in your useEffect for fetching available slots
-useEffect(() => {
-  const fetchAvailableSlots = async () => {
-    if (!ownerId) return;
-    
-    console.log('Fetching slots for ownerId:', ownerId);
-    setLoadingSlots(true);
-    
-    try {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(startDate.getDate() + 30);
-      
-      const url = `/api/fitting/available-slots?ownerId=${ownerId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      console.log('Fetching from URL:', url);
-      
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+  const getAvailableDates = () => {
+    console.log('Processing available slots:', availableSlots);
+
+    const dateMap = new Map();
+
+    availableSlots.forEach((slot) => {
+      console.log('Processing slot:', slot);
+      const date = new Date(slot.dateTime);
+      const dateKey = date.toISOString().split('T')[0];
+
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, {
+          value: dateKey,
+          label: date.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+          slots: [],
+        });
       }
-      
-      const data = await response.json();
-      console.log('Received slots data:', data);
-      console.log('Number of slots:', data.length);
-      
-      setAvailableSlots(data);
-    } catch (error) {
-      console.error('Error fetching available slots:', error);
-      showDelayedToast('Gagal memuat jadwal tersedia');
-    } finally {
-      setLoadingSlots(false);
-      setLoading(false);
-    }
+
+      dateMap.get(dateKey).slots.push(slot);
+    });
+
+    const result = Array.from(dateMap.values()).sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    console.log('Available dates processed:', result);
+    return result;
   };
 
-  fetchAvailableSlots();
-}, [ownerId]);
-
-// Also add debug info in getAvailableDates function
-const getAvailableDates = () => {
-  console.log('Processing available slots:', availableSlots);
-  
-  const dateMap = new Map();
-  
-  availableSlots.forEach(slot => {
-    console.log('Processing slot:', slot);
-    const date = new Date(slot.dateTime);
-    const dateKey = date.toISOString().split('T')[0];
-    
-    if (!dateMap.has(dateKey)) {
-      dateMap.set(dateKey, {
-        value: dateKey,
-        label: date.toLocaleDateString('id-ID', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }),
-        slots: []
-      });
-    }
-    
-    dateMap.get(dateKey).slots.push(slot);
-  });
-  
-  const result = Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
-  console.log('Available dates processed:', result);
-  return result;
-};
-  // Get available dates from slots
-  // const getAvailableDates = () => {
-  //   const dateMap = new Map();
-    
-  //   availableSlots.forEach(slot => {
-  //     const date = new Date(slot.dateTime);
-  //     const dateKey = date.toISOString().split('T')[0];
-      
-  //     if (!dateMap.has(dateKey)) {
-  //       dateMap.set(dateKey, {
-  //         value: dateKey,
-  //         label: date.toLocaleDateString('id-ID', { 
-  //           weekday: 'long', 
-  //           year: 'numeric', 
-  //           month: 'long', 
-  //           day: 'numeric' 
-  //         }),
-  //         slots: []
-  //       });
-  //     }
-      
-  //     dateMap.get(dateKey).slots.push(slot);
-  //   });
-    
-  //   return Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
-  // };
-
-  // Get available times for selected date
   const getAvailableTimesForDate = (selectedDate) => {
     if (!selectedDate) return [];
-    
+
     const availableDates = getAvailableDates();
-    const dateData = availableDates.find(date => date.value === selectedDate);
-    
+    const dateData = availableDates.find((date) => date.value === selectedDate);
+
     if (!dateData) return [];
-    
-    return dateData.slots.map(slot => {
-      const time = new Date(slot.dateTime);
-      return {
-        value: time.toTimeString().slice(0, 5),
-        label: `${time.toTimeString().slice(0, 5)} WIB`,
-        slot: slot
-      };
-    }).sort((a, b) => a.value.localeCompare(b.value));
+
+    return dateData.slots
+      .map((slot) => {
+        const time = new Date(slot.dateTime);
+        return {
+          value: time.toTimeString().slice(0, 5),
+          label: `${time.toTimeString().slice(0, 5)} WIB`,
+          slot: slot,
+        };
+      })
+      .sort((a, b) => a.value.localeCompare(b.value));
   };
 
   const handlePhoneNumberChange = (value) => {
     setPhoneNumber(value);
-    // Check if phone number is different from current stored phone number
     const currentPhone = currentUserData?.phone_numbers;
     if (value.trim() !== '' && value !== currentPhone) {
       setIsPhoneNumberUpdated(true);
@@ -333,13 +295,30 @@ const getAvailableDates = () => {
 
   const handleTimeChange = (timeValue) => {
     setSelectedTime(timeValue);
-    
-    // Find the corresponding slot
+
     const availableTimes = getAvailableTimesForDate(selectedDate);
-    const timeSlot = availableTimes.find(time => time.value === timeValue);
+    const timeSlot = availableTimes.find((time) => time.value === timeValue);
     if (timeSlot) {
       setSelectedSlot(timeSlot.slot);
     }
+  };
+
+  const handleVariantToggle = (variantId) => {
+    setSelectedVariants((prev) => {
+      if (prev.includes(variantId)) {
+        return prev.filter((id) => id !== variantId);
+      } else {
+        return [...prev, variantId];
+      }
+    });
+  };
+
+  const getAvailableVariants = () => {
+    if (!productData || !productData.VariantProducts) return [];
+
+    return productData.VariantProducts.filter(
+      (variant) => variant.isAvailable && !variant.isRented,
+    );
   };
 
   const handleSubmit = async () => {
@@ -358,18 +337,24 @@ const getAvailableDates = () => {
       return;
     }
 
+    if (pageType === 'product' && selectedVariants.length === 0) {
+      toast.error('Pilih minimal satu varian produk untuk fitting');
+      return;
+    }
+
     setSubmitting(true);
-    
+
     try {
-      // Create fitting schedule (the API should handle updating user phone number)
       const fittingData = {
         fittingSlotId: selectedSlot.id,
-        duration: 60, // Default 1 hour
+        duration: 60,
         note: notes.trim() || null,
         phoneNumber: phoneNumber.trim(),
         customerName: customerName.trim(),
-        productId: pageType === 'product' && productId ? parseInt(productId) : null
+        variantIds: pageType === 'product' ? selectedVariants : [],
       };
+
+      console.log('Sending fitting data:', fittingData);
 
       const response = await fetch('/api/fitting/schedule', {
         method: 'POST',
@@ -385,12 +370,11 @@ const getAvailableDates = () => {
       }
 
       const result = await response.json();
-      
+      console.log('Fitting schedule created:', result);
+
       toast.success('Jadwal fitting berhasil dibuat!');
-      
-      // Redirect to fitting history or success page
+
       router.push('/customer/fitting/history');
-      
     } catch (error) {
       console.error('Error submitting fitting schedule:', error);
       toast.error(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
@@ -399,9 +383,14 @@ const getAvailableDates = () => {
     }
   };
 
-   if (!isLoaded || loading || loadingOwner || (pageType === 'product' && loadingProduct)) {
+  if (
+    !isLoaded ||
+    loading ||
+    loadingOwner ||
+    (pageType === 'product' && loadingProduct)
+  ) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="flex items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
           <span className="text-lg text-gray-600">Memuat data...</span>
@@ -412,25 +401,27 @@ const getAvailableDates = () => {
 
   const availableDates = getAvailableDates();
   const availableTimes = getAvailableTimesForDate(selectedDate);
+  const availableVariants = getAvailableVariants();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-4">
+        <div className="mb-8 text-center">
+          <h1 className="text-transparent mb-4 bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-4xl font-bold">
             Jadwalkan Fitting
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Pilih waktu yang tepat untuk fitting pakaian Anda dan dapatkan hasil yang sempurna
+          <p className="mx-auto max-w-2xl text-lg text-gray-600">
+            Pilih waktu yang tepat untuk fitting pakaian Anda dan dapatkan hasil
+            yang sempurna
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           {/* Left Side - Form */}
-          <div className="lg:col-span-3 space-y-6">
-            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
+          <div className="space-y-6 lg:col-span-3">
+            <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
+              <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <Calendar className="h-6 w-6" />
                   Detail Fitting
@@ -440,7 +431,10 @@ const getAvailableDates = () => {
                 <div className="space-y-6">
                   {/* Customer Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="name"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Nama Lengkap *
                     </Label>
                     <div className="relative">
@@ -451,7 +445,7 @@ const getAvailableDates = () => {
                         placeholder="Masukkan nama lengkap"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        className="pl-10 h-12 border-gray-200"
+                        className="h-12 border-gray-200 pl-10"
                         required
                       />
                     </div>
@@ -459,7 +453,10 @@ const getAvailableDates = () => {
 
                   {/* Phone Number */}
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="phone"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Nomor Telepon *
                       {isPhoneNumberUpdated && (
                         <Badge variant="outline" className="ml-2 text-xs">
@@ -474,28 +471,95 @@ const getAvailableDates = () => {
                         type="tel"
                         placeholder="Contoh: 08123456789"
                         value={phoneNumber}
-                        onChange={(e) => handlePhoneNumberChange(e.target.value)}
-                        className="pl-10 h-12 border-gray-200"
+                        onChange={(e) =>
+                          handlePhoneNumberChange(e.target.value)
+                        }
+                        className="h-12 border-gray-200 pl-10"
                         required
                       />
                     </div>
                     {isPhoneNumberUpdated && phoneNumber && (
                       <p className="text-xs text-blue-600">
-                        Nomor telepon akan disimpan untuk kemudahan booking selanjutnya
+                        Nomor telepon akan disimpan untuk kemudahan booking
+                        selanjutnya
                       </p>
                     )}
                   </div>
 
+                  {/* NEW: Variant Selection - Only show for product bookings */}
+                  {pageType === 'product' && availableVariants.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Pilih Varian Produk *
+                      </Label>
+                      <div className="grid max-h-60 grid-cols-1 gap-3 overflow-y-auto rounded-lg border bg-gray-50 p-2">
+                        {availableVariants.map((variant) => (
+                          <div
+                            key={variant.id}
+                            className={`cursor-pointer rounded-lg border p-3 transition-all ${
+                              selectedVariants.includes(variant.id)
+                                ? 'border-amber-500 bg-amber-50'
+                                : 'border-gray-200 bg-white hover:border-amber-300'
+                            }`}
+                            onClick={() => handleVariantToggle(variant.id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`flex h-5 w-5 items-center justify-center rounded border-2 ${
+                                    selectedVariants.includes(variant.id)
+                                      ? 'border-amber-500 bg-amber-500'
+                                      : 'border-gray-300'
+                                  }`}
+                                >
+                                  {selectedVariants.includes(variant.id) && (
+                                    <CheckCircle className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-900">
+                                    {variant.color} - {variant.size}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="font-semibold text-amber-600">
+                                {formatCurrency(variant.price)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedVariants.length > 0 && (
+                        <p className="text-xs text-green-600">
+                          {selectedVariants.length} varian dipilih untuk fitting
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Date Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="date" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="date"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Pilih Tanggal *
                     </Label>
-                    <Select value={selectedDate} onValueChange={setSelectedDate} disabled={loadingSlots}>
+                    <Select
+                      value={selectedDate}
+                      onValueChange={setSelectedDate}
+                      disabled={loadingSlots}
+                    >
                       <SelectTrigger className="h-12 border-gray-200">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
-                          <SelectValue placeholder={loadingSlots ? "Memuat jadwal..." : "Pilih tanggal fitting"} />
+                          <SelectValue
+                            placeholder={
+                              loadingSlots
+                                ? 'Memuat jadwal...'
+                                : 'Pilih tanggal fitting'
+                            }
+                          />
                         </div>
                       </SelectTrigger>
                       <SelectContent>
@@ -515,11 +579,14 @@ const getAvailableDates = () => {
 
                   {/* Time Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="time" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="time"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Pilih Waktu *
                     </Label>
-                    <Select 
-                      value={selectedTime} 
+                    <Select
+                      value={selectedTime}
                       onValueChange={handleTimeChange}
                       disabled={!selectedDate || loadingSlots}
                     >
@@ -546,7 +613,10 @@ const getAvailableDates = () => {
 
                   {/* Notes */}
                   <div className="space-y-2">
-                    <Label htmlFor="notes" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="notes"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Catatan Khusus (Opsional)
                     </Label>
                     <Textarea
@@ -555,14 +625,22 @@ const getAvailableDates = () => {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
-                      className="border-gray-200 resize-none"
+                      className="resize-none border-gray-200"
                     />
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleSubmit}
-                    className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                    disabled={!customerName.trim() || !phoneNumber.trim() || !selectedDate || !selectedTime || submitting}
+                    className="h-12 w-full bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg transition-all duration-200 hover:from-orange-600 hover:to-orange-700 hover:shadow-xl"
+                    disabled={
+                      !customerName.trim() ||
+                      !phoneNumber.trim() ||
+                      !selectedDate ||
+                      !selectedTime ||
+                      (pageType === 'product' &&
+                        selectedVariants.length === 0) ||
+                      submitting
+                    }
                   >
                     {submitting ? (
                       <>
@@ -579,11 +657,11 @@ const getAvailableDates = () => {
           </div>
 
           {/* Right Side - Details */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Owner Details */}
             {ownerData && (
-              <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
+              <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
+                <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <User className="h-5 w-5" />
                     Detail Penyedia
@@ -593,27 +671,33 @@ const getAvailableDates = () => {
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
                       <img
-                        src={ownerData.imageUrl || "/api/placeholder/120/120"}
+                        src={ownerData.imageUrl || '/api/placeholder/120/120'}
                         alt={ownerData.businessName}
-                        className="w-20 h-20 rounded-xl object-cover shadow-md"
+                        className="h-20 w-20 rounded-xl object-cover shadow-md"
                       />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="mb-3 text-xl font-bold text-gray-900">
                         {ownerData.businessName}
                       </h3>
                       <div className="space-y-3 text-sm">
                         <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-700">{ownerData.businessAddress}</span>
+                          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
+                          <span className="text-gray-700">
+                            {ownerData.businessAddress}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-700">{ownerData.phone_numbers}</span>
+                          <span className="text-gray-700">
+                            {ownerData.phone_numbers}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-700">{ownerData.email}</span>
+                          <span className="text-gray-700">
+                            {ownerData.email}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -624,92 +708,91 @@ const getAvailableDates = () => {
 
             {/* Product Details - Only show when pageType is 'product' */}
             {pageType === 'product' && productData && (
-            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Package className="h-5 w-5" />
-                  Detail Produk
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {productData.images && productData.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-3">
-                      {productData.images.slice(0, 2).map((image, index) => (
-                        <Image
-                          key={index}
-                          src={image}
-                          width={200}
-                          height={400}
-                          alt={`${productData.name} ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg shadow-sm"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {productData.name}
-                    </h3>
-                    
-                    {productData.description && (
-                      <p className="text-sm text-gray-600">
-                        {productData.description}
-                      </p>
-                    )}
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                    </div>
-                    
-                    {/* ADDED: Variant details section */}
-                    <div className="pt-3 border-t mt-3">
-                      <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                        <Ruler className="h-4 w-4" /> Detail Ukuran & Warna
-                      </h4>
-                      
-                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2">
-                        {productData.VariantProducts.map((variant) => (
-                          variant.isAvailable && !variant.isRented && (
-                            <div 
-                              key={variant.id} 
-                              className="p-3 border rounded-lg bg-gray-50"
-                            >
-                              <div className="flex justify-between">
-                                <span className="font-medium">
-                                  {variant.color} - {variant.size}
-                                </span>
-                                <span className="font-semibold text-amber-600">
-                                  {formatCurrency(variant.price)}
-                                </span>
-                              </div>
-                            </div>
-                          )
+              <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
+                <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Package className="h-5 w-5" />
+                    Detail Produk
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {productData.images && productData.images.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {productData.images.slice(0, 2).map((image, index) => (
+                          <Image
+                            key={index}
+                            src={image}
+                            width={200}
+                            height={400}
+                            alt={`${productData.name} ${index + 1}`}
+                            className="h-full w-full rounded-lg object-cover shadow-sm"
+                          />
                         ))}
                       </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {productData.name}
+                      </h3>
+
+                      {productData.description && (
+                        <p className="text-sm text-gray-600">
+                          {productData.description}
+                        </p>
+                      )}
+
+                      {/* Show selected variants summary */}
+                      {selectedVariants.length > 0 && (
+                        <div className="border-t pt-3">
+                          <h4 className="mb-2 font-semibold text-gray-700">
+                            Varian Dipilih ({selectedVariants.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {selectedVariants.map((variantId) => {
+                              const variant = availableVariants.find(
+                                (v) => v.id === variantId,
+                              );
+                              return variant ? (
+                                <div
+                                  key={variantId}
+                                  className="flex items-center justify-between rounded border border-amber-200 bg-amber-50 p-2"
+                                >
+                                  <span className="text-sm font-medium">
+                                    {variant.color} - {variant.size}
+                                  </span>
+                                  <span className="text-sm font-semibold text-amber-600">
+                                    {formatCurrency(variant.price)}
+                                  </span>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Fitting Guidelines */}
-            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
+            <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
+              <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                 <CardTitle className="text-lg">Panduan Fitting</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-3">
                   {[
-                    "Datang tepat waktu sesuai jadwal yang dipilih",
-                    "Kenakan pakaian yang mudah diganti",
-                    "Bawa perlengkapan tambahan jika diperlukan",
-                    "Fitting berlangsung sekitar 30-45 menit",
-                    "Hubungi penyedia jika ada perubahan jadwal"
+                    'Datang tepat waktu sesuai jadwal yang dipilih',
+                    'Kenakan pakaian yang mudah diganti',
+                    'Bawa perlengkapan tambahan jika diperlukan',
+                    'Fitting berlangsung sekitar 30-45 menit',
+                    'Hubungi penyedia jika ada perubahan jadwal',
                   ].map((guideline, index) => (
                     <div key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500"></div>
                       <span className="text-sm text-gray-700">{guideline}</span>
                     </div>
                   ))}

@@ -3,6 +3,7 @@ import { useFittingStore } from './useFittingStore';
 import { useUserStore } from './userStore';
 import { useScheduleStore } from './useScheduleStore';
 import { useSettingsStore } from './useSettingStore';
+import { TWorkingHours, useWorkingHoursStore } from './useWorkingHoursStore';
 
 // Fitting hooks
 export const useSelectedDate = () =>
@@ -24,10 +25,6 @@ export const useFittingActions = () =>
     cancelFittingSchedule: state.cancelFittingSchedule,
     confirmFittingSchedule: state.confirmFittingSchedule,
   }));
-export const useVisibleHours = () =>
-  useFittingStore((state) => state.visibleHours);
-export const useSetVisibleHours = () =>
-  useFittingStore((state) => state.setVisibleHours);
 
 // User hooks
 export const useUsers = () => useUserStore((state) => state.users);
@@ -67,13 +64,34 @@ export const useBadgeVariant = () =>
   useSettingsStore((state) => state.badgeVariant);
 export const useSetBadgeVariant = () =>
   useSettingsStore((state) => state.setBadgeVariant);
-export const useWorkingHours = () =>
-  useSettingsStore((state) => state.workingHours);
-export const useWorkingHoursActions = () =>
-  useSettingsStore((state) => ({
-    setWorkingHours: state.setWorkingHours,
-    updateWorkingHour: state.updateWorkingHour,
-  }));
+
+// Working hours hooks
+export const useWorkingHours = (): [
+  TWorkingHours,
+  (workingHours: TWorkingHours) => void,
+] => {
+  const workingHours = useWorkingHoursStore((state) => state.workingHours);
+  const setWorkingHours = useWorkingHoursStore(
+    (state) => state.setWorkingHours,
+  );
+  return [workingHours, setWorkingHours];
+};
+export const useWorkingHoursLoading = (): boolean =>
+  useWorkingHoursStore((state) => state.isLoading);
+export const useWorkingHoursError = (): string | null =>
+  useWorkingHoursStore((state) => state.error);
+export const useFetchWorkingHours = (): ((ownerId?: number) => Promise<void>) =>
+  useWorkingHoursStore((state) => state.fetchWorkingHours);
+export const useUpdateWorkingHours = (): [
+  (workingHours: TWorkingHours) => Promise<void>,
+  boolean,
+] => {
+  const update = useWorkingHoursStore((state) => state.updateWorkingHours);
+  const isLoading = useWorkingHoursStore((state) => state.isLoading);
+  return [update, isLoading];
+};
+export const useResetWorkingHours = (): (() => void) =>
+  useWorkingHoursStore((state) => state.reset);
 
 // Derived state hooks (computed values)
 export const useFilteredFittingSchedules = () => {

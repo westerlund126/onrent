@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { toast } from 'sonner'; // or whatever toast import you use with shadcn
+import { toast } from 'sonner'; 
 import type { IWeeklySlot, IScheduleBlock } from 'types/fitting';
 import type { WorkingHours } from 'types/working-hours';
 
@@ -21,13 +21,11 @@ interface ScheduleState {
   fetchWeeklySlots: (ownerId: number) => Promise<void>;
   fetchScheduleBlocks: (ownerId: number) => Promise<void>;
 
-  // Fixed: Use the correct API endpoint for individual slot updates
   updateWeeklySlot: (
     slotId: number,
     updates: Partial<IWeeklySlot>,
   ) => Promise<void>;
 
-  // New: Update full working hours with auto slot generation
   updateWorkingHours: (workingHours: WorkingHours) => Promise<void>;
 
   addScheduleBlock: (block: Omit<IScheduleBlock, 'id'>) => Promise<void>;
@@ -129,8 +127,6 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       },
 
-      // Fixed: This method now points to a hypothetical individual slot update API
-      // Note: You might need to create this API endpoint if it doesn't exist
       updateWeeklySlot: async (slotId, updates) => {
         set((state) => {
           state.isLoading = true;
@@ -204,9 +200,7 @@ export const useScheduleStore = create<ScheduleState>()(
               'Booking slots have been updated',
           });
 
-          // Optionally refetch the data to ensure UI is in sync
-          // You might want to pass ownerId here or get it from context
-          // await get().fetchWeeklySlots(ownerId);
+
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
