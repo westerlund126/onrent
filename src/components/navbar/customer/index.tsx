@@ -4,6 +4,7 @@ import { FiAlignJustify } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
 // import navbarimage from '/public/img/layout/Navbar.png';
 import { BsArrowBarUp } from 'react-icons/bs';
+import { MdContactEmergency } from 'react-icons/md';
 import { FiSearch } from 'react-icons/fi';
 import { RiMoonFill, RiSunFill } from 'react-icons/ri';
 import {
@@ -12,9 +13,8 @@ import {
 } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-// import Loader from 'components/loader/Loader';
-// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
+import ContactProfile from '../ContactProfile';
 
 const NavbarCustomer = (props: {
   onOpenSidenav: () => void;
@@ -130,12 +130,20 @@ const NavbarCustomer = (props: {
           </Dropdown>
 
           <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: 'h-10 w-10',
-              },
-            }}
-          />
+                      appearance={{
+                        elements: {
+                          userButtonAvatarBox: 'h-10 w-10',
+                        },
+                      }}
+                    >
+                      <UserButton.UserProfilePage
+                        label="Kontak"
+                        labelIcon={<MdContactEmergency size={17} />}
+                        url="contact"
+                      >
+                        <ContactProfile />
+                      </UserButton.UserProfilePage>
+                    </UserButton>
 
           {/* Profile & Dropdown */}
           {/* <Dropdown

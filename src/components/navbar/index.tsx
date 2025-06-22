@@ -2,19 +2,17 @@ import React, { useState } from 'react';
 import Dropdown from 'components/dropdown';
 import { FiAlignJustify } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
-// import navbarimage from '/public/img/layout/Navbar.png';
 import { BsArrowBarUp } from 'react-icons/bs';
+import { MdContactEmergency } from 'react-icons/md';
 import { FiSearch } from 'react-icons/fi';
 import { RiMoonFill, RiSunFill } from 'react-icons/ri';
 import {
   IoMdNotificationsOutline,
   IoMdInformationCircleOutline,
 } from 'react-icons/io';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-// import Loader from 'components/loader/Loader';
-// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
+import { Contact2 } from 'lucide-react';
+import ContactProfile from './ContactProfile';
 
 const Navbar = (props: {
   onOpenSidenav: () => void;
@@ -23,31 +21,6 @@ const Navbar = (props: {
   [x: string]: any;
 }) => {
   const { onOpenSidenav, brandText, mini, hovered } = props;
-  const [darkmode, setDarkmode] = React.useState(
-    document.body.classList.contains('dark'),
-  );
-  const router = useRouter();
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const DotIcon = () => {
-    return (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 512 512"
-        fill="currentColor"
-      >
-        <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-      </svg>
-    );
-  };
-
-  const CustomPage = () => {
-    return (
-      <div>
-        <h1>Custom page</h1>
-        <p>This is the content of the custom page.</p>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -147,13 +120,10 @@ const Navbar = (props: {
           >
             <UserButton.UserProfilePage
               label="Kontak"
-              labelIcon={<DotIcon />}
-              url="terms"
+              labelIcon={<MdContactEmergency size={17} />}
+              url="contact"
             >
-              <div>
-                <h1>Custom Terms Page</h1>
-                <p>This is the content of the custom terms page.</p>
-              </div>
+              <ContactProfile />
             </UserButton.UserProfilePage>
           </UserButton>
         </div>
