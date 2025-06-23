@@ -30,12 +30,19 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid owner ID' }, { status: 400 });
     }
 
+    // Fetch owner details
     const owner = await prisma.user.findUnique({
-      where: { id: ownerId },
+      where: { 
+        id: ownerId,
+        role: 'OWNER'
+      },
       select: {
         id: true,
+        username: true,
+        email: true,
         businessName: true,
         businessAddress: true,
+        imageUrl: true,
         phone_numbers: true,
         email: true,
         imageUrl: true,
@@ -65,7 +72,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid user role' }, { status: 403 });
     }
   } catch (error) {
-    console.error('Error fetching owner details:', error);
+    console.error('Error fetching owner:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

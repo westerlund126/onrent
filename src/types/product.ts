@@ -23,6 +23,8 @@ export interface Owner {
   username: string;
   imageUrl?: string;
   businessName?: string;
+  businessAddress?: string;
+  email?: string;
   phone_numbers?: string;
   firstName?: string;
   lastName?: string;

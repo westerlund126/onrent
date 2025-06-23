@@ -32,6 +32,7 @@ interface FittingState {
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
 
+  
   createFittingSlot: (slotData: {
     dateTime: string;
     isAutoConfirm?: boolean;

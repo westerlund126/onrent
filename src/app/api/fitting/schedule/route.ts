@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
           where: { id: { in: variantIdsNumeric } },
           select: { id: true },
         });
+        console.log('existingVariants:', existingVariants);
 
         if (existingVariants.length !== variantIdsNumeric.length) {
           const missingIds = variantIdsNumeric.filter(
