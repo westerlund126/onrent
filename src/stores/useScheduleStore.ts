@@ -18,8 +18,8 @@ interface ScheduleState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 
-  fetchWeeklySlots: (ownerId: number) => Promise<void>;
-  fetchScheduleBlocks: (ownerId: number) => Promise<void>;
+  fetchWeeklySlots: () => Promise<void>;
+  fetchScheduleBlocks: () => Promise<void>;
 
   updateWeeklySlot: (
     slotId: number,
@@ -61,71 +61,65 @@ export const useScheduleStore = create<ScheduleState>()(
           state.error = error;
         }),
 
-      fetchWeeklySlots: async (ownerId) => {
-        set((state) => {
-          state.isLoading = true;
-          state.error = null;
-        });
-
-        try {
-          const response = await fetch(
-            `/api/fitting/weekly-slots?ownerId=${ownerId}`,
-          );
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch weekly slots');
+        fetchWeeklySlots: async () => { 
+          set((state) => {
+            state.isLoading = true;
+            state.error = null;
+          });
+        
+          try {
+            const response = await fetch('/api/fitting/weekly-slots'); 
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to fetch weekly slots');
+            }
+        
+            const data = await response.json();
+            set((state) => {
+              state.weeklySlots = data.weeklySlots || [];
+              state.isLoading = false;
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error occurred';
+            set((state) => {
+              state.error = errorMessage;
+              state.isLoading = false;
+            });
+            console.error('Failed to fetch weekly slots:', error);
           }
-
-          const data = await response.json();
+        },
+        
+        fetchScheduleBlocks: async () => { 
           set((state) => {
-            state.weeklySlots = data.weeklySlots || [];
-            state.isLoading = false;
+            state.isLoading = true;
+            state.error = null;
           });
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error occurred';
-          set((state) => {
-            state.error = errorMessage;
-            state.isLoading = false;
-          });
-          console.error('Failed to fetch weekly slots:', error);
-        }
-      },
-
-      fetchScheduleBlocks: async (ownerId) => {
-        set((state) => {
-          state.isLoading = true;
-          state.error = null;
-        });
-
-        try {
-          const response = await fetch(
-            `/api/schedule-blocks?ownerId=${ownerId}`,
-          );
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.error || 'Failed to fetch schedule blocks',
-            );
+        
+          try {
+            const response = await fetch('/api/fitting/schedule-blocks'); // Remove ownerId query param
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to fetch schedule blocks');
+            }
+        
+            const data = await response.json();
+            set((state) => {
+              state.scheduleBlocks = data.scheduleBlocks || [];
+              state.isLoading = false;
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error occurred';
+            set((state) => {
+              state.error = errorMessage;
+              state.isLoading = false;
+            });
+            console.error('Failed to fetch schedule blocks:', error);
           }
-
-          const blocks = await response.json();
-          set((state) => {
-            state.scheduleBlocks = blocks;
-            state.isLoading = false;
-          });
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error occurred';
-          set((state) => {
-            state.error = errorMessage;
-            state.isLoading = false;
-          });
-          console.error('Failed to fetch schedule blocks:', error);
-        }
-      },
+        },
 
       updateWeeklySlot: async (slotId, updates) => {
         set((state) => {

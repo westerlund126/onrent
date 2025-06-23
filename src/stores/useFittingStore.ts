@@ -56,7 +56,15 @@ export const useFittingStore = create<FittingState>()(
 
     setSelectedDate: (date) =>
       set((state) => {
-        state.selectedDate = date;
+        // Ensure we always store a valid Date object
+        if (date instanceof Date && !isNaN(date.getTime())) {
+          state.selectedDate = new Date(date);
+        } else {
+          console.warn(
+            'Invalid date provided to setSelectedDate, using current date',
+          );
+          state.selectedDate = new Date();
+        }
       }),
 
     setFittingSchedules: (schedules) =>
@@ -179,7 +187,7 @@ export const useFittingStore = create<FittingState>()(
           throw new Error(errorData.error || 'Failed to create schedule');
         }
 
-        const { schedule: newSchedule } = await response.json(); // Note {schedule} destructuring
+        const { schedule: newSchedule } = await response.json();
 
         set((state) => {
           state.fittingSchedules.push(newSchedule);
@@ -194,7 +202,15 @@ export const useFittingStore = create<FittingState>()(
 
         return newSchedule;
       } catch (error) {
-        // Error handling remains same
+        console.error('Failed to create fitting schedule:', error);
+        set((state) => {
+          state.error =
+            error instanceof Error
+              ? error.message
+              : 'Failed to create schedule';
+          state.isLoading = false;
+        });
+        return null;
       }
     },
 

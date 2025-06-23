@@ -5,7 +5,7 @@ import { useCalendar } from "contexts/calendar-context";
 
 import { YearViewMonth } from 'components/admin/fitting/calendar/year-view/year-view-month';
 
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   allSchedule: IFittingSchedule[];

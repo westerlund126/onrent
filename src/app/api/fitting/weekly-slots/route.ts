@@ -19,9 +19,6 @@ import {
 
 const prisma = new PrismaClient();
 
-/**
- * Auto-generate fitting slots based on weekly slots
- */
 async function generateFittingSlotsForOwner(
   ownerId: number,
   daysAhead: number = 60,
@@ -101,9 +98,6 @@ async function generateFittingSlotsForOwner(
   };
 }
 
-/**
- * Check if owner has any existing bookings that would conflict with working hours changes
- */
 async function checkForExistingBookings(ownerId: number) {
   const existingBookings = await prisma.fittingSchedule.findMany({
     where: {

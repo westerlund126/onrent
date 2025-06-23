@@ -1,14 +1,10 @@
-import { useMemo } from "react";
-import { formatDate } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
-import { useCalendar } from "contexts/calendar-context";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-import { getScheduleCount, navigateDate, rangeText } from "utils/helpers";
-
+import { useMemo } from 'react';
+import { formatDate } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useFittingStore } from 'stores/useFittingStore';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { getScheduleCount, navigateDate, rangeText } from 'utils/helpers';
 import type { IFittingSchedule, TCalendarView } from 'types/fitting';
 
 interface IProps {
@@ -17,15 +13,34 @@ interface IProps {
 }
 
 export function DateNavigator({ view, schedule }: IProps) {
-  const { selectedDate, setSelectedDate } = useCalendar();
+  const { selectedDate, setSelectedDate } = useFittingStore();
 
-  const month = formatDate(selectedDate, "MMMM");
-  const year = selectedDate.getFullYear();
+  const validDate = useMemo(() => {
+    if (selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
+      return selectedDate;
+    }
+    const now = new Date();
+    setSelectedDate(now); 
+    return now;
+  }, [selectedDate, setSelectedDate]);
 
-  const scheduleCount = useMemo(() => getScheduleCount(schedule, selectedDate, view), [schedule, selectedDate, view]);
+  const month = formatDate(validDate, 'MMMM');
+  const year = validDate.getFullYear();
 
-  const handlePrevious = () => setSelectedDate(navigateDate(selectedDate, view, "previous"));
-  const handleNext = () => setSelectedDate(navigateDate(selectedDate, view, "next"));
+  const scheduleCount = useMemo(
+    () => getScheduleCount(schedule, validDate, view),
+    [schedule, validDate, view],
+  );
+
+  const handlePrevious = () => {
+    const newDate = navigateDate(validDate, view, 'previous');
+    setSelectedDate(newDate);
+  };
+
+  const handleNext = () => {
+    const newDate = navigateDate(validDate, view, 'next');
+    setSelectedDate(newDate);
+  };
 
   return (
     <div className="space-y-0.5">
@@ -48,7 +63,7 @@ export function DateNavigator({ view, schedule }: IProps) {
         </Button>
 
         <p className="text-sm text-muted-foreground">
-          {rangeText(view, selectedDate)}
+          {rangeText(view, validDate)}
         </p>
 
         <Button

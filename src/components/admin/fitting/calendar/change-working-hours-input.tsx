@@ -26,7 +26,6 @@ const DAYS_OF_WEEK = [
   { index: 6, name: 'Saturday' },
 ];
 
-// HourSelect with numbers 0–23
 const HourSelect = ({
   value,
   onChange,
@@ -196,7 +195,7 @@ export function ChangeWorkingHoursInput() {
               ) : (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Moon className="size-4" />
-                  <span>Closed</span>
+                  <span>Tutup</span>
                 </div>
               )}
             </div>
@@ -206,7 +205,7 @@ export function ChangeWorkingHoursInput() {
 
       <Button className="mt-4 w-fit" onClick={handleSave} disabled={isSaving}>
         {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
-        {isSaving ? 'Saving...' : 'Apply'}
+        {isSaving ? 'Menyimpan...' : 'Simpan'}
       </Button>
     </div>
   );

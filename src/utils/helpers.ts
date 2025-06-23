@@ -33,6 +33,7 @@ import type {
   TEventColor,
   FittingStatus
 } from 'types/fitting';
+import type { IUser } from 'types/fitting';
 
 // ================ Header helper functions ================ //
 
@@ -251,7 +252,7 @@ export function getCalendarCells(selectedDate: Date): ICalendarCell[] {
 }
 
 export function calculateMonthSchedulePositions(
-  multiDaySchedule: IFittingSchedule[],
+  // multiDaySchedule: IFittingSchedule[],
   singleDaySchedule: IFittingSchedule[],
   selectedDate: Date,
 ) {
@@ -266,21 +267,21 @@ export function calculateMonthSchedulePositions(
   });
 
   const sortedSchedule = [
-    ...multiDaySchedule.sort((a, b) => {
-      const aDuration = differenceInDays(
-        parseISO(a.endTime.toISOString()),
-        parseISO(a.startTime.toISOString()),
-      );
-      const bDuration = differenceInDays(
-        parseISO(b.endTime.toISOString()),
-        parseISO(b.startTime.toISOString()),
-      );
-      return (
-        bDuration - aDuration ||
-        parseISO(a.startTime.toISOString()).getTime() -
-          parseISO(b.startTime.toISOString()).getTime()
-      );
-    }),
+    // ...multiDaySchedule.sort((a, b) => {
+    //   const aDuration = differenceInDays(
+    //     parseISO(a.endTime.toISOString()),
+    //     parseISO(a.startTime.toISOString()),
+    //   );
+    //   const bDuration = differenceInDays(
+    //     parseISO(b.endTime.toISOString()),
+    //     parseISO(b.startTime.toISOString()),
+    //   );
+    //   return (
+    //     bDuration - aDuration ||
+    //     parseISO(a.startTime.toISOString()).getTime() -
+    //       parseISO(b.startTime.toISOString()).getTime()
+    //   );
+    // }),
     ...singleDaySchedule.sort(
       (a, b) =>
         parseISO(a.startTime.toISOString()).getTime() -
@@ -341,11 +342,11 @@ export function getMonthCellSchedule(
     .map((schedule) => ({
       ...schedule,
       position: schedulePositions[schedule.id] ?? -1,
-      isMultiDay: schedule.startTime !== schedule.endTime,
+      // isMultiDay: schedule.startTime !== schedule.endTime,
     }))
     .sort((a, b) => {
-      if (a.isMultiDay && !b.isMultiDay) return -1;
-      if (!a.isMultiDay && b.isMultiDay) return 1;
+      // if (a.isMultiDay && !b.isMultiDay) return -1;
+      // if (!a.isMultiDay && b.isMultiDay) return 1;
       return a.position - b.position;
     });
 }
@@ -362,3 +363,52 @@ const STATUS_COLOR_MAP: Record<FittingStatus, TEventColor> = {
 export function getStatusColor(status: FittingStatus): TEventColor {
   return STATUS_COLOR_MAP[status] ?? 'gray'; // fallback if status is somehow not mapped
 }
+
+
+// ================ User helper functions ================ //
+
+
+export const fetchUserById = async (userId: number): Promise<IUser> => {
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user: ${response.status}`);
+    }
+    
+    const user = await response.json();
+    return user;
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    throw error;
+  }
+};
+
+export const fetchUsersByIds = async (userIds: number[]): Promise<IUser[]> => {
+  try {
+    const promises = userIds.map(id => fetchUserById(id));
+    const users = await Promise.all(promises);
+    return users;
+  } catch (error) {
+    console.error('Error fetching multiple users:', error);
+    throw error;
+  }
+};
+
+export const getUserDisplayName = (user: IUser): string => {
+  if (user.first_name && user.last_name) {
+    return `${user.first_name} ${user.last_name}`;
+  }
+  if (user.first_name) {
+    return user.first_name;
+  }
+  return user.username || user.email;
+};
+
+
+export const formatUserContact = (user: IUser): string => {
+  const parts = [];
+  if (user.email) parts.push(user.email);
+  if (user.phone_numbers) parts.push(user.phone_numbers);
+  return parts.join(' • ');
+};

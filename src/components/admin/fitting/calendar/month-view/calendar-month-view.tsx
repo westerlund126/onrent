@@ -4,16 +4,18 @@ import { DayCell } from 'components/admin/fitting/calendar/month-view/day-cell';
 import {
   getCalendarCells,
   calculateMonthSchedulePositions,
-  getStatusColor
+  getStatusColor,
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
 import { useFittingStore } from 'stores';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
-
+interface IProps {
+  singleDaySchedule: IFittingSchedule[];
+}
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function CalendarMonthView() {
+export function CalendarMonthView({ singleDaySchedule }: IProps) {
   const { selectedDate } = useFittingStore();
 
   const {
@@ -36,7 +38,7 @@ export function CalendarMonthView() {
     fetchFittingSlots(dateFrom, dateTo);
   }, [monthStart, monthEnd, fetchFittingSchedules, fetchFittingSlots]);
 
-  const { singleDaySchedule, multiDaySchedule } = useMemo(() => {
+  const processedSchedule = useMemo(() => {
     const schedule: IFittingSchedule[] = [];
 
     fittingSchedules.forEach((fittingSchedule) => {
@@ -67,7 +69,6 @@ export function CalendarMonthView() {
     });
 
     const singleDay: IFittingSchedule[] = [];
-    const multiDay: IFittingSchedule[] = [];
 
     schedule.forEach((scheduleItem) => {
       const startDate = scheduleItem.startTime.toISOString().split('T')[0];
@@ -75,26 +76,20 @@ export function CalendarMonthView() {
 
       if (startDate === endDate) {
         singleDay.push(scheduleItem);
-      } else {
-        multiDay.push(scheduleItem);
       }
     });
 
-    return { singleDaySchedule: singleDay, multiDaySchedule: multiDay };
+    return singleDay;
   }, [fittingSchedules, fittingSlots]);
 
-  const allSchedule = [...multiDaySchedule, ...singleDaySchedule];
+  // Combine prop schedule with processed schedule from store
+  const allSchedule = [...singleDaySchedule, ...processedSchedule];
 
   const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
 
   const schedulePositions = useMemo(
-    () =>
-      calculateMonthSchedulePositions(
-        multiDaySchedule,
-        singleDaySchedule,
-        selectedDate,
-      ),
-    [multiDaySchedule, singleDaySchedule, selectedDate],
+    () => calculateMonthSchedulePositions(allSchedule, selectedDate),
+    [allSchedule, selectedDate],
   );
 
   if (error) {
@@ -136,5 +131,3 @@ export function CalendarMonthView() {
     </div>
   );
 }
-
-

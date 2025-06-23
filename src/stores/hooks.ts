@@ -1,9 +1,10 @@
 // stores/hooks.ts - Custom hooks for specific state slices
 import { useFittingStore } from './useFittingStore';
-import { useUserStore } from './userStore';
 import { useScheduleStore } from './useScheduleStore';
 import { useSettingsStore } from './useSettingStore';
 import { TWorkingHours, useWorkingHoursStore } from './useWorkingHoursStore';
+import { useUserStore } from './useUserStore';
+import { useShallow } from 'zustand/react/shallow';
 
 // Fitting hooks
 export const useSelectedDate = () =>
@@ -15,33 +16,18 @@ export const useFittingSchedules = () =>
 export const useFittingSlots = () =>
   useFittingStore((state) => state.fittingSlots);
 export const useFittingActions = () =>
-  useFittingStore((state) => ({
-    setFittingSchedules: state.setFittingSchedules,
-    setFittingSlots: state.setFittingSlots,
-    fetchFittingSchedules: state.fetchFittingSchedules,
-    fetchFittingSlots: state.fetchFittingSlots,
-    createFittingSchedule: state.createFittingSchedule,
-    updateFittingSchedule: state.updateFittingSchedule,
-    cancelFittingSchedule: state.cancelFittingSchedule,
-    confirmFittingSchedule: state.confirmFittingSchedule,
-  }));
-
-// User hooks
-export const useUsers = () => useUserStore((state) => state.users);
-export const useSelectedUserId = () =>
-  useUserStore((state) => state.selectedUserId);
-export const useCurrentUser = () => useUserStore((state) => state.currentUser);
-export const useFilterByRole = () =>
-  useUserStore((state) => state.filterByRole);
-export const useUserActions = () =>
-  useUserStore((state) => ({
-    setUsers: state.setUsers,
-    setSelectedUserId: state.setSelectedUserId,
-    setCurrentUser: state.setCurrentUser,
-    setFilterByRole: state.setFilterByRole,
-    fetchUsers: state.fetchUsers,
-    fetchUserById: state.fetchUserById,
-  }));
+  useFittingStore(
+    useShallow((state) => ({
+      setFittingSchedules: state.setFittingSchedules,
+      setFittingSlots: state.setFittingSlots,
+      fetchFittingSchedules: state.fetchFittingSchedules,
+      fetchFittingSlots: state.fetchFittingSlots,
+      createFittingSchedule: state.createFittingSchedule,
+      updateFittingSchedule: state.updateFittingSchedule,
+      cancelFittingSchedule: state.cancelFittingSchedule,
+      confirmFittingSchedule: state.confirmFittingSchedule,
+    })),
+  );
 
 // Schedule hooks
 export const useWeeklySlots = () =>
@@ -49,7 +35,8 @@ export const useWeeklySlots = () =>
 export const useScheduleBlocks = () =>
   useScheduleStore((state) => state.scheduleBlocks);
 export const useScheduleActions = () =>
-  useScheduleStore((state) => ({
+  useScheduleStore(
+    useShallow((state) => ({
     setWeeklySlots: state.setWeeklySlots,
     setScheduleBlocks: state.setScheduleBlocks,
     fetchWeeklySlots: state.fetchWeeklySlots,
@@ -57,7 +44,7 @@ export const useScheduleActions = () =>
     updateWeeklySlot: state.updateWeeklySlot,
     addScheduleBlock: state.addScheduleBlock,
     removeScheduleBlock: state.removeScheduleBlock,
-  }));
+  })));
 
 // Settings hooks
 export const useBadgeVariant = () =>
@@ -93,22 +80,39 @@ export const useUpdateWorkingHours = (): [
 export const useResetWorkingHours = (): (() => void) =>
   useWorkingHoursStore((state) => state.reset);
 
+// User hooks
+export const useUserActions = () => {
+  const user = useUserStore((s) => s.user);
+  const isLoading = useUserStore((s) => s.isLoading);
+  const error = useUserStore((s) => s.error);
+  const fetchUser = useUserStore((s) => s.fetchUser);
+  const updatePhoneNumber = useUserStore((s) => s.updatePhoneNumber);
+  const updateBusinessProfile = useUserStore((s) => s.updateBusinessProfile);
+  const clearError = useUserStore((s) => s.clearError);
+  const setUser = useUserStore((s) => s.setUser);
+
+  return {
+    user,
+    isLoading,
+    error,
+    fetchUser,
+    updatePhoneNumber,
+    updateBusinessProfile,
+    clearError,
+    setUser,
+  };
+};
+
 // Derived state hooks (computed values)
 export const useFilteredFittingSchedules = () => {
   const schedules = useFittingSchedules();
-  const selectedUserId = useSelectedUserId();
   const selectedDate = useSelectedDate();
-  const filterByRole = useFilterByRole();
 
   return schedules.filter((schedule) => {
-    const matchesUser =
-      selectedUserId === 'all' || schedule.userId === selectedUserId;
     const scheduleDate = new Date(schedule.fittingSlot.dateTime);
     const matchesDate =
       scheduleDate.toDateString() === selectedDate.toDateString();
-    const matchesRole =
-      filterByRole === 'all' || schedule.user.role === filterByRole;
-    return matchesUser && matchesDate && matchesRole;
+    return matchesDate;
   });
 };
 
@@ -123,11 +127,14 @@ export const useAvailableFittingSlots = () => {
   });
 };
 
-export const useFilteredUsers = () => {
-  const users = useUsers();
-  const filterByRole = useFilterByRole();
+export const useFilteredScheduleBlocks = () => {
+  const scheduleBlocks = useScheduleBlocks();
+  const selectedDate = useSelectedDate();
 
-  return filterByRole === 'all'
-    ? users
-    : users.filter((user) => user.role === filterByRole);
+  return scheduleBlocks.filter((block) => {
+    const blockStartDate = new Date(block.startTime);
+    const matchesDate =
+      blockStartDate.toDateString() === selectedDate.toDateString();
+    return matchesDate;
+  });
 };

@@ -31,6 +31,7 @@ interface UserStore {
     username: string;
     businessAddress: string | null;
     businessName: string | null;
+    businessBio: string | null;
   }) => Promise<void>;
   clearError: () => void;
   setUser: (user: User) => void;
