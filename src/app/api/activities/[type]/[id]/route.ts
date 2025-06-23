@@ -7,13 +7,13 @@ const prisma = new PrismaClient();
 
 export async function GET(request, { params }) {
   try {
-  const { userId } = await auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { type, id } = params;
+    const { type, id } = await params;
     const activityId = parseInt(id);
 
     // Get user from database
@@ -41,7 +41,8 @@ export async function GET(request, { params }) {
               first_name: true,
               last_name: true,
               businessAddress: true,
-              phone_numbers: true
+              phone_numbers: true,
+              email: true
             }
           },
           rentalItems: {
@@ -60,13 +61,7 @@ export async function GET(request, { params }) {
                 }
               }
             }
-          },
-          Tracking: {
-            orderBy: {
-              updatedAt: 'desc'
-            }
-          },
-          Return: true
+          }
         }
       });
 
@@ -74,48 +69,39 @@ export async function GET(request, { params }) {
         return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
       }
 
-      // Calculate total price
-      const totalPrice = rental.rentalItems.reduce((total, item) => {
-        return total + (item.variantProduct?.price || 0);
-      }, 0);
-
-      // Transform rental items with full product details
-      const items = rental.rentalItems.map(item => ({
-        id: item.id,
-        variant: {
-          id: item.variantProduct.id,
-          size: item.variantProduct.size,
-          color: item.variantProduct.color,
-          price: item.variantProduct.price,
-          sku: item.variantProduct.sku,
-          bustlength: item.variantProduct.bustlength,
-          waistlength: item.variantProduct.waistlength,
-          length: item.variantProduct.length
-        },
-        product: item.variantProduct.products
-      }));
-
+      // Transform to match frontend expectations
       activityDetail = {
         id: rental.id,
-        type: 'rental',
         rentalCode: rental.rentalCode,
-        startDate: rental.startDate,
-        endDate: rental.endDate,
         status: rental.status,
+        startDate: rental.startDate.toISOString(),
+        endDate: rental.endDate.toISOString(),
         additionalInfo: rental.additionalInfo,
-        createdAt: rental.createdAt,
-        updatedAt: rental.updatedAt,
-        totalPrice,
+        createdAt: rental.createdAt.toISOString(),
+        updatedAt: rental.updatedAt.toISOString(),
         owner: {
           id: rental.owner.id,
-          name: rental.owner.businessName || 
-            `${rental.owner.first_name} ${rental.owner.last_name || ''}`.trim(),
-          businessAddress: rental.owner.businessAddress,
-          phoneNumbers: rental.owner.phone_numbers
+          first_name: rental.owner.first_name,
+          last_name: rental.owner.last_name,
+          businessName: rental.owner.businessName,
+          email: rental.owner.email,
+          phone_numbers: rental.owner.phone_numbers,
+          businessAddress: rental.owner.businessAddress
         },
-        items,
-        tracking: rental.Tracking,
-        return: rental.Return[0] || null
+        rentalItems: rental.rentalItems.map(item => ({
+          id: item.id,
+          variantProduct: {
+            id: item.variantProduct.id,
+            sku: item.variantProduct.sku,
+            size: item.variantProduct.size,
+            color: item.variantProduct.color,
+            price: item.variantProduct.price,
+            bustlength: item.variantProduct.bustlength,
+            waistlength: item.variantProduct.waistlength,
+            length: item.variantProduct.length,
+            products: item.variantProduct.products
+          }
+        }))
       };
 
     } else if (type === 'fitting') {
@@ -134,28 +120,29 @@ export async function GET(request, { params }) {
                   first_name: true,
                   last_name: true,
                   businessAddress: true,
-                  phone_numbers: true
+                  phone_numbers: true,
+                  email: true
                 }
               }
             }
           },
-           FittingProduct: {
-  include: {
-    variantProduct: {
-      include: {
-        products: {
-          select: {
-                  id: true,
-                  name: true,
-                  images: true,
-                  description: true,
-                  category: true
+          FittingProduct: {
+            include: {
+              variantProduct: {
+                include: {
+                  products: {
+                    select: {
+                      id: true,
+                      name: true,
+                      images: true,
+                      description: true,
+                      category: true
+                    }
+                  }
                 }
-        }
-      }
-    }
-  }
-}
+              }
+            }
+          }
         }
       });
 
@@ -163,31 +150,50 @@ export async function GET(request, { params }) {
         return NextResponse.json({ error: 'Fitting not found' }, { status: 404 });
       }
 
+      // Transform to match frontend expectations
       activityDetail = {
         id: fitting.id,
-        type: 'fitting',
         status: fitting.status,
         duration: fitting.duration,
         note: fitting.note,
-        createdAt: fitting.createdAt,
-        updatedAt: fitting.updatedAt,
-        fittingDateTime: fitting.fittingSlot.dateTime,
-        isAutoConfirm: fitting.fittingSlot.isAutoConfirm,
-        owner: {
-          id: fitting.fittingSlot.owner.id,
-          name: fitting.fittingSlot.owner.businessName || 
-            `${fitting.fittingSlot.owner.first_name} ${fitting.fittingSlot.owner.last_name || ''}`.trim(),
-          businessAddress: fitting.fittingSlot.owner.businessAddress,
-          phoneNumbers: fitting.fittingSlot.owner.phone_numbers
+        createdAt: fitting.createdAt.toISOString(),
+        updatedAt: fitting.updatedAt.toISOString(),
+        fittingSlot: {
+          id: fitting.fittingSlot.id,
+          dateTime: fitting.fittingSlot.dateTime.toISOString(),
+          duration: fitting.duration, // Use fitting duration, not slot duration
+          owner: {
+            id: fitting.fittingSlot.owner.id,
+            first_name: fitting.fittingSlot.owner.first_name,
+            last_name: fitting.fittingSlot.owner.last_name,
+            businessName: fitting.fittingSlot.owner.businessName,
+            email: fitting.fittingSlot.owner.email,
+            phone_numbers: fitting.fittingSlot.owner.phone_numbers,
+            businessAddress: fitting.fittingSlot.owner.businessAddress
+          }
         },
-        products: fitting.FittingProduct.map(fp => fp.variantProduct.products)
+        FittingProduct: fitting.FittingProduct.map(fp => ({
+          id: fp.id,
+          product: fp.variantProduct.products,
+          variantProduct: fp.variantProduct ? {
+            id: fp.variantProduct.id,
+            sku: fp.variantProduct.sku,
+            size: fp.variantProduct.size,
+            color: fp.variantProduct.color,
+            price: fp.variantProduct.price,
+            bustlength: fp.variantProduct.bustlength,
+            waistlength: fp.variantProduct.waistlength,
+            length: fp.variantProduct.length
+          } : null
+        }))
       };
 
     } else {
       return NextResponse.json({ error: 'Invalid activity type' }, { status: 400 });
     }
 
-    return NextResponse.json({ activity: activityDetail });
+    // Return data in the format expected by frontend
+    return NextResponse.json({ data: activityDetail });
 
   } catch (error) {
     console.error('Error fetching activity detail:', error);

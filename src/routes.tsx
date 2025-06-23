@@ -70,6 +70,12 @@ const routes: IRoute[] = [
     path: 'transaction',
     icon: <FaMoneyBill className="h-6 w-6" />,
   },
+  {
+    name: 'Aktivitas',
+    layout: '/customer',
+    path: 'activities',
+    icon: <FaMoneyBill className="h-6 w-6" />,
+  },
 ];
 
 export default routes;

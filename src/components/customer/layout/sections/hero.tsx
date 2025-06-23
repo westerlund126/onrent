@@ -21,26 +21,26 @@ export const HeroSection = () => {
 
           <div className="max-w-screen-md mx-auto text-center text-4xl md:text-6xl font-bold">
             <h1>
-              Experience the
-              <span className="text-transparent px-2 bg-gradient-to-r from-[#D247BF] to-primary bg-clip-text">
+              On-Rent
+              {/* <span className="text-transparent px-2 bg-gradient-to-r from-[#D247BF] to-primary bg-clip-text">
                 Shadcn
               </span>
-              landing page
+              landing page */}
             </h1>
           </div>
 
           <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground">
-            {`We're more than just a tool, we're a community of passionate
-            creators. Get access to exclusive resources, tutorials, and support.`}
+            {`Tampil memukau di setiap acara tanpa boros! Sewa gaun, kebaya, hingga tuxedo terbaik dengan mudah di aplikasi kami. 
+            Cukup klik, pilih, dan langsung bergaya. Yuk, cari tahu dan temukan OOTD pestamu!`}
           </p>
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">
-            <Button className="w-5/6 md:w-1/4 font-bold group/arrow">
-              Get Started
+            <Button className="w-5/6 md:w-1/3 font-bold group/arrow">
+              Daftar Sekarang!
               <ArrowRight className="size-5 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
             </Button>
 
-            <Button
+            {/* <Button
               asChild
               variant="secondary"
               className="w-5/6 md:w-1/4 font-bold"
@@ -51,7 +51,7 @@ export const HeroSection = () => {
               >
                 Github respository
               </Link>
-            </Button>
+            </Button> */}
           </div>
         </div>
 

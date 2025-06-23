@@ -42,6 +42,13 @@ export async function POST(req: Request) {
             { status: 400 },
           );
         }
+        if (!category) {
+          console.error('Category is required for product:', name);
+          return NextResponse.json(
+            { error: 'Category is required for all products' },
+            { status: 400 },
+          );
+        }
 
         const prefixSeqCache: Record<string, number> = {};
         const processedVariants = await Promise.all(
@@ -98,6 +105,14 @@ export async function POST(req: Request) {
     if (!variants || !Array.isArray(variants)) {
       return NextResponse.json(
         { error: 'Variants is required and must be an array' },
+        { status: 400 },
+      );
+    }
+
+     if (!category) {
+      console.error('Category is required');
+      return NextResponse.json(
+        { error: 'Category is required' },
         { status: 400 },
       );
     }

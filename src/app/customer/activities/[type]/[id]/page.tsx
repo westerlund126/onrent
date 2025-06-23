@@ -40,117 +40,19 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { 
+  formatDateTime,
+  formatCurrency,
+  formatDate,
+} from 'utils/rental';
 
-/* ------------------------------------------------------------------ */
-/* Type definitions */
-/* ------------------------------------------------------------------ */
-
-// Rental Types
-type RentalTrackingEvent = {
-  id: number;
-  status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
-  updatedAt: string;
-  description: string;
-};
-
-type VariantProduct = {
-  id: number;
-  sku: string;
-  size?: string | null;
-  color?: string | null;
-  price: number;
-  bustlength?: number | null;
-  waistlength?: number | null;
-  length?: number | null;
-  products: {
-    id: number;
-    name: string;
-    description: string;
-    category: string;
-    images: string[];
-  };
-};
-
-type RentalItem = {
-  id: number;
-  variantProduct: VariantProduct;
-};
-
-type RentalDetail = {
-  id: number;
-  rentalCode: string;
-  status: 'BELUM_LUNAS' | 'LUNAS' | 'TERLAMBAT' | 'SELESAI';
-  startDate: string;
-  endDate: string;
-  additionalInfo?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  owner: {
-    id: number;
-    first_name: string;
-    last_name?: string | null;
-    businessName?: string | null;
-    email?: string | null; 
-    phone_numbers?: string | null;
-    businessAddress?: string | null;
-  };
-  rentalItems: RentalItem[];
-};
-
-// Fitting Types
-type FittingTrackingEvent = {
-  id: number;
-  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  updatedAt: string;
-  description: string;
-};
-
-type FittingProduct = {
-  id: number;
-  product: {
-    id: number;
-    name: string;
-    description: string;
-    category: string;
-    images: string[];
-  };
-  variantProduct?: {
-    id: number;
-    sku: string;
-    size?: string | null;
-    color?: string | null;
-    price: number;
-    bustlength?: number | null;
-    waistlength?: number | null;
-    length?: number | null;
-  } | null;
-};
-
-type FittingDetail = {
-  id: number;
-  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  duration: number;
-  note?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  fittingSlot: {
-    id: number;
-    dateTime: string;
-    duration: number;
-    owner: {
-      id: number;
-      first_name: string;
-      last_name?: string | null;
-      businessName?: string | null;
-      email?: string | null; 
-      phone_numbers?: string | null;
-      businessAddress?: string | null;
-    };
-  };
-  FittingProduct: FittingProduct[];
-};
-
-type ActivityDetail = RentalDetail | FittingDetail;
+import {
+  ActivityDetail,
+  RentalDetail,
+  FittingDetail,
+  RentalTrackingEvent,
+  FittingTrackingEvent,
+} from 'types/activities';
 
 const CustomerActivityDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -173,14 +75,17 @@ const CustomerActivityDetailPage = () => {
   }, [isRental]);
 
   const fetchTracking = useCallback(async (activityType: string, activityId: string) => {
-    const endpoint = isRental 
-      ? `/api/activities/rental/${activityId}/tracking` 
-      : `/api/activities/fitting/${activityId}/tracking`;
+    // Only fetch tracking for rental activities
+    if (activityType !== 'rental') {
+      return [];
+    }
+    
+    const endpoint = `/api/activities/rental/${activityId}/tracking`;
     const res = await fetch(endpoint);
     if (!res.ok) throw new Error('Failed to load tracking');
     const { data } = await res.json();
     return data;
-  }, [isRental]);
+  }, []);
 
   useEffect(() => {
     if (!type || !id) return;
@@ -309,29 +214,6 @@ const CustomerActivityDetailPage = () => {
     }
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-
-  const formatDateTime = (dateString: string) =>
-    new Date(dateString).toLocaleString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-
   // Get owner info
   const owner = isRental 
     ? (activity as RentalDetail).owner 
@@ -380,7 +262,7 @@ const CustomerActivityDetailPage = () => {
               <h1 className="text-3xl font-bold text-gray-900">
                 {isRental 
                   ? `Rental #${(activity as RentalDetail).rentalCode}`
-                  : `Fitting #${activity.id}`
+                  : `Fitting`
                 }
               </h1>
               <div className="mt-2 flex items-center gap-4">
@@ -663,17 +545,17 @@ const CustomerActivityDetailPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Informasi {isRental ? 'Penyewa' : 'Tailor'}
+                  Informasi Owner
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium text-gray-900">{ownerName}</h4>
                   {owner.businessName && (
-                    <p className="text-sm text-gray-600">
-                      {owner.first_name} {owner.last_name || ''}
-                    </p>
-                  )}
+                     <p className="text-sm text-gray-600">
+                       {owner.first_name} {owner.last_name || ''}
+                      </p> 
+                    )}
                 </div>
                 <div className="space-y-3">
                   {owner.email && (
@@ -743,12 +625,6 @@ const CustomerActivityDetailPage = () => {
                         {(activity as FittingDetail).duration} menit
                       </p>
                     </div>
-                    <div>
-                      <span className="text-sm text-gray-600">Dibuat</span>
-                      <p className="font-medium">
-                        {formatDateTime(activity.createdAt)}
-                      </p>
-                    </div>
                   </>
                 )}
               </CardContent>
@@ -757,6 +633,7 @@ const CustomerActivityDetailPage = () => {
         </div>
 
         {/* Timeline */}
+        {isRental && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -802,6 +679,7 @@ const CustomerActivityDetailPage = () => {
             )}
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

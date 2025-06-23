@@ -22,7 +22,7 @@ const CustomerActivityPage = () => {
   const { activities, loading, error, pagination, loadMore, refresh } = useActivities();
 
   const handleViewDetail = (activity) => {
-    router.push(`/activities/${activity.type}/${activity.id}`);
+    router.push(`/customer/activities/${activity.type}/${activity.id}`);
   };
 
   // Error state
