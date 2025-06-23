@@ -4,6 +4,7 @@ import { FiAlignJustify } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
 // import navbarimage from '/public/img/layout/Navbar.png';
 import { BsArrowBarUp } from 'react-icons/bs';
+import { MdContactEmergency } from 'react-icons/md';
 import { FiSearch } from 'react-icons/fi';
 import { RiMoonFill, RiSunFill } from 'react-icons/ri';
 import {
@@ -12,9 +13,8 @@ import {
 } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-// import Loader from 'components/loader/Loader';
-// import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { UserButton } from '@clerk/nextjs';
+import ContactProfile from '../ContactProfile';
 
 const NavbarCustomer = (props: {
   onOpenSidenav: () => void;
@@ -237,12 +237,67 @@ const NavbarCustomer = (props: {
           </Dropdown>
 
           <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: 'h-10 w-10',
-              },
-            }}
-          />
+                      appearance={{
+                        elements: {
+                          userButtonAvatarBox: 'h-10 w-10',
+                        },
+                      }}
+                    >
+                      <UserButton.UserProfilePage
+                        label="Kontak"
+                        labelIcon={<MdContactEmergency size={17} />}
+                        url="contact"
+                      >
+                        <ContactProfile />
+                      </UserButton.UserProfilePage>
+                    </UserButton>
+
+          {/* Profile & Dropdown */}
+          {/* <Dropdown
+            button={
+              <Image
+                width="2"
+                height="20"
+                className="h-10 w-10 rounded-full"
+                src={avatar}
+                alt="Elon Musk"
+              />
+            }
+            classNames={'py-2 top-8 -left-[180px] w-max'}
+          >
+            <div className="flex h-48 w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
+              <div className="ml-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-navy-700 dark:text-white">
+                    👋 Hey, Adela
+                  </p>{' '}
+                </div>
+              </div>
+              <div className="mt-3 h-px w-full bg-gray-200 dark:bg-white/20 " />
+
+              <div className="ml-4 mt-3 flex flex-col">
+                <a
+                  href=" "
+                  className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                >
+                  Profile Settings
+                </a>
+                <a
+                  href=" "
+                  className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                >
+                  Newsletter Settings
+                </a>
+                <button
+                  onClick={handleLogoutClick}
+                  disabled={isLoading}
+                  className="mt-3 text-left text-sm font-medium text-red-500 hover:text-red-500"
+                >
+                  Keluar
+                </button>
+              </div>
+            </div>
+          </Dropdown> */}
         </div>
       </nav>
     </>

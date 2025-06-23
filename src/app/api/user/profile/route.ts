@@ -15,12 +15,17 @@ export async function GET() {
       where: { clerkUserId: userId },
       select: {
         id: true,
-        role: true,
-        username: true,
+        email: true,
         first_name: true,
         last_name: true,
+        username: true,
+        imageUrl: true,
         phone_numbers: true,
-        email: true,
+        businessAddress: true,
+        businessName: true,
+        role: true,
+        clerkUserId: true,
+        createdAt: true,
       },
     });
 
@@ -50,7 +55,14 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { first_name, last_name, phone_numbers } = body;
+    const {
+      first_name,
+      last_name,
+      phone_numbers,
+      businessName,
+      businessAddress,
+      username,
+    } = body;
 
     const updatedUser = await prisma.user.update({
       where: { clerkUserId: userId },
@@ -58,6 +70,9 @@ export async function PUT(request: Request) {
         ...(first_name !== undefined && { first_name }),
         ...(last_name !== undefined && { last_name }),
         ...(phone_numbers !== undefined && { phone_numbers }),
+        ...(businessName !== undefined && { businessName }),
+        ...(businessAddress !== undefined && { businessAddress }),
+        ...(username !== undefined && { username }),
       },
       select: {
         id: true,
@@ -67,6 +82,11 @@ export async function PUT(request: Request) {
         last_name: true,
         phone_numbers: true,
         email: true,
+        businessName: true,
+        businessAddress: true,
+        imageUrl: true,
+        createdAt: true,
+        clerkUserId: true,
       },
     });
 

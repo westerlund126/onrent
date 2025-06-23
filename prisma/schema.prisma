@@ -14,6 +14,7 @@ model User {
   password        String?
   businessAddress String?
   businessName    String?
+  businessBio    String?
   role            UserRole          @default(CUSTOMER)
   clerkUserId     String            @unique
   imageUrl        String?
@@ -21,7 +22,8 @@ model User {
   first_name      String
   last_name       String?
   username        String            @unique
-  FittingSchedule FittingSchedule[]
+  UserFittings FittingSchedule[] @relation("UserFittings")
+  OwnerFittings    FittingSchedule[] @relation("OwnerFittings")
   FittingSlot     FittingSlot[]
   Products        Products[]
   OwnerRental     Rental[]          @relation("OwnerRental")
@@ -29,6 +31,7 @@ model User {
   ScheduleBlock   ScheduleBlock[]
   WeeklySlot      WeeklySlot[]
   Wishlist        Wishlist[]
+  FittingProduct FittingProduct[] @relation("FittingProductOwner")
 }
 
 model Products {
@@ -57,6 +60,7 @@ model VariantProducts {
   length         Float?
   isRented       Boolean          @default(false)
   sku            String           @unique
+  category        ProductCategory
   FittingProduct FittingProduct[]
   RentalItem     RentalItem[]
   products       Products         @relation(fields: [productsId], references: [id])
@@ -122,6 +126,7 @@ model Return {
 model FittingSchedule {
   id             Int              @id @default(autoincrement())
   userId         Int
+  ownerId         Int
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   status         FittingStatus    @default(PENDING)
@@ -130,7 +135,8 @@ model FittingSchedule {
   duration       Int
   FittingProduct FittingProduct[]
   fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
-  user           User             @relation(fields: [userId], references: [id])
+ user           User             @relation("UserFittings", fields: [userId], references: [id])
+  owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
 }
 
 model FittingSlot {
@@ -166,10 +172,12 @@ model ScheduleBlock {
 
 model FittingProduct {
   id               Int             @id @default(autoincrement())
+  ownerId          Int
   fittingId        Int
   variantProductId Int
   fittingSchedule  FittingSchedule @relation(fields: [fittingId], references: [id])
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
+  owner            User            @relation("FittingProductOwner", fields: [ownerId], references: [id])
 }
 
 enum UserRole {

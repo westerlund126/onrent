@@ -14,7 +14,7 @@ import { TodayButton } from 'components/admin/fitting/calendar/header/today-butt
 import { DateNavigator } from 'components/admin/fitting/calendar/header/date-navigator';
 import { AddEventDialog } from 'components/admin/fitting/calendar/dialogs/add-event-dialog';
 
-import type { IEvent, IFittingSchedule, TCalendarView } from 'types/fitting';
+import type { IFittingSchedule, TCalendarView } from 'types/fitting';
 interface IProps {
   view: TCalendarView;
   schedule: IFittingSchedule[];

@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import {
   useSelectedDate,
-  useSelectedUserId,
   useFittingSchedules,
 } from 'stores';
 import { DndProviderWrapper } from './dnd/dnd-provider';
@@ -22,7 +21,6 @@ interface IProps {
 
 export function ClientContainer({ view }: IProps) {
   const selectedDate = useSelectedDate();
-  const selectedUserId = useSelectedUserId();
   const fittingSchedules = useFittingSchedules();
 
   const filteredSchedule = useMemo(() => {
@@ -42,9 +40,7 @@ export function ClientContainer({ view }: IProps) {
         );
         const isInSelectedYear =
           scheduleStartTime >= yearStart && scheduleStartTime <= yearEnd;
-        const isUserMatch =
-          selectedUserId === 'all' || schedule.user.id === selectedUserId;
-        return isInSelectedYear && isUserMatch;
+        return isInSelectedYear;
       }
 
       if (view === 'month' || view === 'agenda') {
@@ -64,9 +60,7 @@ export function ClientContainer({ view }: IProps) {
         );
         const isInSelectedMonth =
           scheduleStartTime >= monthStart && scheduleStartTime <= monthEnd;
-        const isUserMatch =
-          selectedUserId === 'all' || schedule.user.id === selectedUserId;
-        return isInSelectedMonth && isUserMatch;
+        return isInSelectedMonth;
       }
 
       if (view === 'week') {
@@ -82,9 +76,7 @@ export function ClientContainer({ view }: IProps) {
 
         const isInSelectedWeek =
           scheduleStartTime >= weekStart && scheduleStartTime <= weekEnd;
-        const isUserMatch =
-          selectedUserId === 'all' || schedule.user.id === selectedUserId;
-        return isInSelectedWeek && isUserMatch;
+        return isInSelectedWeek;
       }
 
       if (view === 'day') {
@@ -106,14 +98,12 @@ export function ClientContainer({ view }: IProps) {
         );
         const isInSelectedDay =
           scheduleStartTime >= dayStart && scheduleStartTime <= dayEnd;
-        const isUserMatch =
-          selectedUserId === 'all' || schedule.user.id === selectedUserId;
-        return isInSelectedDay && isUserMatch;
+        return isInSelectedDay;
       }
 
       return false;
     });
-  }, [selectedDate, selectedUserId, fittingSchedules, view]);
+  }, [selectedDate, fittingSchedules, view]);
 
   const singleDaySchedule = filteredSchedule;
 

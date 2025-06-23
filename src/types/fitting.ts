@@ -9,17 +9,6 @@ export type TEventColor =
   | 'gray';
 
 export type ISODateString = string;
-export interface IEvent {
-  id: number;
-  startDate: ISODateString;
-  endDate: ISODateString;
-  title: string;
-  color: TEventColor;
-  description: string;
-  user: IUser;
-}
-
-
 export interface IEventInput {
   startDateTime: string; 
   endDateTime: string;
