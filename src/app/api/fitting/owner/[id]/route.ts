@@ -44,8 +44,6 @@ export async function GET(
         businessAddress: true,
         imageUrl: true,
         phone_numbers: true,
-        email: true,
-        imageUrl: true,
         role: true,
       },
     });

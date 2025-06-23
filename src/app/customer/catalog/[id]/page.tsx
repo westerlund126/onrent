@@ -95,17 +95,12 @@ const handleLike = async () => {
       
       // Show success toast based on the action that was performed
       toast.success(
-        wasInWishlist ? "Removed from wishlist" : "Added to wishlist",
-        {
-          description: wasInWishlist 
-            ? "Product removed from your wishlist" 
-            : "Product added to your wishlist",
-        }
+        wasInWishlist ? "Produk dihapus dari wishlist" : "Produk ditambahkan ke wishlist",
       );
     } catch (error) {
       // Show error toast if something went wrong
-      toast.error("Something went wrong", {
-        description: "Please try again later"
+      toast.error("Terjadi kesalahan", {
+        description: "Tolong coba lagi nanti",
       });
     }
   };

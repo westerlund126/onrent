@@ -54,17 +54,62 @@ export async function POST(request: NextRequest) {
       ),
     );
 
-    const result = await prisma.$transaction(async (tx) => {
-      const fittingSlot = await tx.fittingSlot.findUnique({
-        where: { id: parseInt(fittingSlotId) },
+    // First, validate the fitting slot outside the transaction
+    const fittingSlot = await prisma.fittingSlot.findUnique({
+      where: { id: parseInt(fittingSlotId) },
+      include: {
+        owner: { select: { id: true } }
+      }
+    });
+
+    if (!fittingSlot) {
+      return NextResponse.json(
+        { error: 'Fitting slot not found' },
+        { status: 404 }
+      );
+    }
+
+    if (fittingSlot.isBooked) {
+      return NextResponse.json(
+        { error: 'Fitting slot is already booked' },
+        { status: 400 }
+      );
+    }
+
+    // Validate variants outside the transaction if provided
+    let existingVariants: any[] = [];
+    if (variantIdsNumeric.length > 0) {
+      existingVariants = await prisma.variantProducts.findMany({
+        where: { id: { in: variantIdsNumeric } },
+        select: { 
+          id: true,
+          products: {
+            select: { ownerId: true }
+          }
+        },
       });
 
-      if (!fittingSlot) {
-        throw new Error('Fitting slot not found');
+      if (existingVariants.length !== variantIdsNumeric.length) {
+        const missingIds = variantIdsNumeric.filter(
+          (id) => !existingVariants.some((v) => v.id === id),
+        );
+        return NextResponse.json(
+          { error: `Variants not found: ${missingIds.join(', ')} `},
+          { status: 400 }
+        );
       }
+    }
 
-      if (fittingSlot.isBooked) {
-        throw new Error('Fitting slot is already booked');
+    // Now run the transaction with shorter operations
+    const result = await prisma.$transaction(async (tx) => {
+      // Double-check the slot is still available
+      const currentSlot = await tx.fittingSlot.findUnique({
+        where: { id: parseInt(fittingSlotId) },
+        select: { isBooked: true }
+      });
+
+      if (currentSlot?.isBooked) {
+        throw new Error('Fitting slot was just booked by another user');
       }
 
       // Update user phone number if provided
@@ -75,9 +120,11 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Create fitting schedule
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
+          ownerId: fittingSlot.owner.id,
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
@@ -91,33 +138,24 @@ export async function POST(request: NextRequest) {
         data: { isBooked: true },
       });
 
-      // Associate products if variants are provided
+      // Create fitting products if variants provided
       if (variantIdsNumeric.length > 0) {
-        // Verify variants exist
-        const existingVariants = await tx.variantProducts.findMany({
-          where: { id: { in: variantIdsNumeric } },
-          select: { id: true },
-        });
-        console.log('existingVariants:', existingVariants);
-
-        if (existingVariants.length !== variantIdsNumeric.length) {
-          const missingIds = variantIdsNumeric.filter(
-            (id) => !existingVariants.some((v) => v.id === id),
-          );
-          throw new Error(`Variants not found: ${missingIds.join(', ')}`);
-        }
-
-        // Create fitting product associations
         await tx.fittingProduct.createMany({
-          data: variantIdsNumeric.map((variantId: number) => ({
-            fittingId: fittingSchedule.id,
-            variantProductId: Number(variantId),
-          })),
+          data: variantIdsNumeric.map((variantId: number) => {
+            const variant = existingVariants.find(v => v.id === variantId);
+            return {
+              fittingId: fittingSchedule.id,
+              variantProductId: Number(variantId),
+              ownerId: variant!.products.ownerId,
+            };
+          }),
           skipDuplicates: true,
         });
       }
 
       return fittingSchedule.id;
+    }, {
+      timeout: 10000, // 10 second timeout
     });
 
     // Fetch complete schedule with relations
