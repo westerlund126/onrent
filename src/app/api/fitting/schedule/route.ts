@@ -105,7 +105,9 @@ export async function POST(request: NextRequest) {
       // Double-check the slot is still available
       const currentSlot = await tx.fittingSlot.findUnique({
         where: { id: parseInt(fittingSlotId) },
-        select: { isBooked: true }
+        include: {
+          owner: { select: { id: true } }, // Get the owner ID
+        },
       });
 
       if (currentSlot?.isBooked) {
@@ -120,11 +122,11 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create fitting schedule
+      // FIX 1: Add ownerId to FittingSchedule creation
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
-          ownerId: fittingSlot.owner.id,
+          ownerId: fittingSlot.owner.id, // Add the owner ID
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
@@ -132,21 +134,38 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Mark slot as booked
       await tx.fittingSlot.update({
         where: { id: parseInt(fittingSlotId) },
         data: { isBooked: true },
       });
 
-      // Create fitting products if variants provided
       if (variantIdsNumeric.length > 0) {
+        const existingVariants = await tx.variantProducts.findMany({
+          where: { id: { in: variantIdsNumeric } },
+          select: {
+            id: true,
+            products: {
+              select: { ownerId: true }, // Get the product owner ID
+            },
+          },
+        });
+        console.log('existingVariants:', existingVariants);
+
+        if (existingVariants.length !== variantIdsNumeric.length) {
+          const missingIds = variantIdsNumeric.filter(
+            (id) => !existingVariants.some((v) => v.id === id),
+          );
+          throw new Error(`Variants not found: ${missingIds.join(', ')}`);
+        }
+
+        // FIX 2: Add ownerId to FittingProduct creation
         await tx.fittingProduct.createMany({
           data: variantIdsNumeric.map((variantId: number) => {
-            const variant = existingVariants.find(v => v.id === variantId);
+            const variant = existingVariants.find((v) => v.id === variantId);
             return {
               fittingId: fittingSchedule.id,
               variantProductId: Number(variantId),
-              ownerId: variant!.products.ownerId,
+              ownerId: variant!.products.ownerId, // Add the product owner ID
             };
           }),
           skipDuplicates: true,

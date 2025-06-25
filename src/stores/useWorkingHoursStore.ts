@@ -2,8 +2,7 @@
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-
-export type TWorkingHours = { [key: number]: { from: number; to: number } };
+import type { TWorkingHours } from 'types/fitting';
 
 interface WorkingHoursState {
   workingHours: TWorkingHours;

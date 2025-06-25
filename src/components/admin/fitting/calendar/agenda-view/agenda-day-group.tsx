@@ -2,7 +2,7 @@ import { differenceInDays, format, parseISO, startOfDay } from "date-fns";
 
 import { AgendaEventCard } from "components/admin/fitting/calendar/agenda-view/agenda-event-card";
 
-import type { IEvent, IFittingSchedule } from "types/fitting";
+import type { IFittingSchedule } from "types/fitting";
 
 interface IProps {
   date: Date;

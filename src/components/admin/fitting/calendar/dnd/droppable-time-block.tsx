@@ -8,7 +8,7 @@ import { useUpdateEvent } from 'hooks/use-update-event';
 import { cn } from '@/lib/utils';
 import { ItemTypes } from 'components/admin/fitting/calendar/dnd/draggable-event';
 
-import type { IEvent } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 
 interface DroppableTimeBlockProps {
   date: Date;
@@ -28,11 +28,11 @@ export function DroppableTimeBlock({
   const [{ isOver, canDrop }, drop] = useDrop(
     () => ({
       accept: ItemTypes.EVENT,
-      drop: (item: { event: IEvent }) => {
+      drop: (item: { event: IFittingSchedule }) => {
         const droppedEvent = item.event;
 
-        const eventStartDate = parseISO(droppedEvent.startDate);
-        const eventEndDate = parseISO(droppedEvent.endDate);
+        const eventStartDate = droppedEvent.startTime;
+        const eventEndDate = droppedEvent.endTime;
 
         const eventDurationMs = differenceInMilliseconds(
           eventEndDate,

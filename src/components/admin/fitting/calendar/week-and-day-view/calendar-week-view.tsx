@@ -1,24 +1,35 @@
-import { startOfWeek, addDays, format, parseISO, isSameDay, areIntervalsOverlapping } from "date-fns";
-
-import { useCalendar } from "contexts/calendar-context";
-
-import { ScrollArea } from "@/components/ui/scroll-area";
-
+import {
+  startOfWeek,
+  addDays,
+  format,
+  isSameDay,
+  areIntervalsOverlapping,
+} from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useFittingStore } from 'stores/useFittingStore';
+import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
 import { CalendarTimeline } from 'components/admin/fitting/calendar/week-and-day-view/calendar-time-line';
-import { cn } from "@/lib/utils";
-import { groupSchedule, getScheduleBlockStyle, isWorkingHour, getVisibleHours } from "utils/helpers";
-
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import { cn } from '@/lib/utils';
+import {
+  groupSchedule,
+  getScheduleBlockStyle,
+  isWorkingHour,
+} from 'utils/helpers';
+import type { IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   singleDaySchedule: IFittingSchedule[];
 }
 
 export function CalendarWeekView({ singleDaySchedule }: IProps) {
-  const { selectedDate, workingHours, visibleHours } = useCalendar();
+  const selectedDate = useFittingStore((state) => state.selectedDate);
+  const workingHours = useWorkingHoursStore((state) => state.workingHours);
 
-  const { hours, earliestScheduleHour, latestScheduleHour } = getVisibleHours(visibleHours, singleDaySchedule);
+  // Simple 24-hour range instead of using visibleHours
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const earliestScheduleHour = 0;
+  const latestScheduleHour = 23;
 
   const weekStart = startOfWeek(selectedDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -60,7 +71,7 @@ export function CalendarWeekView({ singleDaySchedule }: IProps) {
                   <div className="absolute -top-3 right-2 flex h-6 items-center">
                     {index !== 0 && (
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date().setHours(hour, 0, 0, 0), 'hh a')}
+                        {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
                       </span>
                     )}
                   </div>
@@ -142,7 +153,7 @@ export function CalendarWeekView({ singleDaySchedule }: IProps) {
                               className="absolute p-1"
                               style={style}
                             >
-                              <EventBlock schedule={schedule[0]} />
+                              <EventBlock schedule={schedule} />
                             </div>
                           );
                         }),

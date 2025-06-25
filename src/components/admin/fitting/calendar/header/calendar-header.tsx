@@ -7,9 +7,7 @@ import {
   Grid2x2,
   CalendarRange,
 } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
-
 import { TodayButton } from 'components/admin/fitting/calendar/header/today-button';
 import { DateNavigator } from 'components/admin/fitting/calendar/header/date-navigator';
 import { AddEventDialog } from 'components/admin/fitting/calendar/dialogs/add-event-dialog';

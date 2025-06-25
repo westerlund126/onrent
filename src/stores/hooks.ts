@@ -1,12 +1,13 @@
-// stores/hooks.ts - Custom hooks for specific state slices
+// stores/hooks.ts 
 import { useFittingStore } from './useFittingStore';
 import { useScheduleStore } from './useScheduleStore';
 import { useSettingsStore } from './useSettingStore';
-import { TWorkingHours, useWorkingHoursStore } from './useWorkingHoursStore';
+import { useWorkingHoursStore } from './useWorkingHoursStore';
 import { useFittingFormStore } from './useFittingFormStore';
 import type { FittingFormData } from './useFittingFormStore';
 import { useUserStore } from './useUserStore';
 import { useShallow } from 'zustand/react/shallow';
+import { TWorkingHours } from 'types/fitting';
 
 // Fitting hooks
 export const useSelectedDate = () =>

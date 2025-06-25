@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { isToday, startOfDay } from "date-fns";
-
 import { EventBullet } from 'components/admin/fitting/calendar/month-view/event-bullet';
 import { DroppableDayCell } from 'components/admin/fitting/calendar/dnd/droppable-day-cell';
 import { MonthEventBadge } from 'components/admin/fitting/calendar/month-view/month-event-badge';
@@ -20,8 +19,26 @@ const MAX_VISIBLE_EVENTS = 3;
 
 export function DayCell({ cell, schedule, schedulePositions }: IProps) {
   const { day, currentMonth, date } = cell;
+  if (date.getDate() === 26) {
+    console.log('June 26th DayCell data:', {
+      cellDate: date,
+      cellDateString: date.toDateString(),
+      scheduleLength: schedule.length,
+      scheduleForThisDay: schedule.filter((s) => {
+        const scheduleDate = new Date(s.startTime);
+        return scheduleDate.toDateString() === date.toDateString();
+      }),
+      schedulePositions,
+      hasPositionForSchedule1: schedulePositions[1],
+    });
+  }
 
   const cellSchedule = useMemo(() => getMonthCellSchedule(date, schedule, schedulePositions), [date, schedule, schedulePositions]);
+  
+  if (date.getDate() === 26) {
+    console.log('June 26th cellSchedule result:', cellSchedule);
+  }
+
   const isSunday = date.getDay() === 0;
 
   return (
@@ -42,12 +59,30 @@ export function DayCell({ cell, schedule, schedulePositions }: IProps) {
             const schedule = cellSchedule.find(e => e.position === position);
             const scheduleKey = schedule ? `schedule-${schedule.id}-${position}` : `empty-${position}`;
 
+            if (date.getDate() === 26) {
+              console.log(`June 26th position ${position}:`, {
+                schedule: schedule
+                  ? {
+                      id: schedule.id,
+                      title: schedule.title,
+                      color: schedule.color,
+                    }
+                  : null,
+                hasSchedule: !!schedule,
+              });
+            }
+
             return (
               <div key={scheduleKey} className="lg:flex-1">
                 {schedule && (
                   <>
+            
                     <EventBullet className="lg:hidden" color={schedule.color} />
-                    <MonthEventBadge className="hidden lg:flex" schedule={schedule} cellDate={startOfDay(date)} />
+                    <MonthEventBadge
+                      className="hidden lg:flex"
+                      schedule={schedule}
+                      cellDate={startOfDay(date)}
+                    />
                   </>
                 )}
               </div>

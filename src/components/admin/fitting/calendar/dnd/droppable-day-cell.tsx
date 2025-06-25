@@ -1,11 +1,11 @@
 "use client";
 
 import { useDrop } from "react-dnd";
-import { parseISO, differenceInMilliseconds } from "date-fns";
+import { differenceInMilliseconds } from "date-fns";
 import { useUpdateEvent } from "hooks/use-update-event";
 import { cn } from "@/lib/utils";
 import { ItemTypes } from 'components/admin/fitting/calendar/dnd/draggable-event';
-import type { IEvent, ICalendarCell } from 'types/fitting';
+import type { ICalendarCell, IFittingSchedule } from 'types/fitting';
 
 interface DroppableDayCellProps {
   cell: ICalendarCell;
@@ -18,11 +18,11 @@ export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
   const [{ isOver, canDrop }, drop] = useDrop(
     () => ({
       accept: ItemTypes.EVENT,
-      drop: (item: { event: IEvent }) => {
-        const droppedEvent = item.event;
+      drop: (item: { schedule: IFittingSchedule }) => {
+        const droppedEvent = item.schedule;
 
-        const eventStartDate = parseISO(droppedEvent.startDate);
-        const eventEndDate = parseISO(droppedEvent.endDate);
+        const eventStartDate = droppedEvent.startTime;
+        const eventEndDate = droppedEvent.endTime;
 
         const eventDurationMs = differenceInMilliseconds(eventEndDate, eventStartDate);
 

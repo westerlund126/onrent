@@ -283,11 +283,18 @@ export function calculateMonthSchedulePositions(
     //   );
     // }),
     ...singleDaySchedule.sort(
-      (a, b) =>
-        parseISO(a.startTime.toISOString()).getTime() -
-        parseISO(b.startTime.toISOString()).getTime(),
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
     ),
   ];
+  console.log('schedulePositions result:', schedulePositions);
+  console.log(
+    'sortedSchedule:',
+    sortedSchedule.map((s) => ({
+      id: s.id,
+      startTime: s.startTime,
+      title: s.title,
+    })),
+  );
 
   sortedSchedule.forEach((schedule) => {
     const scheduleStart = schedule.startTime;
