@@ -233,5 +233,4 @@ enum ProductCategory {
   SELENDANG
   JAS
   LAINNYA
-  JAS
 }
