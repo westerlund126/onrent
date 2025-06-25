@@ -1,16 +1,12 @@
 import { cva } from "class-variance-authority";
 import { format, differenceInMinutes, parseISO } from "date-fns";
-
-import { useCalendar } from "contexts/calendar-context";
-
 import { DraggableEvent } from 'components/admin/fitting/calendar/dnd/draggable-event';
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
-
 import { cn } from "@/lib/utils";
-
 import type { HTMLAttributes } from "react";
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from "class-variance-authority";
+import { useSettingsStore } from "stores";
 
 const calendarWeekEventCardVariants = cva(
   "flex select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -41,19 +37,19 @@ const calendarWeekEventCardVariants = cva(
 );
 
 interface IProps extends HTMLAttributes<HTMLDivElement>, Omit<VariantProps<typeof calendarWeekEventCardVariants>, "color"> {
-  schedule: IFittingSchedule[];
+  schedule: IFittingSchedule;
 }
 
 export function EventBlock({ schedule, className }: IProps) {
-  const { badgeVariant } = useCalendar();
+  const { badgeVariant } = useSettingsStore();
 
-  const start = schedule[0]?.startTime;
-  const end = schedule[0]?.endTime;
+  const start = schedule.startTime;
+  const end = schedule.endTime;
   const durationInMinutes = differenceInMinutes(end, start);
   const heightInPixels = (durationInMinutes / 60) * 96 - 8;
 
   const color = (
-    badgeVariant === 'dot' ? `${schedule[0]?.color}-dot` : schedule[0]?.color
+    badgeVariant === 'dot' ? `${schedule.color}-dot` : schedule.color
   ) as VariantProps<typeof calendarWeekEventCardVariants>['color'];
 
   const calendarWeekEventCardClasses = cn(calendarWeekEventCardVariants({ color, className }), durationInMinutes < 35 && "py-0 justify-center");
@@ -66,8 +62,8 @@ export function EventBlock({ schedule, className }: IProps) {
   };
 
   return (
-    <DraggableEvent schedule={schedule[0]}>
-      <EventDetailsDialog schedule={schedule[0]}>
+    <DraggableEvent schedule={schedule}>
+      <EventDetailsDialog schedule={schedule}>
         <div
           role="button"
           tabIndex={0}
@@ -87,7 +83,7 @@ export function EventBlock({ schedule, className }: IProps) {
               </svg>
             )}
 
-            <p className="truncate font-semibold">{schedule[0]?.title}</p>
+            <p className="truncate font-semibold">{schedule.title}</p>
           </div>
 
           {durationInMinutes > 25 && (

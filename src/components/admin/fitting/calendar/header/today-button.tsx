@@ -1,9 +1,7 @@
 import { formatDate } from "date-fns";
-
-import { useCalendar } from "contexts/calendar-context";
-
+import { useFittingStore } from "stores";
 export function TodayButton() {
-  const { setSelectedDate } = useCalendar();
+  const { setSelectedDate } = useFittingStore();
 
   const today = new Date();
   const handleClick = () => setSelectedDate(today);

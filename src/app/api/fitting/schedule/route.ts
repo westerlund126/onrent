@@ -57,6 +57,9 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const fittingSlot = await tx.fittingSlot.findUnique({
         where: { id: parseInt(fittingSlotId) },
+        include: {
+          owner: { select: { id: true } }, // Get the owner ID
+        },
       });
 
       if (!fittingSlot) {
@@ -75,9 +78,11 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // FIX 1: Add ownerId to FittingSchedule creation
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
+          ownerId: fittingSlot.owner.id, // Add the owner ID
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
@@ -85,18 +90,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Mark slot as booked
       await tx.fittingSlot.update({
         where: { id: parseInt(fittingSlotId) },
         data: { isBooked: true },
       });
 
-      // Associate products if variants are provided
       if (variantIdsNumeric.length > 0) {
-        // Verify variants exist
         const existingVariants = await tx.variantProducts.findMany({
           where: { id: { in: variantIdsNumeric } },
-          select: { id: true },
+          select: {
+            id: true,
+            products: {
+              select: { ownerId: true }, // Get the product owner ID
+            },
+          },
         });
         console.log('existingVariants:', existingVariants);
 
@@ -107,12 +114,16 @@ export async function POST(request: NextRequest) {
           throw new Error(`Variants not found: ${missingIds.join(', ')}`);
         }
 
-        // Create fitting product associations
+        // FIX 2: Add ownerId to FittingProduct creation
         await tx.fittingProduct.createMany({
-          data: variantIdsNumeric.map((variantId: number) => ({
-            fittingId: fittingSchedule.id,
-            variantProductId: Number(variantId),
-          })),
+          data: variantIdsNumeric.map((variantId: number) => {
+            const variant = existingVariants.find((v) => v.id === variantId);
+            return {
+              fittingId: fittingSchedule.id,
+              variantProductId: Number(variantId),
+              ownerId: variant!.products.ownerId, // Add the product owner ID
+            };
+          }),
           skipDuplicates: true,
         });
       }

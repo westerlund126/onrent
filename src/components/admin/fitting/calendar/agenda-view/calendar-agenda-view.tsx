@@ -1,17 +1,17 @@
 import { useMemo } from "react";
 import { CalendarX2 } from "lucide-react";
 import { parseISO, format, endOfDay, startOfDay, isSameMonth } from "date-fns";
-import { useCalendar } from "contexts/calendar-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AgendaDayGroup } from 'components/admin/fitting/calendar/agenda-view/agenda-day-group';
 import type { IFittingSchedule } from 'types/fitting';
+import { useFittingStore } from "stores";
 
 interface IProps {
   singleDaySchedule: IFittingSchedule[];
 }
 
 export function CalendarAgendaView({ singleDaySchedule }: IProps) {
-  const { selectedDate } = useCalendar();
+  const { selectedDate } = useFittingStore();
 
   const scheduleByDay = useMemo(() => {
     const allDates = new Map<

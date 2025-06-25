@@ -60,7 +60,6 @@ model VariantProducts {
   length         Float?
   isRented       Boolean          @default(false)
   sku            String           @unique
-  category        ProductCategory
   FittingProduct FittingProduct[]
   RentalItem     RentalItem[]
   products       Products         @relation(fields: [productsId], references: [id])

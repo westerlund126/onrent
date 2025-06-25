@@ -2,11 +2,9 @@
 
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   schedule: IFittingSchedule;

@@ -5,7 +5,7 @@ import { useDrag } from "react-dnd";
 
 import { cn } from "@/lib/utils";
 
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 
 export const ItemTypes = {
   EVENT: "event",

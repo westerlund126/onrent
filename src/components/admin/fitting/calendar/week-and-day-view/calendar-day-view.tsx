@@ -1,6 +1,7 @@
 import { Calendar1, Clock, User } from 'lucide-react';
-import { parseISO, areIntervalsOverlapping, format } from 'date-fns';
-import { useCalendar } from 'contexts/calendar-context';
+import { areIntervalsOverlapping, format } from 'date-fns';
+import { useFittingStore } from 'stores/useFittingStore';
+import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
@@ -11,7 +12,6 @@ import {
   getScheduleBlockStyle,
   isWorkingHour,
   getCurrentSchedule,
-  getVisibleHours,
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
 
@@ -19,14 +19,15 @@ interface IProps {
   singleDaySchedule: IFittingSchedule[];
 }
 
-export function CalendarDayView({ singleDaySchedule}: IProps) {
-  const { selectedDate, setSelectedDate, users, visibleHours, workingHours } =
-    useCalendar();
+export function CalendarDayView({ singleDaySchedule }: IProps) {
+  const selectedDate = useFittingStore((state) => state.selectedDate);
+  const setSelectedDate = useFittingStore((state) => state.setSelectedDate);
+  const workingHours = useWorkingHoursStore((state) => state.workingHours);
 
-  const { hours, earliestScheduleHour, latestScheduleHour } = getVisibleHours(
-    visibleHours,
-    singleDaySchedule
-  );
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  
+  const earliestScheduleHour = 0;
+  const latestScheduleHour = 23;
 
   const currentSchedule = getCurrentSchedule(singleDaySchedule);
 
@@ -66,7 +67,7 @@ export function CalendarDayView({ singleDaySchedule}: IProps) {
                   <div className="absolute -top-3 right-2 flex h-6 items-center">
                     {index !== 0 && (
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date().setHours(hour, 0, 0, 0), 'hh a')}
+                        {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
                       </span>
                     )}
                   </div>
@@ -135,7 +136,7 @@ export function CalendarDayView({ singleDaySchedule}: IProps) {
                         className="absolute p-1"
                         style={style}
                       >
-                        <EventBlock schedule={schedule[0]} />
+                        <EventBlock schedule={schedule} />
                       </div>
                     );
                   }),
@@ -156,7 +157,7 @@ export function CalendarDayView({ singleDaySchedule}: IProps) {
           className="rounded-lg border"
           mode="single"
           selected={selectedDate}
-          onSelect={setSelectedDate}
+          onSelect={(date) => date && setSelectedDate(date)}
         />
 
         <div className="flex-1 space-y-3">
@@ -181,20 +182,16 @@ export function CalendarDayView({ singleDaySchedule}: IProps) {
             <ScrollArea className="h-[422px] px-4" type="always">
               <div className="space-y-6 pb-4">
                 {currentSchedule.map((schedule) => {
-                  const user = users.find(
-                    (user) => user.id === schedule.user.id,
-                  );
-
                   return (
                     <div key={schedule.id} className="space-y-1.5">
                       <p className="line-clamp-2 text-sm font-semibold">
                         {schedule.title}
                       </p>
 
-                      {user && (
+                      {schedule.user && (
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <User className="size-3.5" />
-                          <span className="text-sm">{user.first_name}</span>
+                          <span className="text-sm">{schedule.user.first_name}</span>
                         </div>
                       )}
 
@@ -208,8 +205,8 @@ export function CalendarDayView({ singleDaySchedule}: IProps) {
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Clock className="size-3.5" />
                         <span className="text-sm">
-                          {format(schedule.startTime, 'h:mm a')} -{' '}
-                          {format(schedule.endTime, 'h:mm a')}
+                          {format(schedule.startTime, 'HH:mm')} -{' '}
+                          {format(schedule.endTime, 'HH:mm')}
                         </span>
                       </div>
                     </div>

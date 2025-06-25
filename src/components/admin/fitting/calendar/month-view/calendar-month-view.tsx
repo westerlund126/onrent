@@ -13,7 +13,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 interface IProps {
   singleDaySchedule: IFittingSchedule[];
 }
-const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export function CalendarMonthView({ singleDaySchedule }: IProps) {
   const { selectedDate } = useFittingStore();
@@ -36,6 +36,7 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
     fetchFittingSchedules(dateFrom, dateTo);
     fetchFittingSlots(dateFrom, dateTo);
+    console.log('Fetching data from:', dateFrom, 'to:', dateTo);
   }, [monthStart, monthEnd, fetchFittingSchedules, fetchFittingSlots]);
 
   const processedSchedule = useMemo(() => {
@@ -48,9 +49,7 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
       if (slot) {
         const startDateTime = new Date(slot.dateTime);
-        const endDateTime = new Date(
-          startDateTime.getTime() + fittingSchedule.duration * 60000,
-        );
+        const endDateTime = new Date(startDateTime.getTime() + fittingSchedule.duration * 60000);
 
         const customerName = fittingSchedule.user
           ? `${fittingSchedule.user.first_name} ${fittingSchedule.user.last_name}`.trim()
@@ -64,6 +63,14 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
           color: getStatusColor(fittingSchedule.status),
           note: fittingSchedule.note || 'No additional notes',
           fittingSlot: slot,
+        });
+        console.log('Date types check:', {
+          startTime: startDateTime,
+          endTime: endDateTime,
+          startTimeType: typeof startDateTime,
+          endTimeType: typeof endDateTime,
+          isStartDate: startDateTime instanceof Date,
+          isEndDate: endDateTime instanceof Date,
         });
       }
     });
@@ -81,9 +88,15 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
     return singleDay;
   }, [fittingSchedules, fittingSlots]);
+  console.log('fittingSchedules from store:', fittingSchedules);
+  console.log('fittingSlots from store:', fittingSlots);
+  console.log('processedSchedule:', processedSchedule);
 
-  // Combine prop schedule with processed schedule from store
-  const allSchedule = [...singleDaySchedule, ...processedSchedule];
+  const allSchedule = useMemo(
+    () => [...singleDaySchedule, ...processedSchedule],
+    [singleDaySchedule, processedSchedule],
+  );
+  console.log('allSchedule:', allSchedule);
 
   const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
 
