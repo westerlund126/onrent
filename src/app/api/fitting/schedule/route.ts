@@ -54,20 +54,64 @@ export async function POST(request: NextRequest) {
       ),
     );
 
+    // First, validate the fitting slot outside the transaction
+    const fittingSlot = await prisma.fittingSlot.findUnique({
+      where: { id: parseInt(fittingSlotId) },
+      include: {
+        owner: { select: { id: true } }
+      }
+    });
+
+    if (!fittingSlot) {
+      return NextResponse.json(
+        { error: 'Fitting slot not found' },
+        { status: 404 }
+      );
+    }
+
+    if (fittingSlot.isBooked) {
+      return NextResponse.json(
+        { error: 'Fitting slot is already booked' },
+        { status: 400 }
+      );
+    }
+
+    // Validate variants outside the transaction if provided
+    let existingVariants: any[] = [];
+    if (variantIdsNumeric.length > 0) {
+      existingVariants = await prisma.variantProducts.findMany({
+        where: { id: { in: variantIdsNumeric } },
+        select: { 
+          id: true,
+          products: {
+            select: { ownerId: true }
+          }
+        },
+      });
+
+      if (existingVariants.length !== variantIdsNumeric.length) {
+        const missingIds = variantIdsNumeric.filter(
+          (id) => !existingVariants.some((v) => v.id === id),
+        );
+        return NextResponse.json(
+          { error: `Variants not found: ${missingIds.join(', ')} `},
+          { status: 400 }
+        );
+      }
+    }
+
+    // Now run the transaction with shorter operations
     const result = await prisma.$transaction(async (tx) => {
-      const fittingSlot = await tx.fittingSlot.findUnique({
+      // Double-check the slot is still available
+      const currentSlot = await tx.fittingSlot.findUnique({
         where: { id: parseInt(fittingSlotId) },
         include: {
           owner: { select: { id: true } }, // Get the owner ID
         },
       });
 
-      if (!fittingSlot) {
-        throw new Error('Fitting slot not found');
-      }
-
-      if (fittingSlot.isBooked) {
-        throw new Error('Fitting slot is already booked');
+      if (currentSlot?.isBooked) {
+        throw new Error('Fitting slot was just booked by another user');
       }
 
       // Update user phone number if provided
@@ -129,6 +173,8 @@ export async function POST(request: NextRequest) {
       }
 
       return fittingSchedule.id;
+    }, {
+      timeout: 10000, // 10 second timeout
     });
 
     // Fetch complete schedule with relations

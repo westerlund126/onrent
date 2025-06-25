@@ -74,6 +74,7 @@ export type CategoryType =
   | 'SELOP'
   | 'BESKAP'
   | 'SELENDANG'
+  | 'JAS'
   | 'LAINNYA';
 
 export const CATEGORY_LABELS: Record<CategoryType, string> = {
@@ -84,6 +85,7 @@ export const CATEGORY_LABELS: Record<CategoryType, string> = {
   SELOP: 'Selop',
   BESKAP: 'Beskap',
   SELENDANG: 'Selendang',
+  JAS: 'Jas',
   LAINNYA: 'Lainnya',
 };
 

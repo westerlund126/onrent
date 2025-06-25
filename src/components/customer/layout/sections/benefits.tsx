@@ -1,37 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Icon } from "@/components/ui/icon";
-import { icons } from "lucide-react";
+import { Blocks, LineChart, Wallet, Sparkle } from "lucide-react"; // Import specific icons
 
 interface BenefitsProps {
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>; // Use React component type
   title: string;
   description: string;
 }
 
 const benefitList: BenefitsProps[] = [
   {
-    icon: "Blocks",
-    title: "Build Brand Trust",
+    icon: Blocks,
+    title: "Cari Pakaian",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. A odio velit cum aliquam. Natus consectetur dolores.",
+      "Buka aplikasi, jelajahi ribuan koleksi, atau gunakan filter untuk menemukan gaun, kebaya, atau jas impianmu dengan cepat.",
   },
   {
-    icon: "LineChart",
-    title: "More Leads",
+    icon: LineChart,
+    title: "Jadwalkan Fitting",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. A odio velit cum aliquam, natus consectetur.",
+      "Atur jadwal fitting di aplikasi untuk mencoba pakaian di butik rekanan terdekat agar ukurannya pas dan nyaman.",
   },
   {
-    icon: "Wallet",
-    title: "Higher Conversions",
+    icon: Wallet,
+    title: "Sewa Sekarang",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Natus consectetur. A odio velit cum aliquam",
+      "Sudah pas dan yakin? Konfirmasi sewa dan selesaikan pembayaran langsung di butik. Ambil pakaianmu dan kamu siap tampil memukau!",
   },
   {
-    icon: "Sparkle",
-    title: "Test Marketing Ideas",
+    icon: Sparkle,
+    title: "Kembalikan Mudah",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. A odio velit cum aliquam. Natus consectetur dolores.",
+      "Setelah acara selesai, kembalikan pakaian tanpa repot. Antar langsung ke butik atau pilih layanan jemput dari lokasi kamu.",
   },
 ];
 
@@ -40,7 +39,7 @@ export const BenefitsSection = () => {
     <section id="benefits" className="container py-24 sm:py-32">
       <div className="grid lg:grid-cols-2 place-items-center lg:gap-24">
         <div>
-          <h2 className="text-lg text-primary mb-2 tracking-wider">Benefits</h2>
+          <h2 className="text-lg text-primary mb-2 tracking-wider">How to Rent</h2>
 
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Your Shortcut to Success
@@ -53,7 +52,7 @@ export const BenefitsSection = () => {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4 w-full">
-          {benefitList.map(({ icon, title, description }, index) => (
+          {benefitList.map(({ icon: Icon, title, description }, index) => (
             <Card
               key={title}
               className="bg-muted/50 dark:bg-card hover:bg-background transition-all delay-75 group/number"

@@ -19,6 +19,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { toast } from 'sonner';
+import { useWishlist } from 'hooks/useWishlist';
 
 interface ProductDetailProps {}
 
@@ -33,8 +34,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLiked, setIsLiked] = useState(false);
-
+const { isInWishlist, toggleWishlist,  loading: wishlistLoading } = useWishlist(productId);
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -87,16 +87,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
     setSelectedVariant(variant);
   };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    toast.success(
-      isLiked ? "Removed from favorites" : "Added to favorites",
-      {
-        description: isLiked 
-          ? "Product removed from your favorites" 
-          : "Product added to your favorites",
-      }
-    );
+const handleLike = async () => {
+    const wasInWishlist = isInWishlist;
+    
+    try {
+      await toggleWishlist();
+      
+      // Show success toast based on the action that was performed
+      toast.success(
+        wasInWishlist ? "Produk dihapus dari wishlist" : "Produk ditambahkan ke wishlist",
+      );
+    } catch (error) {
+      // Show error toast if something went wrong
+      toast.error("Terjadi kesalahan", {
+        description: "Tolong coba lagi nanti",
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -297,17 +303,18 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </div>
                   <div className="flex space-x-2">
                     <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleLike}
-                      className={`h-12 w-12 border-2 transition-all duration-300 ${
-                        isLiked 
-                          ? 'text-red-500 bg-red-50 border-red-200 hover:bg-red-100' 
-                          : 'hover:bg-muted hover:scale-105'
-                      }`}
-                    >
-                      <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-                    </Button>
+  variant="outline"
+  size="icon"
+  onClick={handleLike}
+  disabled={wishlistLoading}
+  className={`h-12 w-12 border-2 transition-all duration-300 ${
+    isInWishlist 
+      ? 'text-red-500 bg-red-50 border-red-200 hover:bg-red-100' 
+      : 'hover:bg-muted hover:scale-105'
+  } ${wishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+>
+  <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''} ${wishlistLoading ? 'animate-pulse' : ''}`} />
+</Button>
                     <Button 
                       variant="outline" 
                       size="icon" 

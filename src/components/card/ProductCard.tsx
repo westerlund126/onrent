@@ -1,8 +1,9 @@
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import Card from 'components/card';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useWishlist } from 'hooks/useWishlist';
 
 type ProductCardProps = {
   product: {
@@ -19,8 +20,8 @@ type ProductCardProps = {
 };
 
 const ProductCard = ({ product, extra }: ProductCardProps) => {
-  const [liked, setLiked] = useState(false);
   const router = useRouter();
+  const { isInWishlist, toggleWishlist, loading } = useWishlist(product.id);
 
   const minPrice = useMemo(() => {
     return Math.min(...product.VariantProducts.map((v) => v.price));
@@ -33,6 +34,11 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
   const handleSchedule = (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/customer/fitting/schedule?type=product&productId=${product.id}&ownerId=${product.owner.id}`);
+  };
+
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist();
   };
 
   return (
@@ -50,16 +56,18 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setLiked(!liked);
-          }}
-          className="absolute right-3 top-3 flex items-center justify-center rounded-full bg-white p-2 text-brand-500 hover:text-red-500 transition-colors shadow-md"
+          onClick={handleWishlistClick}
+          disabled={loading}
+          className={`absolute right-3 top-3 flex items-center justify-center rounded-full bg-white p-2 transition-colors shadow-md ${
+            loading 
+              ? 'cursor-not-allowed opacity-70' 
+              : 'hover:text-red-500 cursor-pointer'
+          }`}
         >
-          {liked ? (
+          {isInWishlist ? (
             <IoHeart className="text-red-500 text-lg" />
           ) : (
-            <IoHeartOutline className="text-lg" />
+            <IoHeartOutline className="text-lg text-brand-500" />
           )}
         </button>
       </div>
