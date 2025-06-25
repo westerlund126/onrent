@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  useWorkingHoursStore,
+  useWorkingHoursStore
 } from 'stores/useWorkingHoursStore';
 
 const DAYS_OF_WEEK = [
