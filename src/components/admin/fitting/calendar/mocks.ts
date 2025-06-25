@@ -1,4 +1,4 @@
-import type { TEventColor, IEvent, IUser, IFittingSchedule } from 'types/fitting';
+import type { TEventColor, IUser, IFittingSchedule } from 'types/fitting';
 import { getCurrentSchedule } from 'utils/helpers';
 
 // ================================== //

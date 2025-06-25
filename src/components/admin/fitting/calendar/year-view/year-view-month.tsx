@@ -6,7 +6,7 @@ import { useCalendar } from "contexts/calendar-context";
 
 import { YearViewDayCell } from 'components/admin/fitting/calendar/year-view/year-view-day-cell';
 
-import type { IEvent, IFittingSchedule } from 'types/fitting';
+import type { IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   month: Date;
