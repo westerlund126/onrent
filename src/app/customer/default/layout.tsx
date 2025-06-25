@@ -22,7 +22,12 @@ export default function CustomerLandingLayout({
       enableSystem
       disableTransitionOnChange
     >
-      <div className={cn('min-h-screen bg-background', inter.className)}>
+      <div
+        className={cn(
+          'min-h-screen bg-background',
+          inter.className,
+        )}
+      >
         {children}
       </div>
     </ThemeProvider>

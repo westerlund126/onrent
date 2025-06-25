@@ -13,7 +13,6 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   useWorkingHoursStore,
-  TWorkingHours,
 } from 'stores/useWorkingHoursStore';
 
 const DAYS_OF_WEEK = [
@@ -61,7 +60,7 @@ export function ChangeWorkingHoursInput() {
     error,
   } = useWorkingHoursStore();
 
-  const [localWorkingHours, setLocalWorkingHours] = useState<TWorkingHours>({
+  const [localWorkingHours, setLocalWorkingHours] = useState<typeof workingHours>({
     ...workingHours,
   });
   const [isSaving, setIsSaving] = useState(false);
