@@ -32,8 +32,8 @@ export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
 
         updateEvent({
           ...droppedEvent,
-          startDate: newStartDate.toISOString(),
-          endDate: newEndDate.toISOString(),
+          startTime: newStartDate,
+          endTime: newEndDate,
         });
 
         return { moved: false };
