@@ -157,3 +157,5 @@ export const getHighestPrice = (variants: ProductVariant[]): number => {
   
   return Math.max(...availableVariants.map(v => v.price));
 };
+
+//db baru
