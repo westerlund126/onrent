@@ -49,7 +49,9 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
       if (slot) {
         const startDateTime = new Date(slot.dateTime);
-        const endDateTime = new Date(startDateTime.getTime() + fittingSchedule.duration * 60000);
+        const endDateTime = new Date(
+          startDateTime.getTime() + fittingSchedule.duration * 60000,
+        );
 
         const customerName = fittingSchedule.user
           ? `${fittingSchedule.user.first_name} ${fittingSchedule.user.last_name}`.trim()
@@ -59,7 +61,7 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
           ...fittingSchedule,
           startTime: startDateTime,
           endTime: endDateTime,
-          title: `Fitting appointment with ${customerName}`,
+          title: `${customerName}`,
           color: getStatusColor(fittingSchedule.status),
           note: fittingSchedule.note || 'No additional notes',
           fittingSlot: slot,

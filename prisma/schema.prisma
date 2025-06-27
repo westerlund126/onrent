@@ -231,6 +231,6 @@ enum ProductCategory {
   SELOP
   BESKAP
   SELENDANG
-  JAS
   LAINNYA
+  JAS
 }

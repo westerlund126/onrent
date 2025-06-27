@@ -16,13 +16,13 @@ import {
 } from 'stores/useWorkingHoursStore';
 
 const DAYS_OF_WEEK = [
-  { index: 0, name: 'Sunday' },
-  { index: 1, name: 'Monday' },
-  { index: 2, name: 'Tuesday' },
-  { index: 3, name: 'Wednesday' },
-  { index: 4, name: 'Thursday' },
-  { index: 5, name: 'Friday' },
-  { index: 6, name: 'Saturday' },
+  { index: 0, name: 'Minggu' },
+  { index: 1, name: 'Senin' },
+  { index: 2, name: 'Selasa' },
+  { index: 3, name: 'Rabu' },
+  { index: 4, name: 'Kamis' },
+  { index: 5, name: 'Jumat' },
+  { index: 6, name: 'Sabtu' },
 ];
 
 const HourSelect = ({
@@ -66,7 +66,6 @@ export function ChangeWorkingHoursInput() {
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch on mount
   useEffect(() => {
     fetchWorkingHours().then(() => {
       setLocalWorkingHours(useWorkingHoursStore.getState().workingHours);
@@ -103,7 +102,7 @@ export function ChangeWorkingHoursInput() {
 
     try {
       await updateWorkingHours(localWorkingHours);
-      setSuccess('Working hours updated successfully.');
+      setSuccess('Jam Operasional berhasil diperbarui.');
     } catch (err) {
     } finally {
       setIsSaving(false);
@@ -113,7 +112,7 @@ export function ChangeWorkingHoursInput() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-semibold">Change working hours</p>
+        <p className="text-sm font-semibold">Ubah jam operasional</p>
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger>
@@ -132,7 +131,7 @@ export function ChangeWorkingHoursInput() {
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          Loading working hours...
+          Loading jam operasional...
         </div>
       )}
 
@@ -172,7 +171,7 @@ export function ChangeWorkingHoursInput() {
               {isDayActive ? (
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <span>From</span>
+                    <span>Dari</span>
                     <HourSelect
                       value={localWorkingHours[day.index].from}
                       onChange={(hour) =>
@@ -182,7 +181,7 @@ export function ChangeWorkingHoursInput() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span>To</span>
+                    <span>Sampai</span>
                     <HourSelect
                       value={localWorkingHours[day.index].to}
                       onChange={(hour) =>
@@ -203,7 +202,7 @@ export function ChangeWorkingHoursInput() {
       </div>
 
       <Button className="mt-4 w-fit" onClick={handleSave} disabled={isSaving}>
-        {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
+        {/* {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />} */}
         {isSaving ? 'Menyimpan...' : 'Simpan'}
       </Button>
     </div>
