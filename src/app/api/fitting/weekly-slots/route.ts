@@ -41,7 +41,7 @@ async function generateFittingSlotsForOwner(
     date <= endDate;
     date.setDate(date.getDate() + 1)
   ) {
-    const dayOfWeek = date.getDay(); 
+    const dayOfWeek = date.getDay();
     const DAY_OF_WEEK_MAP = {
       0: 'SUNDAY',
       1: 'MONDAY',
@@ -104,11 +104,11 @@ async function checkForExistingBookings(ownerId: number) {
       fittingSlot: {
         ownerId,
         dateTime: {
-          gte: new Date(), // Only future bookings
+          gte: new Date(), 
         },
       },
       status: {
-        in: ['PENDING', 'CONFIRMED'], // Active bookings only
+        in: ['PENDING', 'CONFIRMED'],
       },
     },
     include: {
