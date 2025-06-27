@@ -75,13 +75,7 @@ const NavbarCustomer = (props: {
 
         {/* Right side - Same as original */}
         <div className="flex items-center gap-4">
-          <span
-            className="flex cursor-pointer text-xl text-gray-600 xl:hidden"
-            onClick={onOpenSidenav}
-          >
-            <FiAlignJustify className="h-5 w-5" />
-          </span>
-
+          
           {/* Notification */}
           <Dropdown
             button={
@@ -177,14 +171,35 @@ const NavbarCustomer = (props: {
             </NavLink>
           </p>
         </div>
+        <div className="absolute left-1/2 transform -translate-x-1/2 gap-2 md:gap-4 flex items-center">
+          <NavLink
+            href="/customer/default"
+            className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Home
+          </NavLink>
+          <NavLink
+            href="/customer/catalog"
+            className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Katalog
+          </NavLink>
+          <NavLink
+            href="/customer/activities"
+            className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Aktivitas
+          </NavLink>
+          <NavLink
+            href="/customer/about"
+            className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            About
+          </NavLink>
+        </div>
 
         <div className="relative mt-[3px] flex h-[61px] w-[255px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[265px] md:flex-grow-0 md:gap-1 xl:w-[265px] xl:gap-2">
-          <span
-            className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
-            onClick={onOpenSidenav}
-          >
-            <FiAlignJustify className="h-5 w-5" />
-          </span>
+
 
           {/* start Notification */}
           <Dropdown
