@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -31,11 +31,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from 'utils/product';
 import Image from 'next/image';
+import { SingleDatePicker } from 'components/date-time-range-picker/single-date-picker';
 
 const FittingSchedulePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoaded: isUserLoaded } = useUser();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const {
     pageType,
     ownerData,
@@ -118,39 +120,78 @@ const FittingSchedulePage = () => {
   // --- Derived Data and Memoization ---
   // Memoize derived data to prevent re-computation on every render
   const availableDates = useMemo(() => {
-    const dateMap = new Map();
-    availableSlots.forEach((slot) => {
-      const date = new Date(slot.dateTime);
-      const dateKey = date.toISOString().split('T')[0];
-      if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, {
-          value: dateKey,
-          label: date.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }),
-          slots: [],
-        });
-      }
-      dateMap.get(dateKey).slots.push(slot);
-    });
-    return Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
-  }, [availableSlots]);
+  const dateMap = new Map();
+  availableSlots.forEach((slot) => {
+    const date = new Date(slot.dateTime);
+    // Use UTC date components for grouping
+    const dateKey = [
+      date.getUTCFullYear(),
+      (date.getUTCMonth() + 1).toString().padStart(2, '0'),
+      date.getUTCDate().toString().padStart(2, '0')
+    ].join('-');
+    
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, {
+        value: dateKey,
+        label: date.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC'
+        }),
+        slots: [],
+        date: new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) // Add actual Date object
+      });
+    }
+    dateMap.get(dateKey).slots.push(slot);
+  });
+  return Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
+}, [availableSlots]);
+
+const getSelectedDateString = (date: Date | undefined): string => {
+  if (!date) return '';
+  return [
+    date.getFullYear(),
+    (date.getMonth() + 1).toString().padStart(2, '0'),
+    date.getDate().toString().padStart(2, '0')
+  ].join('-');
+};
+
+// Add this helper to convert string date to Date object
+const getDateFromString = (dateString: string): Date | undefined => {
+  if (!dateString) return undefined;
+  const parts = dateString.split('-').map(part => parseInt(part, 10));
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+};
+
+const availableDateStrings = useMemo(() => {
+  return availableDates.map(date => date.value);
+}, [availableDates]);
 
   const availableTimes = useMemo(() => {
-    if (!formData.selectedDate) return [];
-    const dateData = availableDates.find((date) => date.value === formData.selectedDate);
-    if (!dateData) return [];
-    return dateData.slots
-      .map((slot) => ({
-        value: new Date(slot.dateTime).toTimeString().slice(0, 5),
-        label: `${new Date(slot.dateTime).toTimeString().slice(0, 5)} WIB`,
+  const selectedDateString = formData.selectedDate;
+  if (!selectedDateString) return [];
+  
+  const dateData = availableDates.find((date) => date.value === selectedDateString);
+  if (!dateData) return [];
+  
+  return dateData.slots
+    .map((slot) => {
+      const date = new Date(slot.dateTime);
+      // Use UTC components directly
+      const hours = date.getUTCHours().toString().padStart(2, '0');
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+      const timeString = `${hours}:${minutes}`;
+      
+      return {
+        value: timeString,
+        label: `${timeString} WIB`,
         slot: slot,
-      }))
-      .sort((a, b) => a.value.localeCompare(b.value));
-  }, [formData.selectedDate, availableDates]);
+      };
+    })
+    .sort((a, b) => a.value.localeCompare(b.value));
+}, [formData.selectedDate, availableDates]);
 
   const availableVariants = useMemo(() => {
     if (!productData || !productData.VariantProducts) return [];
@@ -161,11 +202,12 @@ const FittingSchedulePage = () => {
 
 
   // --- Event Handlers ---
-  const handleDateChange = (dateValue: string) => {
-    updateFormField('selectedDate', dateValue);
-    updateFormField('selectedTime', ''); // Reset time when date changes
-    setSelectedSlot(null);
-  };
+ const handleDateChange = (date: Date | undefined) => {
+  const dateString = date ? getSelectedDateString(date) : '';
+  updateFormField('selectedDate', dateString);
+  updateFormField('selectedTime', ''); // Reset time when date changes
+  setSelectedSlot(null);
+};
 
   const handleTimeChange = (timeValue: string) => {
     updateFormField('selectedTime', timeValue);
@@ -344,40 +386,27 @@ const FittingSchedulePage = () => {
 
                   {/* Date Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="date" className="text-sm font-semibold text-gray-700">
-                      Pilih Tanggal *
-                    </Label>
-                    <Select
-                      value={formData.selectedDate}
-                      onValueChange={handleDateChange}
-                      disabled={loadingStates.slots}
-                    >
-                      <SelectTrigger className="h-12 border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <SelectValue
-                            placeholder={
-                              loadingStates.slots
-                                ? 'Memuat jadwal...'
-                                : 'Pilih tanggal fitting'
-                            }
-                          />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableDates.map((date) => (
-                          <SelectItem key={date.value} value={date.value}>
-                            {date.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {availableDates.length === 0 && !loadingStates.slots && (
-                       <p className="text-sm text-amber-600">
-                         Tidak ada jadwal tersedia untuk saat ini
-                       </p>
-                    )}
-                  </div>
+  <Label htmlFor="date" className="text-sm font-semibold text-gray-700">
+    Pilih Tanggal *
+  </Label>
+  <SingleDatePicker
+    value={getDateFromString(formData.selectedDate)}
+    onSelect={handleDateChange}
+    disabled={loadingStates.slots}
+    placeholder={
+      loadingStates.slots
+        ? 'Memuat jadwal...'
+        : 'Pilih tanggal fitting'
+    }
+    availableDates={availableDateStrings}
+    className="w-full"
+  />
+  {availableDates.length === 0 && !loadingStates.slots && (
+    <p className="text-sm text-amber-600">
+      Tidak ada jadwal tersedia untuk saat ini
+    </p>
+  )}
+</div>
 
                   {/* Time Selection */}
                   <div className="space-y-2">
@@ -506,19 +535,45 @@ const FittingSchedulePage = () => {
                     <CardContent className="p-6">
                       <div className="space-y-4">
                        {productData.images && productData.images.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {productData.images.slice(0, 2).map((image, index) => (
-                          <Image
-                            key={index}
-                            src={image}
-                            width={200}
-                            height={400}
-                            alt={`${productData.name} ${index + 1}`}
-                            className="h-full w-full rounded-lg object-cover shadow-sm"
-                          />
-                        ))}
-                      </div>
-                    )}
+  <div className="flex flex-col gap-4">
+    {/* Main Image */}
+    <div className="aspect-square overflow-hidden rounded-xl bg-muted">
+      <Image
+        src={productData.images[selectedImageIndex]}
+        width={300}
+        height={300}
+        alt={`${productData.name} main view`}
+        className="h-full w-full object-cover"
+      />
+    </div>
+
+    {/* Thumbnail Gallery */}
+    {productData.images.length > 1 && (
+      <div className="flex gap-2 overflow-x-auto py-1">
+        {productData.images.map((image, index) => (
+          <button
+            key={index}
+            onClick={() => setSelectedImageIndex(index)}
+            className={`shrink-0 rounded-lg border transition-all ${
+              selectedImageIndex === index
+                ? 'border-primary-500 ring-2 ring-primary-300'
+                : 'border-gray-200 hover:border-primary-300'
+            }`}
+            aria-label={`View ${productData.name} image ${index + 1}`}
+          >
+            <Image
+              src={image}
+              width={80}
+              height={80}
+              alt={`${productData.name} thumbnail ${index + 1}`}
+              className="h-20 w-20 object-cover"
+            />
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
                     <div className="space-y-3">
                       <h3 className="text-lg font-bold text-gray-900">
