@@ -4,9 +4,12 @@ import {
   format,
   isSameDay,
   areIntervalsOverlapping,
+  endOfWeek,
+  startOfDay,
+  endOfDay,
 } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useFittingStore } from 'stores/useFittingStore';
+import { useFittingStore } from 'stores';
 import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
 import { CalendarTimeline } from 'components/admin/fitting/calendar/week-and-day-view/calendar-time-line';
@@ -17,22 +20,48 @@ import {
   isWorkingHour,
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
+import { useEffect } from 'react';
 
-interface IProps {
-  singleDaySchedule: IFittingSchedule[];
-}
+// interface IProps {
+//   singleDaySchedule: IFittingSchedule[];
+// }
 
-export function CalendarWeekView({ singleDaySchedule }: IProps) {
+export function CalendarWeekView() {
   const selectedDate = useFittingStore((state) => state.selectedDate);
   const workingHours = useWorkingHoursStore((state) => state.workingHours);
+  const fetchFittingSchedules = useFittingStore(
+    (state) => state.fetchFittingSchedules,
+  );
+  const fittingSchedules = useFittingStore((state) => state.fittingSchedules);
 
-  // Simple 24-hour range instead of using visibleHours
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const earliestScheduleHour = 0;
   const latestScheduleHour = 23;
 
-  const weekStart = startOfWeek(selectedDate);
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
+  weekEnd.setHours(23, 59, 59, 999);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const weekSchedules = fittingSchedules.filter(
+    (schedule) =>
+      schedule.startTime >= weekStart && schedule.startTime <= weekEnd,
+  );
+
+  useEffect(() => {
+    const weekStart = startOfWeek(selectedDate);
+    const weekEnd = endOfWeek(selectedDate);
+
+    fetchFittingSchedules(
+      format(weekStart, 'yyyy-MM-dd'),
+      format(weekEnd, 'yyyy-MM-dd'),
+    );
+  }, [selectedDate, fetchFittingSchedules]);
+
+  console.log('Selected date:', selectedDate);
+  console.log('Week start:', weekStart);
+  console.log('All schedules:', fittingSchedules);
+  console.log('Week schedules:', weekSchedules);
 
   return (
     <>
@@ -83,11 +112,17 @@ export function CalendarWeekView({ singleDaySchedule }: IProps) {
             <div className="relative flex-1 border-l">
               <div className="grid grid-cols-7 divide-x">
                 {weekDays.map((day, dayIndex) => {
-                  const daySchedule = singleDaySchedule.filter(
-                    (schedule) =>
-                      isSameDay(schedule.startTime, day) ||
-                      isSameDay(schedule.endTime, day),
-                  );
+                  const daySchedule = weekSchedules.filter((schedule) => {
+                    const scheduleStart = new Date(schedule.startTime);
+                    const scheduleEnd = new Date(schedule.endTime);
+                    const dayStart = startOfDay(day);
+                    const dayEnd = endOfDay(day);
+
+                    return areIntervalsOverlapping(
+                      { start: scheduleStart, end: scheduleEnd },
+                      { start: dayStart, end: dayEnd },
+                    );
+                  });
                   const groupedSchedule = groupSchedule(daySchedule);
 
                   return (

@@ -119,7 +119,7 @@ export function ClientContainer({ view }: IProps) {
           <CalendarMonthView singleDaySchedule={singleDaySchedule} />
         )}
         {view === 'week' && (
-          <CalendarWeekView singleDaySchedule={singleDaySchedule} />
+          <CalendarWeekView />
         )}
         {view === 'year' && <CalendarYearView allSchedule={filteredSchedule} />}
         {view === 'agenda' && (

@@ -111,7 +111,6 @@ export async function PATCH(
       );
     }
 
-    // Only the owner can update their slots
     if (caller.role !== 'OWNER' || slot.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'You can only update your own fitting slots' },
@@ -121,7 +120,6 @@ export async function PATCH(
 
     const updates = await request.json();
 
-    // Prevent updating if already booked (unless explicitly allowed)
     if (slot.isBooked && !updates.allowUpdateWhenBooked) {
       return NextResponse.json(
         { error: 'Cannot update a booked fitting slot' },
@@ -129,7 +127,6 @@ export async function PATCH(
       );
     }
 
-    // UPDATED: Added full include with fittingSchedule
     const updatedSlot = await prisma.fittingSlot.update({
       where: { id: slotId },
       data: {
@@ -149,7 +146,6 @@ export async function PATCH(
             imageUrl: true,
           },
         },
-        // ADDED: Include fittingSchedule with relations
         fittingSchedule: {
           include: {
             user: {
@@ -178,7 +174,6 @@ export async function PATCH(
       },
     });
 
-    // UPDATED: Return just the slot object without wrapper
     return NextResponse.json(updatedSlot);
   } catch (error: any) {
     console.error('Error updating fitting slot:', error);
@@ -226,7 +221,6 @@ export async function DELETE(
       );
     }
 
-    // Only the owner can delete their slots
     if (caller.role !== 'OWNER' || slot.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'You can only delete your own fitting slots' },
@@ -234,7 +228,6 @@ export async function DELETE(
       );
     }
 
-    // Check if slot is booked
     if (slot.isBooked && slot.fittingSchedule) {
       return NextResponse.json(
         {

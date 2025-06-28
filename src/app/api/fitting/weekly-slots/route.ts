@@ -57,11 +57,19 @@ async function generateFittingSlotsForOwner(
         slot.dayOfWeek ===
         DAY_OF_WEEK_MAP[dayOfWeek as keyof typeof DAY_OF_WEEK_MAP],
     );
-    if (weeklySlot) {
+    if (weeklySlot && weeklySlot.isEnabled) {
       const startHour = weeklySlot.startTime.getHours();
-      const startMinute = weeklySlot.startTime.getMinutes();
       const endHour = weeklySlot.endTime.getHours();
-      const endMinute = weeklySlot.endTime.getMinutes();
+      if (startHour === 0 && endHour === 0) {
+        continue;
+      }
+
+      if (endHour <= startHour) {
+        console.warn(
+          `Invalid time range for ${weeklySlot.dayOfWeek}: ${startHour}:00 - ${endHour}:00`,
+        );
+        continue;
+      }
 
       for (let hour = startHour; hour < endHour; hour++) {
         const slotDateTime = new Date(date);
@@ -294,9 +302,10 @@ export async function POST(
     const slotGeneration = await generateFittingSlotsForOwner(caller.id, 60);
 
     return NextResponse.json({
-      message: 'Working hours created successfully',
+      message: 'Working hours updated successfully',
       ownerId: caller.id,
       workingHours: sanitizedWorkingHours,
+      slotsGenerated: slotGeneration.count, 
       slotGeneration,
     });
   } catch (error) {

@@ -32,7 +32,6 @@ interface FittingState {
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
 
-  
   createFittingSlot: (slotData: {
     dateTime: string;
     isAutoConfirm?: boolean;
@@ -110,8 +109,20 @@ export const useFittingStore = create<FittingState>()(
 
         const schedules = await response.json();
 
+        const processedSchedules = schedules.map((schedule: any) => {
+          const base = new Date(schedule.fittingSlot?.dateTime ?? null);
+          const duration = schedule.duration ?? 60;
+
+          return {
+            ...schedule,
+            startTime: base,
+            endTime: new Date(base.getTime() + duration * 60 * 1000),
+          };
+        });
+        console.log('Processed schedules:', processedSchedules);
+
         set((state) => {
-          state.fittingSchedules = schedules;
+          state.fittingSchedules = processedSchedules;
           state.isLoading = false;
         });
       } catch (error) {
