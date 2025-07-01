@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const ownerId = searchParams.get('ownerId');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
+     const availableOnly = searchParams.get('availableOnly') === 'true';
 
     let whereClause: any = {};
 
@@ -43,6 +44,10 @@ export async function GET(request: NextRequest) {
       if (dateTo) {
         whereClause.dateTime.lte = new Date(dateTo);
       }
+    }
+
+    if (availableOnly) {
+      whereClause.isBooked = false;
     }
 
     const slots = await prisma.fittingSlot.findMany({
@@ -76,8 +81,9 @@ export async function GET(request: NextRequest) {
         dateTime: 'asc',
       },
     });
-
+    console.log('Found slots:', slots.length);
     return NextResponse.json(slots);
+    
   } catch (error: any) {
     console.error('Error fetching fitting slots:', error);
     return NextResponse.json(

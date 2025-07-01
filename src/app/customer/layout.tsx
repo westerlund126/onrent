@@ -1,7 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { useContext, useState } from 'react';
-import routes from 'routes';
+import customerRoutes from 'routes';
 import {
   getActiveNavbar,
   getActiveRoute,
@@ -36,11 +36,11 @@ export default function Customer({ children }: { children: React.ReactNode }) {
           <div>
             <Navbar
               onOpenSidenav={() => setOpen(!open)}
-              brandText={getActiveRoute(routes, pathname)}
-              secondary={getActiveNavbar(routes, pathname)}
+              brandText={getActiveRoute(customerRoutes, pathname)}
+              secondary={getActiveNavbar(customerRoutes, pathname)}
               isLanding={isLandingPage}
             />
-            <div className="mx-auto min-h-screen p-2 !pt-[10px] md:p-2">
+            <div className="mx-auto min-h-screen p-2 !pt-[10px] md:p-20">
               {children}
             </div>
             <div className="p-3">

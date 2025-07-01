@@ -1,4 +1,5 @@
 import { BenefitsSection } from "components/customer/layout/sections/benefits";
+import { CategoryShowcase } from "components/customer/layout/sections/category";
 import { CommunitySection } from "components/customer/layout/sections/community";
 import { ContactSection } from "components/customer/layout/sections/contact";
 import { FAQSection } from "components/customer/layout/sections/faq";
@@ -45,6 +46,7 @@ export default function CustomerLanding() {
       <HeroSection />
       <SponsorsSection />
       <BenefitsSection />
+      <CategoryShowcase/>
       <FeaturesSection />
       <ServicesSection />
       <TestimonialSection />

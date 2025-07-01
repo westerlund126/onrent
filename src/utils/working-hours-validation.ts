@@ -210,8 +210,8 @@ export function formatHourToTime(hour: number): Date {
   // Create a Date object with the time set to the specified hour
   // Prisma will extract only the time portion due to @db.Time
   const date = new Date();
-  date.setHours(hour, 0, 0, 0); // Set hour, minute=0, second=0, millisecond=0
-  return date;
+ date.setUTCHours(hour, 0, 0, 0);   
+ return date;
 }
 
 /**
@@ -243,8 +243,7 @@ export function parseTimeToHour(timeValue: string | Date): number {
     return hour;
   } else if (timeValue instanceof Date) {
     // Handle Date object
-    const hour = timeValue.getHours();
-
+ const hour = timeValue.getUTCHours();
     if (!isValidHour(hour)) {
       throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
     }

@@ -1,8 +1,8 @@
-// components/admin/AdminCatalogTable.tsx
+// components/ProductCatalog.tsx
 import Card from 'components/card';
 import React, { useEffect } from 'react';
-import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdDelete, MdRefresh } from 'react-icons/md';
-import { AdminProductDetails } from 'components/admin/AdminProductDetails';
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdEdit, MdDelete, MdMoreVert, MdRefresh } from 'react-icons/md';
+import { ProductDetails } from 'components/catalog/ProductDetails';
 import { formatCategoryName } from 'utils/product';
 import {
   AlertDialog,
@@ -16,32 +16,68 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { AlertDialogOverlay } from '@radix-ui/react-alert-dialog';
-import { useAdminCatalogStore } from 'stores/useAdminCatalogStore';
+import { useRouter } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
+import { useCatalogStore } from 'stores/useCatalogStore';
 import { Product } from 'types/product';
 
-const AdminCatalogTable = () => {
+const ProductCatalog = () => {
+  const router = useRouter();
+  
   // Zustand store state and actions
   const {
     products,
     loading,
     error,
     expandedProductId,
+    deleteConfirmation,
     productDeleteConfirmation,
     loadProducts,
     refreshData,
     toggleExpand,
+    handleStatusChange,
+    openDeleteConfirmation,
+    handleDeleteVariant,
+    cancelDelete,
     openProductDeleteConfirmation,
     handleDeleteProduct,
     cancelProductDelete
-  } = useAdminCatalogStore();
+  } = useCatalogStore();
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
-  const handleDeleteClick = (product: Product) => {
-    openProductDeleteConfirmation(product.id, product.name);
+  const handleEditProduct = (product: Product) => {
+    router.push(`/owner/catalog/editproduct/${product.id}`);
   };
+
+  const renderActionDropdown = (product: Product) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MdMoreVert className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => handleEditProduct(product)}
+          className="cursor-pointer"
+        >
+          <MdEdit className="mr-2 h-4 w-4" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => openProductDeleteConfirmation(product.id, product.name)}
+          className="cursor-pointer"
+        >
+          <MdDelete className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   if (loading) {
    return (
@@ -73,7 +109,7 @@ const AdminCatalogTable = () => {
       <Card extra="w-full h-full">
         <header className="relative flex items-center justify-between px-4 pt-4">
           <div className="text-xl font-bold text-navy-700 dark:text-white">
-            Katalog Produk (Admin)
+            Katalog Produk
           </div>
           <Button
             onClick={refreshData}
@@ -104,15 +140,15 @@ const AdminCatalogTable = () => {
                   </div>
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Total Varian</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Pemilik</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Varian Tersedia</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8">
-                    <p className="text-gray-500">Belum ada produk.</p>
+                  <td colSpan={6} className="text-center py-8">
+                    <p className="text-gray-500">Belum ada produk. Silakan tambah produk baru.</p>
                   </td>
                 </tr>
               ) : (
@@ -162,25 +198,17 @@ const AdminCatalogTable = () => {
                         </td>
                         <td className="py-3 px-4 font-semibold text-secondary-500">{priceDisplay}</td>
                         <td className="py-3 px-4 font-semibold text-secondary-500">{totalVariants}</td>
-                        <td className="py-3 px-4 font-semibold text-secondary-500">
-                          {product.owner?.businessName || 'Unknown'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleDeleteClick(product)}
-                            className="text-red-500 transition-colors hover:text-red-700"
-                            title="Hapus Produk"
-                          >
-                            <MdDelete size={20} />
-                          </button>
-                        </td>
+                        <td className="py-3 px-4 font-semibold text-secondary-500">{availableVariants}</td>
+                        <td className="px-4 py-3">{renderActionDropdown(product)}</td>
                       </tr>
                       
                       {isExpanded && (
                         <tr>
-                          <td colSpan={7} className="p-0">
-                            <AdminProductDetails 
+                          <td colSpan={6} className="p-0">
+                            <ProductDetails 
                               product={product}
+                              onStatusChange={handleStatusChange}
+                              onDeleteClick={openDeleteConfirmation}
                             />
                           </td>
                         </tr>
@@ -192,6 +220,23 @@ const AdminCatalogTable = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Variant Delete Confirmation */}
+        <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelDelete()}>
+          <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+          <AlertDialogContent className='bg-white'>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Varian?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus varian ini? Jika ini adalah varian terakhir, produk akan ikut terhapus.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteVariant}>Hapus</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Product Delete Confirmation */}
         <AlertDialog open={productDeleteConfirmation.isOpen} onOpenChange={(open) => !open && cancelProductDelete()}>
@@ -214,4 +259,4 @@ const AdminCatalogTable = () => {
   );
 };
 
-export default AdminCatalogTable;
+export default ProductCatalog;

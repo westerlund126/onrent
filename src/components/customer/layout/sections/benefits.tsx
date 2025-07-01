@@ -1,33 +1,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Blocks, LineChart, Wallet, Sparkle } from "lucide-react"; // Import specific icons
+import { Search, CalendarCheck2, Shirt, Undo2 } from "lucide-react";
 
 interface BenefitsProps {
-  icon: React.ComponentType<{ className?: string }>; // Use React component type
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
 }
 
 const benefitList: BenefitsProps[] = [
   {
-    icon: Blocks,
+    icon: Search,
     title: "Cari Pakaian",
     description:
       "Buka aplikasi, jelajahi ribuan koleksi, atau gunakan filter untuk menemukan gaun, kebaya, atau jas impianmu dengan cepat.",
   },
   {
-    icon: LineChart,
+    icon: Shirt,
     title: "Jadwalkan Fitting",
     description:
       "Atur jadwal fitting di aplikasi untuk mencoba pakaian di butik rekanan terdekat agar ukurannya pas dan nyaman.",
   },
   {
-    icon: Wallet,
+    icon: CalendarCheck2,
     title: "Sewa Sekarang",
     description:
       "Sudah pas dan yakin? Konfirmasi sewa dan selesaikan pembayaran langsung di butik. Ambil pakaianmu dan kamu siap tampil memukau!",
   },
   {
-    icon: Sparkle,
+    icon: Undo2,
     title: "Kembalikan Mudah",
     description:
       "Setelah acara selesai, kembalikan pakaian tanpa repot. Antar langsung ke butik atau pilih layanan jemput dari lokasi kamu.",
@@ -39,8 +39,7 @@ export const BenefitsSection = () => {
     <section id="benefits" className="container py-24 sm:py-32">
       <div className="grid lg:grid-cols-2 place-items-center lg:gap-24">
         <div>
-          <h2 className="text-lg text-primary mb-2 tracking-wider">How to Rent</h2>
-
+          <h2 className="text-lg text-primary-500 mb-2 tracking-wider">How to Rent</h2>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Your Shortcut to Success
           </h2>
@@ -55,24 +54,19 @@ export const BenefitsSection = () => {
           {benefitList.map(({ icon: Icon, title, description }, index) => (
             <Card
               key={title}
-              className="bg-muted/50 dark:bg-card hover:bg-background transition-all delay-75 group/number"
+              className="bg-muted/50 dark:bg-card hover:bg-primary-50 transition-all delay-75 group/number"
             >
               <CardHeader>
-                <div className="flex justify-between">
-                  {/* <Icon
-                    name={icon as keyof typeof icons}
-                    size={32}
-                    color="hsl(var(--primary))"
-                    className="mb-6 text-primary"
-                  /> */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <Icon className="h-8 w-8 text-primary-500" />
+                  </div>
                   <span className="text-5xl text-muted-foreground/15 font-medium transition-all delay-75 group-hover/number:text-muted-foreground/30">
                     0{index + 1}
                   </span>
                 </div>
-
-                <CardTitle>{title}</CardTitle>
+                <CardTitle className="mt-4">{title}</CardTitle>
               </CardHeader>
-
               <CardContent className="text-muted-foreground">
                 {description}
               </CardContent>

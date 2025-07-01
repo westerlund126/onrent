@@ -5,6 +5,8 @@ import { Product } from 'types/product';
 import ProductCard from 'components/card/ProductCard';
 import FilterCard, { FilterState } from 'components/catalog/FilterCard';
 import { filterProducts, hasAvailableVariants } from 'utils/filter';
+import { Search } from 'lucide-react';
+import SearchComponent from 'components/search/Search';
 
 const Catalog = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -74,6 +76,7 @@ const Catalog = () => {
       <div className="col-span-1 h-full w-full rounded-xl 2xl:col-span-1">
         <FilterCard products={allProducts} onFilterChange={handleFilterChange} />
       </div>
+      <SearchComponent/>
       <div className="col-span-4 h-fit w-full xl:col-span-1 2xl:col-span-4">
         <Banner />
         

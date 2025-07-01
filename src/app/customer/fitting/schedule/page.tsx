@@ -153,7 +153,7 @@ const getSelectedDateString = (date: Date | undefined): string => {
   if (!date) return '';
   return [
     date.getFullYear(),
-    (date.getMonth() + 1).toString().padStart(2, '0'),
+    (date.getMonth() + 2).toString().padStart(2, '0'),
     date.getDate().toString().padStart(2, '0')
   ].join('-');
 };

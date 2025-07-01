@@ -1,25 +1,60 @@
 // app/api/products/route.ts
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { skuPrefix, generateSku } from 'utils/sku';
+import { PrismaClient, UserRole } from '@prisma/client';
+import { auth } from '@clerk/nextjs/server'; // ✨ Import Clerk's auth helper
+import { generateSku, skuPrefix } from 'utils/sku';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const products = await prisma.products.findMany({
+  const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Find the user in your database to get their role
+    const user = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // 3. Prepare the base query options
+    const queryOptions = {
       include: {
         VariantProducts: true,
-        owner: { select: { id: true, username: true } },
+        owner: { select: { id: true, username: true, businessName: true } },
       },
-    });
-    return NextResponse.json(products);
+      where: {}, // Start with an empty where clause
+    };
+
+    // 4. If the user is an OWNER, add a condition to the where clause
+    if (user.role === UserRole.OWNER) {
+      queryOptions.where = { ownerId: user.id };
+    }
+    
+    // For ADMINS or other roles, the where clause remains empty, fetching all products.
+
+    try {
+  const products = await prisma.products.findMany(queryOptions);
+  return NextResponse.json(products);
+} catch (error) {
+  console.error("Error fetching products:", error);
+  return NextResponse.json({ error: "Failed to fetch products", detail: error.message });
+}
+
   } catch (error) {
+    console.error('Failed to fetch products:', error);
     return NextResponse.json(
       { error: 'Failed to fetch products' },
       { status: 500 },
     );
   }
+  
 }
 
 export async function POST(req: Request) {

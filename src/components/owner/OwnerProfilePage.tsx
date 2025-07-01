@@ -1,11 +1,12 @@
 'use client';
 
-import { Share2, MessageCircle, Calendar, MapPin, Phone, Mail, Clock, Package } from 'lucide-react';
+import { Share2, MessageCircle, Calendar, MapPin, Phone, Mail, Clock, Package, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ProductCard from 'components/card/ProductCard';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,10 +16,10 @@ const OwnerProfilePage = ({ ownerId }) => {
   const router = useRouter();
   const [ownerData, setOwnerData] = useState(null);
   const [products, setProducts] = useState([]);
-  const [weeklySlots, setWeeklySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('newest');
+  const [weeklySlots, setWeeklySlots] = useState({});
 
   useEffect(() => {
     const fetchOwnerData = async () => {
@@ -62,7 +63,6 @@ const OwnerProfilePage = ({ ownerId }) => {
   };
 
   const handleChatPenjual = () => {
-    
     if (!ownerData || !ownerData.phone_numbers) {
       toast.error("Nomor telepon tidak tersedia", {
         description: "Pemilik produk tidak memiliki nomor telepon terdaftar",
@@ -71,20 +71,18 @@ const OwnerProfilePage = ({ ownerId }) => {
     }
 
     // Clean and format the phone number
-    let phoneNumber = ownerData?.phone_numbers.replace(/\D/g, ''); // Remove non-digit characters
+    let phoneNumber = ownerData?.phone_numbers.replace(/\D/g, '');
     
-    // Convert to WhatsApp format (62xxxxxxxxxx)
     if (phoneNumber.startsWith('0')) {
       phoneNumber = '62' + phoneNumber.substring(1);
     } else if (phoneNumber.startsWith('+62')) {
-      phoneNumber = phoneNumber.substring(1); // Remove the '+'
+      phoneNumber = phoneNumber.substring(1);
     } else if (!phoneNumber.startsWith('62')) {
       phoneNumber = '62' + phoneNumber;
     }
 
     const message = `Halo, saya tertarik dengan produk di toko `;
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    console.log("WhatsApp URL:", url);
     window.open(url, '_blank');
     
     toast.success("Membuka WhatsApp", {
@@ -106,7 +104,6 @@ const OwnerProfilePage = ({ ownerId }) => {
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href);
-        // You might want to show a toast here
         alert('Link berhasil disalin!');
       } catch (err) {
         console.log('Failed to copy link');
@@ -114,36 +111,73 @@ const OwnerProfilePage = ({ ownerId }) => {
     }
   };
 
-  const formatOperationalHours = (slots) => {
-  if (!Array.isArray(slots) || slots.length === 0) return 'Tidak tersedia';
+  // Convert UTC hours to WIB (UTC+7 means we subtract 7 from UTC to get local WIB time)
+  const formatHour = (hour: number): string => {
+    if (hour === 0) return '00:00';
+    
+    const hours = Math.floor(hour);
+    const minutes = Math.floor((hour - hours) * 60);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
 
-  const enabledSlots = slots.filter(slot => slot.isEnabled);
-  if (enabledSlots.length === 0) return 'Tutup';
+  // Get day names in Indonesian
+  const getDayName = (dayIndex: number): string => {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return days[dayIndex];
+  };
 
-  const timeRanges = enabledSlots.map(slot => `${slot.startTime} - ${slot.endTime}`);
-  const mostCommonTime = timeRanges.reduce((a, b, i, arr) =>
-    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-  );
+  // Define the slot type
+  interface TimeSlot {
+    from: number;
+    to: number;
+  }
 
-  return mostCommonTime;
-};
+  // Get today's operational hours
+  const getTodayOperationalHours = (): string => {
+    const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const todaySlot = weeklySlots[today.toString()] as TimeSlot;
+    
+    if (!todaySlot || (todaySlot.from === 0 && todaySlot.to === 0)) {
+      return 'Tutup';
+    }
+    
+    const fromTime = formatHour(todaySlot.from);
+    const toTime = formatHour(todaySlot.to);
+    
+    return `${fromTime} - ${toTime}`;
+  };
+
+  // Get all weekly hours for the popup
+  const getAllWeeklyHours = () => {
+    return Object.entries(weeklySlots).map(([dayIndex, slot]) => {
+      const timeSlot = slot as TimeSlot;
+      return {
+        day: getDayName(parseInt(dayIndex)),
+        hours: (timeSlot.from === 0 && timeSlot.to === 0) 
+          ? 'Tutup' 
+          : `${formatHour(timeSlot.from)} - ${formatHour(timeSlot.to)}`,
+        isToday: parseInt(dayIndex) === new Date().getDay()
+      };
+    });
+  };
 
   const sortedProducts = [...products].sort((a, b) => {
-  switch (sortBy) {
-    case 'oldest':
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    case 'price-low':
-      const priceA = Math.min(...(a.VariantProducts?.map(v => v.price) || [0]));
-      const priceB = Math.min(...(b.VariantProducts?.map(v => v.price) || [0]));
-      return priceA - priceB;
-    case 'price-high':
-      const maxPriceA = Math.max(...(a.VariantProducts?.map(v => v.price) || [0]));
-      const maxPriceB = Math.max(...(b.VariantProducts?.map(v => v.price) || [0]));
-      return maxPriceB - maxPriceA;
-    default: // newest
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  }
-});
+    switch (sortBy) {
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'price-low':
+        const priceA = Math.min(...(a.VariantProducts?.map(v => v.price) || [0]));
+        const priceB = Math.min(...(b.VariantProducts?.map(v => v.price) || [0]));
+        return priceA - priceB;
+      case 'price-high':
+        const maxPriceA = Math.max(...(a.VariantProducts?.map(v => v.price) || [0]));
+        const maxPriceB = Math.max(...(b.VariantProducts?.map(v => v.price) || [0]));
+        return maxPriceB - maxPriceA;
+      default:
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+  });
 
   if (loading) {
     return (
@@ -168,20 +202,6 @@ const OwnerProfilePage = ({ ownerId }) => {
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-4 w-48" />
             </div>
-          </div>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[...Array(10)].map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="aspect-square" />
-                <CardContent className="p-3">
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-3 w-16 mb-2" />
-                  <Skeleton className="h-4 w-20" />
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </div>
       </div>
@@ -212,7 +232,6 @@ const OwnerProfilePage = ({ ownerId }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Profile Card */}
-      {/* <div className="bg-white border-b"> */}
       <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -237,63 +256,93 @@ const OwnerProfilePage = ({ ownerId }) => {
 
                 {/* Action Buttons */}
                 <div className="flex items-center space-x-3 pt-2">
-              <Button
-                onClick={handleJadwalkanFitting}
-                className="bg-primary-500 hover:bg-primary-600 text-white"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Jadwalkan Fitting
-              </Button>
-              
-              <Button
-                variant="outline" 
-                onClick={handleChatPenjual}
-                className="border-primary-500 text-primary-500 hover:bg-primary-50"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Chat Penjual
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </div>
+                  <Button
+                    onClick={handleJadwalkanFitting}
+                    className="bg-primary-500 hover:bg-primary-600 text-white"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Jadwalkan Fitting
+                  </Button>
+                  
+                  <Button
+                    variant="outline" 
+                    onClick={handleChatPenjual}
+                    className="border-primary-500 text-primary-500 hover:bg-primary-50"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat Penjual
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="mt-6 flex items-center justify-between">
+            {/* Stats - Right Side */}
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
-                <div className="text-sm">
-                <div className="font-bold text-foreground text-center text-lg">
-                  {products.length}
-                </div>
-                <span className="text-sm text-muted-foreground">Total Produk</span>
+                <div className="text-sm text-center">
+                  <div className="font-bold text-foreground text-lg pb-2">
+                    {products.length}
+                  </div>
+                  <span className="text-sm text-muted-foreground">Total Produk</span>
                 </div>    
               </div>
               
               <div className="flex items-center space-x-2">
-                <div className="text-sm">
-                  <div className="font-bold text-foreground text-center text-lg">
-                    {formatOperationalHours(weeklySlots)}
-                  </div>
-                  <span className="text-muted-foreground">Jam Operasional Toko</span>
+                <div className="text-sm text-center">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" className="p-0 h-auto flex flex-col items-center hover:bg-transparent">
+                        <div className="font-bold text-foreground text-lg flex items-center">
+                          {getTodayOperationalHours()}
+                          <ChevronRight className="w-4 h-4 ml-1" />
+                        </div>
+                        <span className="text-sm text-muted-foreground">Jam Operasional</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center">
+                          <Clock className="w-5 h-5 mr-2" />
+                          Jam Operasional Mingguan
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-3">
+                        {getAllWeeklyHours().map((item, index) => (
+                          <div 
+                            key={index} 
+                            className={`flex justify-between items-center p-3 rounded-lg ${
+                              item.isToday ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50'
+                            }`}
+                          >
+                            <span className={`font-medium ${item.isToday ? 'text-primary-700' : 'text-foreground'}`}>
+                              {item.day}
+                              {item.isToday && <span className="text-xs ml-2 text-primary-600">(Hari Ini)</span>}
+                            </span>
+                            <span className={`${item.isToday ? 'text-primary-700 font-semibold' : 'text-muted-foreground'}`}>
+                              {item.hours}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </div>
           </div>
-          </div>
         </div>
       </Card>
-      {/* </div> */}
 
       {/* Products Section */}
-      
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground">Semua Produk</h2>
@@ -317,7 +366,7 @@ const OwnerProfilePage = ({ ownerId }) => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
             {sortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

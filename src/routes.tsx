@@ -13,6 +13,7 @@ import {
   MdOutlineCalendarMonth,
   MdSchedule,
   MdEventAvailable,
+  MdPeople,
 } from 'react-icons/md';
 
 export interface IRoute {
@@ -24,7 +25,8 @@ export interface IRoute {
   subRoutes?: IRoute[];
 }
 
-const routes: IRoute[] = [
+// Owner routes
+const ownerRoutes: IRoute[] = [
   {
     name: 'Menu Utama',
     layout: '/owner',
@@ -70,6 +72,32 @@ const routes: IRoute[] = [
     path: 'transaction',
     icon: <FaMoneyBill className="h-6 w-6" />,
   },
+];
+
+// Admin routes
+const adminRoutes: IRoute[] = [
+  {
+    name: 'Transaksi',
+    layout: '/admin',
+    path: 'transaction',
+    icon: <FaMoneyBill className="h-6 w-6" />,
+  },
+  {
+    name: 'Katalog',
+    layout: '/admin',
+    path: 'catalog',
+    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
+  },
+  {
+    name: 'Pengguna',
+    layout: '/admin',
+    path: 'users',
+    icon: <MdPeople className="h-6 w-6" />,
+  },
+];
+
+// Customer routes
+const customerRoutes: IRoute[] = [
   {
     name: 'Aktivitas',
     layout: '/customer',
@@ -78,4 +106,24 @@ const routes: IRoute[] = [
   },
 ];
 
-export default routes;
+// Function to get routes based on role
+export const getRoutesByRole = (role: string): IRoute[] => {
+  const normalizedRole = role.toLowerCase();
+  switch (normalizedRole) {
+    case 'owner':
+      return ownerRoutes;
+    case 'admin':
+      return adminRoutes;
+    case 'customer':
+      return customerRoutes;
+    default:
+      console.warn(`Unknown role: ${role}, defaulting to owner routes`);
+      return ownerRoutes;
+  }
+};
+
+// Export individual route arrays
+export { ownerRoutes, adminRoutes, customerRoutes };
+
+// Default export (for backward compatibility)
+export default ownerRoutes;
