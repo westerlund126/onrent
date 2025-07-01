@@ -156,8 +156,8 @@ export function MonthEventBadge({
           </div>
 
           {renderBadgeText && (
-            <span>{format(new Date(schedule.startTime), 'h:mm a')}</span>
-          )}
+            <span>{format(new Date(schedule.startTime), 'HH:mm')}</span>
+            )}
         </div>
       </EventDetailsDialog>
     </DraggableEvent>

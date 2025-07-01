@@ -25,15 +25,18 @@ import {
   isSameYear,
   isWithinInterval,
 } from 'date-fns';
-import type { ICalendarCell, IFittingSchedule } from 'types/fitting';
 import type {
+  ICalendarCell, 
+  IFittingSchedule,
   TCalendarView,
   TVisibleHours,
   TWorkingHours,
   TEventColor,
-  FittingStatus
+  FittingStatus,
+  IUser,
+  DayOfWeek, 
+  IWeeklySlot,
 } from 'types/fitting';
-import type { IUser } from 'types/fitting';
 
 // ================ Header helper functions ================ //
 
@@ -100,6 +103,44 @@ export function getScheduleCount(
   return schedule.filter((schedule) =>
     compareFns[view](new Date(schedule.startTime), date),
   ).length;
+}
+
+export function generateTimeSlots(
+  dayOfWeek: DayOfWeek,
+  startTime: string, // "HH:MM:SS" format
+  endTime: string,   // "HH:MM:SS" format
+  targetWeek: Date,
+  slotDuration: number = 30 // minutes
+): Date[] {
+  const slots: Date[] = [];
+  
+  const dayMap: Record<DayOfWeek, number> = {
+    'SUNDAY': 0, 'MONDAY': 1, 'TUESDAY': 2, 'WEDNESDAY': 3,
+    'THURSDAY': 4, 'FRIDAY': 5, 'SATURDAY': 6
+  };
+  
+  const targetDayIndex = dayMap[dayOfWeek];
+  const startDate = new Date(targetWeek);
+  
+  startDate.setDate(targetWeek.getDate() - targetWeek.getDay() + targetDayIndex);
+  
+  const [startHours, startMinutes] = startTime.split(':').map(Number);
+  const [endHours, endMinutes] = endTime.split(':').map(Number);
+  
+  const slotStart = new Date(startDate);
+  slotStart.setHours(startHours, startMinutes, 0, 0);
+  
+  const slotEnd = new Date(startDate);
+  slotEnd.setHours(endHours, endMinutes, 0, 0);
+  
+  let currentSlot = new Date(slotStart);
+  
+  while (currentSlot < slotEnd) {
+    slots.push(new Date(currentSlot));
+    currentSlot = new Date(currentSlot.getTime() + slotDuration * 60000);
+  }
+  
+  return slots;
 }
 
 // ================ Week and day view helper functions ================ //
@@ -345,17 +386,31 @@ export function getMonthCellSchedule(
     );
   });
 
-  return scheduleForDate
-    .map((schedule) => ({
-      ...schedule,
-      position: schedulePositions[schedule.id] ?? -1,
-      // isMultiDay: schedule.startTime !== schedule.endTime,
-    }))
-    .sort((a, b) => {
-      // if (a.isMultiDay && !b.isMultiDay) return -1;
-      // if (!a.isMultiDay && b.isMultiDay) return 1;
-      return a.position - b.position;
-    });
+  return (
+    scheduleForDate
+      .map((schedule) => ({
+        ...schedule,
+        position: schedulePositions[schedule.id] ?? -1,
+        // isMultiDay: schedule.startTime !== schedule.endTime,
+      }))
+      .sort((a, b) => {
+        // if (a.isMultiDay && !b.isMultiDay) return -1;
+        // if (!a.isMultiDay && b.isMultiDay) return 1;
+        return a.position - b.position;
+      })
+      // Add debug logging while preserving existing structure
+      .map((result) => {
+        if (date.getDate() === 28) {
+          console.log('[DEBUG] getMonthCellSchedule for June 28:', {
+            id: result.id,
+            title: result.title,
+            color: result.color,
+            position: result.position,
+          });
+        }
+        return result;
+      })
+  );
 }
 
 
@@ -368,7 +423,7 @@ const STATUS_COLOR_MAP: Record<FittingStatus, TEventColor> = {
 };
 
 export function getStatusColor(status: FittingStatus): TEventColor {
-  return STATUS_COLOR_MAP[status] ?? 'gray'; // fallback if status is somehow not mapped
+  return STATUS_COLOR_MAP[status] ?? 'gray'; 
 }
 
 

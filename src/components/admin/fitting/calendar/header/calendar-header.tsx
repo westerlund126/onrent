@@ -67,18 +67,6 @@ export function CalendarHeader({ view, schedule }: IProps) {
 
             <Button
               asChild
-              aria-label="View by year"
-              size="icon"
-              variant={view === 'year' ? 'default' : 'outline'}
-              className="-ml-px rounded-none [&_svg]:size-5"
-            >
-              <Link href="/owner/fitting/schedule/year-view">
-                <Grid3x3 strokeWidth={1.8} />
-              </Link>
-            </Button>
-
-            <Button
-              asChild
               aria-label="View by agenda"
               size="icon"
               variant={view === 'agenda' ? 'default' : 'outline'}

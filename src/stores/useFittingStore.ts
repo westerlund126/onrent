@@ -56,7 +56,6 @@ export const useFittingStore = create<FittingState>()(
 
     setSelectedDate: (date) =>
       set((state) => {
-        // Ensure we always store a valid Date object
         if (date instanceof Date && !isNaN(date.getTime())) {
           state.selectedDate = new Date(date);
         } else {
@@ -117,10 +116,13 @@ export const useFittingStore = create<FittingState>()(
             ...schedule,
             startTime: base,
             endTime: new Date(base.getTime() + duration * 60 * 1000),
+            title: `${schedule.user?.first_name || 'Unknown'} - ${
+              schedule.fittingType?.name || 'Fitting'
+            }`,
+            color: schedule.fittingType?.color || 'blue',
           };
         });
-        console.log('Processed schedules:', processedSchedules);
-
+        
         set((state) => {
           state.fittingSchedules = processedSchedules;
           state.isLoading = false;

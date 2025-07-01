@@ -1,9 +1,7 @@
 // utils/fitting.ts
 
-// Define fitting status type
 export type FittingStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
 
-// Fitting status configuration
 export const getFittingStatusConfig = (status: FittingStatus) => {
   const statusConfig = {
     PENDING: {

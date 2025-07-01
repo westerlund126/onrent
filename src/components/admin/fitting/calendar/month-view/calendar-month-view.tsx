@@ -39,15 +39,31 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     console.log('Fetching data from:', dateFrom, 'to:', dateTo);
   }, [monthStart, monthEnd, fetchFittingSchedules, fetchFittingSlots]);
 
+  const processedSingleDaySchedule = useMemo(() => {
+    return singleDaySchedule.map((schedule) => ({
+      ...schedule,
+      title: schedule.user
+        ? [schedule.user.first_name, schedule.user.last_name]
+            .filter(Boolean)
+            .join(' ') || 'Unknown Customer'
+        : 'Unknown Customer',
+      color: getStatusColor(schedule.status),
+    }));
+  }, [singleDaySchedule]);
+
   const processedSchedule = useMemo(() => {
     const schedule: IFittingSchedule[] = [];
-
+  
+    if (!Array.isArray(fittingSchedules) || !Array.isArray(fittingSlots)) {
+      return [];
+    }
+  
     fittingSchedules.forEach((fittingSchedule) => {
       const slot = fittingSlots.find(
         (s) => s.id === fittingSchedule.fittingSlotId,
       );
-
-      if (slot) {
+  
+      if (slot)  {
         const startDateTime = new Date(slot.dateTime);
         const endDateTime = new Date(
           startDateTime.getTime() + fittingSchedule.duration * 60000,
@@ -66,13 +82,12 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
           note: fittingSchedule.note || 'No additional notes',
           fittingSlot: slot,
         });
-        console.log('Date types check:', {
-          startTime: startDateTime,
-          endTime: endDateTime,
-          startTimeType: typeof startDateTime,
-          endTimeType: typeof endDateTime,
-          isStartDate: startDateTime instanceof Date,
-          isEndDate: endDateTime instanceof Date,
+        console.log('Debug schedule item:', {
+          customerName,
+          status: fittingSchedule.status,
+          color: getStatusColor(fittingSchedule.status),
+          user: fittingSchedule.user,
+          title: `${customerName}`,
         });
       }
     });
@@ -90,13 +105,14 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
     return singleDay;
   }, [fittingSchedules, fittingSlots]);
+
   console.log('fittingSchedules from store:', fittingSchedules);
   console.log('fittingSlots from store:', fittingSlots);
   console.log('processedSchedule:', processedSchedule);
 
   const allSchedule = useMemo(
-    () => [...singleDaySchedule, ...processedSchedule],
-    [singleDaySchedule, processedSchedule],
+    () => [...processedSingleDaySchedule, ...processedSchedule],
+    [processedSingleDaySchedule, processedSchedule],
   );
   console.log('allSchedule:', allSchedule);
 

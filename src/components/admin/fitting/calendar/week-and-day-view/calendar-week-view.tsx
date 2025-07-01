@@ -1,3 +1,4 @@
+// calendar-month-view.tsx
 import {
   startOfWeek,
   addDays,
@@ -18,13 +19,10 @@ import {
   groupSchedule,
   getScheduleBlockStyle,
   isWorkingHour,
+  getStatusColor,
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
-import { useEffect } from 'react';
-
-// interface IProps {
-//   singleDaySchedule: IFittingSchedule[];
-// }
+import { useEffect, useMemo } from 'react';
 
 export function CalendarWeekView() {
   const selectedDate = useFittingStore((state) => state.selectedDate);
@@ -43,7 +41,22 @@ export function CalendarWeekView() {
   weekEnd.setHours(23, 59, 59, 999);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const weekSchedules = fittingSchedules.filter(
+  const processedSchedules = useMemo(() => {
+    return fittingSchedules.map((schedule) => {
+      const firstName = schedule.user?.first_name || '';
+      const lastName = schedule.user?.last_name || '';
+      const customerName =
+        `${firstName} ${lastName}`.trim() || 'Unknown Customer';
+
+      return {
+        ...schedule,
+        title: customerName,
+        color: getStatusColor(schedule.status),
+      };
+    });
+  }, [fittingSchedules]);
+
+  const weekSchedules = processedSchedules.filter(
     (schedule) =>
       schedule.startTime >= weekStart && schedule.startTime <= weekEnd,
   );
@@ -57,11 +70,6 @@ export function CalendarWeekView() {
       format(weekEnd, 'yyyy-MM-dd'),
     );
   }, [selectedDate, fetchFittingSchedules]);
-
-  console.log('Selected date:', selectedDate);
-  console.log('Week start:', weekStart);
-  console.log('All schedules:', fittingSchedules);
-  console.log('Week schedules:', weekSchedules);
 
   return (
     <>

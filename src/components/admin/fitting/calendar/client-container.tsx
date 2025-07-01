@@ -9,7 +9,6 @@ import { DndProviderWrapper } from './dnd/dnd-provider';
 import { CalendarHeader } from './header/calendar-header';
 import { CalendarYearView } from './year-view/calendar-year-view';
 import { CalendarMonthView } from './month-view/calendar-month-view';
-import { CalendarAgendaView } from './agenda-view/calendar-agenda-view';
 import { CalendarDayView } from './week-and-day-view/calendar-day-view';
 import { CalendarWeekView } from './week-and-day-view/calendar-week-view';
 
@@ -107,6 +106,8 @@ export function ClientContainer({ view }: IProps) {
 
   const singleDaySchedule = filteredSchedule;
 
+  // Note: agenda view is now handled separately in the layout
+
   return (
     <div className="overflow-hidden rounded-xl border-2 bg-white px-5">
       <CalendarHeader view={view} schedule={filteredSchedule} />
@@ -122,9 +123,6 @@ export function ClientContainer({ view }: IProps) {
           <CalendarWeekView />
         )}
         {view === 'year' && <CalendarYearView allSchedule={filteredSchedule} />}
-        {view === 'agenda' && (
-          <CalendarAgendaView singleDaySchedule={singleDaySchedule} />
-        )}
       </DndProviderWrapper>
     </div>
   );

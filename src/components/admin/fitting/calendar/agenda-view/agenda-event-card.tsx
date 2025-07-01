@@ -1,12 +1,11 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { cva } from "class-variance-authority";
-import { Clock, Text, User } from "lucide-react";
+import { Clock, Text, User, Check, X } from "lucide-react";
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
 import type { IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from "class-variance-authority";
-import ScheduleLayout from "app/owner/fitting/schedule/layout";
 import { useSettingsStore } from "stores";
 
 const agendaEventCardVariants = cva(
@@ -51,56 +50,84 @@ export function AgendaEventCard({ schedule, scheduleCurrentDay, scheduleTotalDay
   const startDate = schedule.startTime;
   const endDate = schedule.endTime;
 
-  const color = (badgeVariant === "dot" ? `${schedule.color}-dot` : schedule.color) as VariantProps<typeof agendaEventCardVariants>["color"];
+  const color = (badgeVariant === "dot" ? `${schedule.color}-dot` : schedule.color) as VariantProps<
+    typeof agendaEventCardVariants
+  >["color"];
 
   const agendaEventCardClasses = agendaEventCardVariants({ color });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (e.currentTarget instanceof HTMLElement) e.currentTarget.click();
+      const trigger = e.currentTarget.querySelector('[role="button"]');
+      if (trigger instanceof HTMLElement) trigger.click();
     }
   };
 
+  const handleButtonClick = (action: 'approve' | 'reject') => {
+    alert(`You clicked ${action}!`);
+    // Add your approve/reject logic here
+  };
+
+
   return (
-    <EventDetailsDialog schedule={schedule}>
-      <div role="button" tabIndex={0} className={agendaEventCardClasses} onKeyDown={handleKeyDown}>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5">
-            {["mixed", "dot"].includes(badgeVariant) && (
-              <svg width="8" height="8" viewBox="0 0 8 8" className="event-dot shrink-0">
-                <circle cx="4" cy="4" r="4" />
-              </svg>
-            )}
-
-            <p className="font-medium">
-              {scheduleCurrentDay && scheduleTotalDays && (
-                <span className="mr-1 text-xs">
-                  Day {scheduleCurrentDay} of {scheduleTotalDays} •{" "}
-                </span>
+    <div className={agendaEventCardClasses} onKeyDown={handleKeyDown} tabIndex={-1} >
+      {/* The EventDetailsDialog wraps the details part, making it the clickable trigger */}
+      <EventDetailsDialog schedule={schedule}>
+          <div role="button" tabIndex={0} className="flex flex-col gap-2 focus-visible:outline-none">
+            <div className="flex items-center gap-1.5">
+              {["mixed", "dot"].includes(badgeVariant) && (
+                <svg width="8" height="8" viewBox="0 0 8 8" className="event-dot shrink-0">
+                  <circle cx="4" cy="4" r="4" />
+                </svg>
               )}
-              {schedule.title}
-            </p>
-          </div>
+              <p className="font-medium">
+                {scheduleCurrentDay && scheduleTotalDays && (
+                  <span className="mr-1 text-xs">
+                    Day {scheduleCurrentDay} of {scheduleTotalDays} •{" "}
+                  </span>
+                )}
+                {schedule.title}
+              </p>
+            </div>
 
-          <div className="mt-1 flex items-center gap-1">
-            <User className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">{schedule.user.username}</p>
-          </div>
+            <div className="mt-1 flex items-center gap-1">
+              <User className="size-3 shrink-0" />
+              <p className="text-xs text-foreground">{schedule.user.username}</p>
+            </div>
 
-          <div className="flex items-center gap-1">
-            <Clock className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">
-              {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
-            </p>
-          </div>
+            <div className="flex items-center gap-1">
+              <Clock className="size-3 shrink-0" />
+              <p className="text-xs text-foreground">
+                {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-1">
-            <Text className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">{schedule.note}</p>
+            <div className="flex items-center gap-1">
+              <Text className="size-3 shrink-0" />
+              <p className="text-xs text-foreground">{schedule.note}</p>
+            </div>
           </div>
-        </div>
+      </EventDetailsDialog>
+
+      {/* --- Approve and Reject Buttons with Text --- */}
+      <div className="flex flex-shrink-0 items-center gap-2">
+        <button
+          onClick={() => handleButtonClick('approve')}
+          className="flex items-center justify-center gap-1.5 rounded-md bg-green-100 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
+        >
+          <Check className="size-4" />
+          Approve
+        </button>
+        <button
+          onClick={() => handleButtonClick('reject')}
+          className="flex items-center justify-center gap-1.5 rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+        >
+          <X className="size-4" />
+          Reject
+        </button>
       </div>
-    </EventDetailsDialog>
+       {/* --- End of Buttons --- */}
+    </div>
   );
 }

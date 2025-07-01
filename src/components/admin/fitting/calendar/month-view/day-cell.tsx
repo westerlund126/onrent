@@ -19,8 +19,8 @@ const MAX_VISIBLE_EVENTS = 3;
 
 export function DayCell({ cell, schedule, schedulePositions }: IProps) {
   const { day, currentMonth, date } = cell;
-  if (date.getDate() === 26) {
-    console.log('June 26th DayCell data:', {
+  if (date.getDate() === 28) {
+    console.log('June 28th DayCell data:', {
       cellDate: date,
       cellDateString: date.toDateString(),
       scheduleLength: schedule.length,
@@ -36,7 +36,7 @@ export function DayCell({ cell, schedule, schedulePositions }: IProps) {
   const cellSchedule = useMemo(() => getMonthCellSchedule(date, schedule, schedulePositions), [date, schedule, schedulePositions]);
   
   if (date.getDate() === 26) {
-    console.log('June 26th cellSchedule result:', cellSchedule);
+    console.log('June 28th cellSchedule result:', cellSchedule);
   }
 
   const isSunday = date.getDay() === 0;
@@ -59,16 +59,19 @@ export function DayCell({ cell, schedule, schedulePositions }: IProps) {
             const schedule = cellSchedule.find(e => e.position === position);
             const scheduleKey = schedule ? `schedule-${schedule.id}-${position}` : `empty-${position}`;
 
-            if (date.getDate() === 26) {
-              console.log(`June 26th position ${position}:`, {
-                schedule: schedule
-                  ? {
-                      id: schedule.id,
-                      title: schedule.title,
-                      color: schedule.color,
-                    }
-                  : null,
-                hasSchedule: !!schedule,
+            if (date.getDate() === 28) {
+              console.log(
+                `June 28th position ${position} - FULL OBJECT:`,
+                schedule,
+              );
+              console.log(`June 28th position ${position} - PROPERTIES:`, {
+                id: schedule?.id,
+                title: schedule?.title,
+                color: schedule?.color,
+                startTime: schedule?.startTime,
+                hasTitle: schedule && 'title' in schedule,
+                hasColor: schedule && 'color' in schedule,
+                allKeys: schedule ? Object.keys(schedule) : null,
               });
             }
 
@@ -93,7 +96,7 @@ export function DayCell({ cell, schedule, schedulePositions }: IProps) {
         {cellSchedule.length > MAX_VISIBLE_EVENTS && (
           <p className={cn("h-4.5 px-1.5 text-xs font-semibold text-muted-foreground", !currentMonth && "opacity-50")}>
             <span className="sm:hidden">+{cellSchedule.length - MAX_VISIBLE_EVENTS}</span>
-            <span className="hidden sm:inline"> {cellSchedule.length - MAX_VISIBLE_EVENTS} more...</span>
+            <span className="hidden sm:inline"> {cellSchedule.length - MAX_VISIBLE_EVENTS} lebih banyak...</span>
           </p>
         )}
       </div>

@@ -67,13 +67,22 @@ export interface IFittingSlot {
   fittingSchedule?: IFittingSchedule;
 }
 
+export type DayOfWeek =
+  | 'SUNDAY'
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY';
+
 export interface IWeeklySlot {
   id: number;
   ownerId: number;
-  dayOfWeek: 'SUNDAY' | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
+  dayOfWeek: DayOfWeek;
   isEnabled: boolean;
-  startTime: string; 
-  endTime: string; 
+  startTime: Date; 
+  endTime: Date; 
   owner: IUser;
 }
 
@@ -84,6 +93,12 @@ export interface IScheduleBlock {
   endTime: Date;
   description: string;
   owner: IUser;
+}
+
+export interface IScheduleBlockInput {
+  startTime: string; 
+  endTime: string;
+  description: string;
 }
 
 export interface IFittingProduct {

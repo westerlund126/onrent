@@ -15,3 +15,4 @@ export interface IUser {
 }
 
 export type UserRole = 'CUSTOMER' | 'ADMIN' | 'OWNER';
+

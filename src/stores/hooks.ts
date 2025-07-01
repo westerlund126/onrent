@@ -4,7 +4,7 @@ import { useScheduleStore } from './useScheduleStore';
 import { useSettingsStore } from './useSettingStore';
 import { useWorkingHoursStore } from './useWorkingHoursStore';
 import { useFittingFormStore } from './useFittingFormStore';
-import type { FittingFormData } from './useFittingFormStore';
+import { FittingFormData } from './useFittingFormStore';
 import { useUserStore } from './useUserStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TWorkingHours } from 'types/fitting';
@@ -46,6 +46,7 @@ export const useScheduleActions = () =>
     fetchScheduleBlocks: state.fetchScheduleBlocks,
     updateWeeklySlot: state.updateWeeklySlot,
     addScheduleBlock: state.addScheduleBlock,
+    updateScheduleBlock: state.updateScheduleBlock,
     removeScheduleBlock: state.removeScheduleBlock,
   })));
 

@@ -3,123 +3,259 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { toast } from 'sonner'; 
-import type { IWeeklySlot, IScheduleBlock } from 'types/fitting';
+import type {
+  IWeeklySlot,
+  IScheduleBlock,
+  IScheduleBlockInput,
+  IFittingSlot,
+} from 'types/fitting';
 import type { WorkingHours } from 'types/working-hours';
 
 interface ScheduleState {
   weeklySlots: IWeeklySlot[];
   scheduleBlocks: IScheduleBlock[];
+  fittingSlots: IFittingSlot[];
+  bookedSlots: IFittingSlot[];
   isLoading: boolean;
+  isFittingSlotsLoading: boolean;
   error: string | null;
 
   // Actions
   setWeeklySlots: (slots: IWeeklySlot[]) => void;
   setScheduleBlocks: (blocks: IScheduleBlock[]) => void;
+  setFittingSlots: (slots: IFittingSlot[]) => void;
+  setBookedSlots: (slots: IFittingSlot[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-
   fetchWeeklySlots: () => Promise<void>;
   fetchScheduleBlocks: () => Promise<void>;
-
+  fetchFittingSlots: (weekStart: Date) => Promise<void>;
+  fetchAllAvailableSlots: () => Promise<void>;
+  getAvailableSlots: () => IFittingSlot[];
   updateWeeklySlot: (
     slotId: number,
     updates: Partial<IWeeklySlot>,
   ) => Promise<void>;
-
   updateWorkingHours: (workingHours: WorkingHours) => Promise<void>;
-
-  addScheduleBlock: (block: Omit<IScheduleBlock, 'id'>) => Promise<void>;
+  addScheduleBlock: (block: IScheduleBlockInput) => Promise<void>;
+  updateScheduleBlock: (
+    blockId: number,
+    updates: Partial<IScheduleBlock>,
+  ) => Promise<void>;
   removeScheduleBlock: (blockId: number) => Promise<void>;
   reset: () => void;
 }
-
 export const useScheduleStore = create<ScheduleState>()(
   devtools(
-    immer((set) => ({
+    immer((set, get) => ({
       weeklySlots: [],
       scheduleBlocks: [],
+      fittingSlots: [],
+      bookedSlots: [],
       isLoading: false,
+      isFittingSlotsLoading: false,
       error: null,
 
-      setWeeklySlots: (slots) =>
-        set((state) => {
-          state.weeklySlots = slots;
-        }),
+      setWeeklySlots: (slots) => set({ weeklySlots: slots }),
+      setScheduleBlocks: (blocks) => set({ scheduleBlocks: blocks }),
+      setFittingSlots: (slots) => set({ fittingSlots: slots }),
+      setBookedSlots: (slots) => set({ bookedSlots: slots }),
+      setLoading: (isLoading) => set({ isLoading }),
+      setError: (error) => set({ error }),
 
-      setScheduleBlocks: (blocks) =>
-        set((state) => {
-          state.scheduleBlocks = blocks;
-        }),
+      getAvailableSlots: () => {
+        return get().fittingSlots.filter(
+          (slot) =>
+            !slot.isBooked && !get().bookedSlots.some((b) => b.id === slot.id),
+        );
+      },
 
-      setLoading: (isLoading) =>
-        set((state) => {
-          state.isLoading = isLoading;
-        }),
+      fetchWeeklySlots: async () => {
+        set({ isLoading: true, error: null });
 
-      setError: (error) =>
-        set((state) => {
-          state.error = error;
-        }),
-
-        fetchWeeklySlots: async () => { 
-          set((state) => {
-            state.isLoading = true;
-            state.error = null;
-          });
-        
-          try {
-            const response = await fetch('/api/fitting/weekly-slots'); 
-            
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to fetch weekly slots');
-            }
-        
-            const data = await response.json();
-            set((state) => {
-              state.weeklySlots = data.weeklySlots || [];
-              state.isLoading = false;
-            });
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : 'Unknown error occurred';
-            set((state) => {
-              state.error = errorMessage;
-              state.isLoading = false;
-            });
-            console.error('Failed to fetch weekly slots:', error);
+        try {
+          const response = await fetch('/api/fitting/weekly-slots');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch weekly slots');
           }
-        },
-        
-        fetchScheduleBlocks: async () => { 
-          set((state) => {
-            state.isLoading = true;
-            state.error = null;
-          });
-        
-          try {
-            const response = await fetch('/api/fitting/schedule-blocks'); // Remove ownerId query param
-            
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to fetch schedule blocks');
-            }
-        
-            const data = await response.json();
-            set((state) => {
-              state.scheduleBlocks = data.scheduleBlocks || [];
-              state.isLoading = false;
-            });
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : 'Unknown error occurred';
-            set((state) => {
-              state.error = errorMessage;
-              state.isLoading = false;
-            });
-            console.error('Failed to fetch schedule blocks:', error);
+
+          const data: { weeklySlots: IWeeklySlot[] } = await response.json();
+          set({ weeklySlots: data.weeklySlots || [], isLoading: false });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          set({ error: errorMessage, isLoading: false });
+          console.error('Failed to fetch weekly slots:', error);
+        }
+      },
+
+      fetchScheduleBlocks: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await fetch('/api/fitting/schedule-blocks');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.error || 'Failed to fetch schedule blocks',
+            );
           }
-        },
+
+          const data: { scheduleBlocks: IScheduleBlock[] } =
+            await response.json();
+          set({ scheduleBlocks: data.scheduleBlocks || [], isLoading: false });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          set({ error: errorMessage, isLoading: false });
+          console.error('Failed to fetch schedule blocks:', error);
+        }
+      },
+
+      fetchFittingSlots: async (weekStart: Date) => {
+        console.log('🔍 fetchFittingSlots called with weekStart:', weekStart);
+        set({ isFittingSlotsLoading: true, error: null });
+
+        try {
+          // Calculate week end date (6 days after week start)
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+
+          const dateFromISO = encodeURIComponent(weekStart.toISOString());
+          const dateToISO = encodeURIComponent(weekEnd.toISOString());
+
+          const url = `/api/fitting/slots?dateFrom=${dateFromISO}&dateTo=${dateToISO}`;
+          console.log('🌐 API URL:', url);
+
+          const response = await fetch(url);
+          console.log('📡 Response status:', response.status);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ API Error:', errorData);
+            throw new Error(errorData.error || 'Failed to fetch slots');
+          }
+
+          const slots: any[] = await response.json();
+          console.log('📦 Raw API response:', slots);
+          console.log('📊 Number of slots received:', slots.length);
+
+          // Log each slot structure
+          if (slots.length > 0) {
+            console.log('🔍 First slot structure:', slots[0]);
+          }
+
+          // Parse slot dates and separate booked/available
+          const parseSlot = (slot: any): IFittingSlot => {
+            try {
+              const isBooked = !!slot.fittingSchedule;
+              console.log(
+                `🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
+              );
+
+              return {
+                ...slot,
+                dateTime: new Date(slot.dateTime),
+                isBooked: isBooked,
+              };
+            } catch (error) {
+              console.error('Failed to parse slot date:', slot.dateTime, error);
+              return {
+                ...slot,
+                dateTime: new Date(),
+                isBooked: !!slot.fittingSchedule,
+              };
+            }
+          };
+
+          const parsedSlots = slots.map(parseSlot);
+
+          const availableSlots = parsedSlots.filter((slot) => !slot.isBooked);
+          const bookedSlots = parsedSlots.filter((slot) => slot.isBooked);
+
+          console.log('✅ Available slots:', availableSlots.length);
+          console.log('❌ Booked slots:', bookedSlots.length);
+
+          // Log some available slots
+          availableSlots.slice(0, 3).forEach((slot, index) => {
+            console.log(`📅 Available slot ${index + 1}:`, {
+              id: slot.id,
+              dateTime: slot.dateTime,
+              isBooked: slot.isBooked,
+            });
+          });
+
+          set({
+            fittingSlots: availableSlots,
+            bookedSlots: bookedSlots,
+            isFittingSlotsLoading: false,
+          });
+
+          console.log('💾 Store updated successfully');
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error('💥 fetchFittingSlots error:', error);
+          set({ error: errorMessage, isFittingSlotsLoading: false });
+          toast.error('Failed to fetch slots', { description: errorMessage });
+        }
+      },
+
+      fetchAllAvailableSlots: async () => {
+        console.log('🔍 Fetching all available slots for the next 90 days');
+        set({ isFittingSlotsLoading: true, error: null });
+
+        try {
+          const dateFrom = new Date();
+          const dateTo = new Date();
+          dateTo.setDate(dateFrom.getDate() + 90); // Fetch slots for the next 90 days
+
+          const dateFromISO = encodeURIComponent(dateFrom.toISOString());
+          const dateToISO = encodeURIComponent(dateTo.toISOString());
+
+          const url = `/api/fitting/slots?dateFrom=${dateFromISO}&dateTo=${dateToISO}`;
+          console.log('🌐 Fetching all slots from API URL:', url);
+
+          const response = await fetch(url);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.error || 'Failed to fetch all available slots',
+            );
+          }
+
+          const slots: any[] = await response.json();
+          console.log('📊 Total slots received:', slots.length);
+
+          const parseSlot = (slot: any): IFittingSlot => ({
+            ...slot,
+            dateTime: new Date(slot.dateTime),
+            isBooked: !!slot.fittingSchedule,
+          });
+
+          const parsedSlots = slots.map(parseSlot);
+          const availableSlots = parsedSlots.filter((slot) => !slot.isBooked);
+          const bookedSlots = parsedSlots.filter((slot) => slot.isBooked);
+
+          console.log('✅ Total available slots:', availableSlots.length);
+
+          set({
+            fittingSlots: availableSlots,
+            bookedSlots: bookedSlots,
+            isFittingSlotsLoading: false,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error('💥 fetchAllAvailableSlots error:', error);
+          set({ error: errorMessage, isFittingSlotsLoading: false });
+          toast.error('Failed to fetch available slots', {
+            description: errorMessage,
+          });
+        }
+      },
 
       updateWeeklySlot: async (slotId, updates) => {
         set((state) => {
@@ -193,8 +329,6 @@ export const useScheduleStore = create<ScheduleState>()(
               result.slotGeneration?.message ||
               'Booking slots have been updated',
           });
-
-
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -204,7 +338,6 @@ export const useScheduleStore = create<ScheduleState>()(
           });
           console.error('Failed to update working hours:', error);
 
-          // Show error toast
           toast.error('Failed to update working hours', {
             description: errorMessage,
           });
@@ -213,14 +346,14 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       },
 
-      addScheduleBlock: async (blockData) => {
+      addScheduleBlock: async (blockData: IScheduleBlockInput) => {
         set((state) => {
           state.isLoading = true;
           state.error = null;
         });
 
         try {
-          const response = await fetch('/api/schedule-blocks', {
+          const response = await fetch('/api/fitting/schedule-blocks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(blockData),
@@ -228,16 +361,26 @@ export const useScheduleStore = create<ScheduleState>()(
 
           if (!response.ok) {
             const errorData = await response.json();
+
+            if (response.status === 400 && errorData.details) {
+              const validationErrors = errorData.details
+                .map((err: any) => err.message)
+                .join(', ');
+              throw new Error(`Validation failed: ${validationErrors}`);
+            }
+
             throw new Error(errorData.error || 'Failed to add schedule block');
           }
 
-          const newBlock = await response.json();
+          const newBlock: IScheduleBlock = await response.json();
           set((state) => {
             state.scheduleBlocks.push(newBlock);
             state.isLoading = false;
           });
 
-          toast.success('Schedule block added successfully');
+          toast.success('Time period blocked successfully', {
+            description: 'This time slot is now unavailable for bookings',
+          });
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -246,7 +389,67 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
           console.error('Failed to add schedule block:', error);
-          toast.error(`Failed to add schedule block: ${errorMessage}`);
+          toast.error('Failed to block time period', {
+            description: errorMessage,
+          });
+          throw error;
+        }
+      },
+
+      updateScheduleBlock: async (blockId, updates) => {
+        set((state) => {
+          state.isLoading = true;
+          state.error = null;
+        });
+
+        try {
+          const response = await fetch(
+            `/api/fitting/schedule-blocks/${blockId}`,
+            {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updates),
+            },
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+
+            if (response.status === 400 && errorData.details) {
+              const validationErrors = errorData.details
+                .map((err: any) => err.message)
+                .join(', ');
+              throw new Error(`Validation failed: ${validationErrors}`);
+            }
+
+            throw new Error(
+              errorData.error || 'Failed to update schedule block',
+            );
+          }
+
+          const updatedBlock = await response.json();
+          set((state) => {
+            const index = state.scheduleBlocks.findIndex(
+              (b) => b.id === blockId,
+            );
+            if (index !== -1) {
+              state.scheduleBlocks[index] = updatedBlock;
+            }
+            state.isLoading = false;
+          });
+
+          toast.success('Schedule block updated successfully');
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred';
+          set((state) => {
+            state.error = errorMessage;
+            state.isLoading = false;
+          });
+          console.error('Failed to update schedule block:', error);
+          toast.error('Failed to update schedule block', {
+            description: errorMessage,
+          });
           throw error;
         }
       },
@@ -258,9 +461,12 @@ export const useScheduleStore = create<ScheduleState>()(
         });
 
         try {
-          const response = await fetch(`/api/schedule-blocks/${blockId}`, {
-            method: 'DELETE',
-          });
+          const response = await fetch(
+            `/api/fitting/schedule-blocks/${blockId}`,
+            {
+              method: 'DELETE',
+            },
+          );
 
           if (!response.ok) {
             const errorData = await response.json();
@@ -276,7 +482,9 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
 
-          toast.success('Schedule block removed successfully');
+          toast.success('Schedule block removed successfully', {
+            description: 'This time period is now available for bookings',
+          });
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred';
@@ -285,17 +493,22 @@ export const useScheduleStore = create<ScheduleState>()(
             state.isLoading = false;
           });
           console.error('Failed to remove schedule block:', error);
-          toast.error(`Failed to remove schedule block: ${errorMessage}`);
+          toast.error('Failed to remove schedule block', {
+            description: errorMessage,
+          });
           throw error;
         }
       },
 
       reset: () =>
-        set((state) => {
-          state.weeklySlots = [];
-          state.scheduleBlocks = [];
-          state.isLoading = false;
-          state.error = null;
+        set({
+          weeklySlots: [],
+          scheduleBlocks: [],
+          fittingSlots: [],
+          bookedSlots: [],
+          isLoading: false,
+          isFittingSlotsLoading: false,
+          error: null,
         }),
     })),
     {

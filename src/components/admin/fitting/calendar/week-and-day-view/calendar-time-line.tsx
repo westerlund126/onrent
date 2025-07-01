@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
+import type { IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   firstVisibleHour: number;
@@ -25,7 +26,7 @@ export function CalendarTimeline({ firstVisibleHour, lastVisibleHour }: IProps) 
   };
 
   const formatCurrentTime = () => {
-    return format(currentTime, "h:mm a");
+    return format(currentTime, 'HH:mm');
   };
 
   const currentHour = currentTime.getHours();

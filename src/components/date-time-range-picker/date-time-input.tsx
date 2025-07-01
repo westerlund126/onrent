@@ -14,6 +14,8 @@ interface DateTimeInputProps {
   label?: string;
   placeholder?: string;
   use24HourFormat?: boolean;
+  minDate?: Date; 
+  maxDate?: Date; 
   'data-invalid'?: boolean;
 }
 
@@ -25,6 +27,8 @@ export const DateTimeInput: React.FC<DateTimeInputProps> = ({
   label,
   placeholder,
   use24HourFormat = false,
+  minDate, // Add this
+  maxDate, // Add this
   'data-invalid': dataInvalid,
 }) => {
   const [date, setDate] = React.useState<Date>(value || new Date());
@@ -80,6 +84,8 @@ export const DateTimeInput: React.FC<DateTimeInputProps> = ({
           value={date}
           onChange={handleDateChange}
           disabled={disabled}
+          minDate={minDate} 
+          maxDate={maxDate} 
           placeholder={{
             day: 'DD',
             month: 'MM',

@@ -109,21 +109,17 @@ const FittingSchedulePage = () => {
     reset,
   ]);
 
-  // --- Error Handling ---
   useEffect(() => {
     if (error) {
       toast.error(error);
-      setError(null); // Reset error after showing toast
+      setError(null); 
     }
   }, [error, setError]);
 
-  // --- Derived Data and Memoization ---
-  // Memoize derived data to prevent re-computation on every render
   const availableDates = useMemo(() => {
   const dateMap = new Map();
   availableSlots.forEach((slot) => {
     const date = new Date(slot.dateTime);
-    // Use UTC date components for grouping
     const dateKey = [
       date.getUTCFullYear(),
       (date.getUTCMonth() + 1).toString().padStart(2, '0'),
@@ -205,7 +201,7 @@ const availableDateStrings = useMemo(() => {
  const handleDateChange = (date: Date | undefined) => {
   const dateString = date ? getSelectedDateString(date) : '';
   updateFormField('selectedDate', dateString);
-  updateFormField('selectedTime', ''); // Reset time when date changes
+  updateFormField('selectedTime', ''); 
   setSelectedSlot(null);
 };
 
@@ -238,7 +234,6 @@ const availableDateStrings = useMemo(() => {
       toast.success('Jadwal fitting berhasil dibuat!');
       router.push('/customer/activities');
     }
-    // Error toast is already handled by the `error` useEffect
   };
 
   // --- Loading State ---

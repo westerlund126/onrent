@@ -1,3 +1,4 @@
+// calendar-day-view.tsx
 import { Calendar1, Clock, User } from 'lucide-react';
 import { areIntervalsOverlapping, format } from 'date-fns';
 import { useFittingStore } from 'stores/useFittingStore';
@@ -12,8 +13,10 @@ import {
   getScheduleBlockStyle,
   isWorkingHour,
   getCurrentSchedule,
+  getStatusColor,
 } from 'utils/helpers';
 import type { IFittingSchedule } from 'types/fitting';
+import { useMemo } from 'react';
 
 interface IProps {
   singleDaySchedule: IFittingSchedule[];
@@ -29,9 +32,23 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
   const earliestScheduleHour = 0;
   const latestScheduleHour = 23;
 
-  const currentSchedule = getCurrentSchedule(singleDaySchedule);
+  const processedDaySchedule = useMemo(() => {
+    return singleDaySchedule.map((schedule) => {
+      const firstName = schedule.user?.first_name || '';
+      const lastName = schedule.user?.last_name || '';
+      const customerName = `${firstName} ${lastName}`.trim() || 'Unknown Customer';
 
-  const daySchedule = singleDaySchedule.filter((schedule) => {
+      return {
+        ...schedule,
+        title: customerName,
+        color: getStatusColor(schedule.status),
+      };
+    });
+  }, [singleDaySchedule]);
+
+  const currentSchedule = getCurrentSchedule(processedDaySchedule);
+
+  const daySchedule = processedDaySchedule.filter((schedule) => {
     const scheduleDate = schedule.startTime;
     return (
       scheduleDate.getDate() === selectedDate.getDate() &&

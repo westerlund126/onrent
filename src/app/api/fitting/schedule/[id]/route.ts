@@ -181,9 +181,7 @@ export async function PATCH(
       }
     }
 
-    // Use transaction for status changes that affect slot booking
     const updatedSchedule = await prisma.$transaction(async (tx) => {
-      // Handle cancellation - free up the slot
       if (updates.status === 'CANCELED' && schedule.status !== 'CANCELED') {
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
@@ -191,7 +189,6 @@ export async function PATCH(
         });
       }
 
-      // Update the schedule
       return await tx.fittingSchedule.update({
         where: { id: scheduleId },
         data: {

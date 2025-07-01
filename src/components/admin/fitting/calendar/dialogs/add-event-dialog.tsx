@@ -3,11 +3,16 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDisclosure } from 'hooks/use-disclosure';
-import { useCalendar } from 'contexts/calendar-context';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Form,
   FormField,
@@ -16,13 +21,6 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectItem,
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogHeader,
@@ -33,9 +31,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { DateTimeInput } from 'components/date-time-range-picker/date-time-input';
-
+import { SingleDatePicker } from 'components/date-time-range-picker/single-date-picker';
+import { useScheduleStore } from 'stores';
 import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
+import { useMemo, useEffect, useState } from 'react';
 
 interface IProps {
   children: React.ReactNode;
@@ -44,137 +43,303 @@ interface IProps {
 }
 
 export function AddEventDialog({ children, startDate, startTime }: IProps) {
-  const { users } = useCalendar();
-
   const { isOpen, onClose, onToggle } = useDisclosure();
-
-  const getInitialDateTime = () => {
-    if (startDate) {
-      const date = new Date(startDate);
-      if (startTime) {
-        date.setHours(startTime.hour, startTime.minute, 0, 0);
-      }
-      return date;
-    }
-    return undefined;
-  };
+  const {
+    addScheduleBlock,
+    isLoading,
+    fittingSlots,
+    fetchAllAvailableSlots,
+    getAvailableSlots,
+  } = useScheduleStore();
 
   const form = useForm<TEventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      title: '',
       description: '',
-      startDateTime: getInitialDateTime(),
-      endDateTime: undefined,
+      startTime: '',
+      endTime: '',
     },
   });
 
-  const onSubmit = (_values: TEventFormData) => {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const selectedStartTime = form.watch('startTime');
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🚀 Fetching all available slots...');
+      fetchAllAvailableSlots();
+    }
+  }, [isOpen, fetchAllAvailableSlots]);
+
+  useEffect(() => {
+    console.log('🔍 Store state changed:');
+    console.log('  - fittingSlots length:', fittingSlots?.length || 0);
+    console.log('  - isLoading:', isLoading);
+
+    if (fittingSlots && fittingSlots.length > 0) {
+      console.log('  - First few slots:', fittingSlots.slice(0, 3));
+    }
+  }, [fittingSlots, isLoading]);
+
+  // Replace your availableDates useMemo in AddEventDialog with this fixed version:
+
+  const availableDates = useMemo(() => {
+    console.log('🔄 availableDates useMemo called');
+    console.log('🔍 Current fittingSlots:', fittingSlots?.length || 0);
+
+    // Make sure we have fittingSlots from the store
+    if (!fittingSlots || fittingSlots.length === 0) {
+      console.log('⚠️ No fitting slots available in store');
+      return [];
+    }
+
+    // Get available slots directly from store
+    const availableSlots = getAvailableSlots();
+    console.log('📋 Available slots from store:', availableSlots.length);
+
+    if (availableSlots.length === 0) {
+      console.log('⚠️ No available slots found');
+      return [];
+    }
+
+    // Debug: Log first few slots to understand structure
+    console.log('📋 First few available slots:', availableSlots.slice(0, 3));
+
+    // Create a Set to store unique date strings
+    const uniqueDates = new Set<string>();
+
+    availableSlots.forEach((slot, index) => {
+      try {
+        // Handle dateTime as Date object (which is what your console shows)
+        let date: Date;
+
+        if (slot.dateTime instanceof Date) {
+          date = slot.dateTime;
+        } else if (typeof slot.dateTime === 'string') {
+          date = new Date(slot.dateTime);
+        } else {
+          console.warn('⚠️ Invalid dateTime format:', slot.dateTime);
+          return; // Skip this slot
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          console.warn('⚠️ Invalid date:', slot.dateTime);
+          return; // Skip this slot
+        }
+
+        // Format as YYYY-MM-DD (matching what SingleDatePicker expects)
+        const dateString =
+          date.getFullYear() +
+          '-' +
+          String(date.getMonth() + 1).padStart(2, '0') +
+          '-' +
+          String(date.getDate()).padStart(2, '0');
+
+        uniqueDates.add(dateString);
+
+        if (index < 5) {
+          // Only log first 5 for debugging
+          console.log(
+            `📅 Processing slot ${index + 1}: ${slot.id} -> dateTime: ${
+              slot.dateTime
+            } -> formatted: ${dateString}`,
+          );
+        }
+      } catch (error) {
+        console.error('❌ Error processing slot:', slot, error);
+      }
+    });
+
+    const result = Array.from(uniqueDates).sort(); // Sort the dates
+    console.log('📊 Final availableDates:', result);
+    console.log('📊 Number of available dates:', result.length);
+
+    return result;
+  }, [fittingSlots, getAvailableSlots]); // Add fittingSlots as dependency
+
+  useEffect(() => {
+    console.log('🎯 availableDates changed:', availableDates);
+  }, [availableDates]);
+
+  const availableTimes = useMemo(() => {
+    if (!selectedDate) return [];
+
+    const selectedDateString =
+      selectedDate.getFullYear() +
+      '-' +
+      String(selectedDate.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(selectedDate.getDate()).padStart(2, '0');
+
+    const availableSlots = getAvailableSlots();
+    const slotsForDate = availableSlots.filter((slot) => {
+      const slotDate = new Date(slot.dateTime);
+      const slotDateString =
+        slotDate.getFullYear() +
+        '-' +
+        String(slotDate.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(slotDate.getDate()).padStart(2, '0');
+      return slotDateString === selectedDateString;
+    });
+
+    return slotsForDate
+      .map((slot) => {
+        const time = new Date(slot.dateTime);
+        const timeString = time.toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+
+        return {
+          value: slot.dateTime.toISOString(),
+          label: timeString,
+          slot: slot,
+        };
+      })
+      .sort(
+        (a, b) => new Date(a.value).getTime() - new Date(b.value).getTime(),
+      );
+  }, [selectedDate, getAvailableSlots]);
+
+  const availableEndTimes = useMemo(() => {
+    if (!selectedStartTime) return [];
+
+    const startTime = new Date(selectedStartTime);
+
+    return availableTimes
+      .filter((time) => new Date(time.value) > startTime)
+      .map((time) => ({
+        value: time.value,
+        label: time.label,
+      }));
+  }, [selectedStartTime, availableTimes]);
+
+  const onSubmit = async (values: TEventFormData) => {
+    try {
+      const scheduleBlockData = {
+        startTime: values.startTime,
+        endTime: values.endTime,
+        description: values.description,
+      };
+
+      await addScheduleBlock(scheduleBlockData);
+      onClose();
+      form.reset({
+        description: '',
+        startTime: '',
+        endTime: '',
+      });
+      setSelectedDate(undefined);
+    } catch (error) {
+      console.error('Failed to create schedule block:', error);
+    }
+  };
+
+  const handleDialogClose = () => {
     onClose();
-    form.reset();
+    form.reset({
+      description: '',
+      startTime: '',
+      endTime: '',
+    });
+    setSelectedDate(undefined);
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    console.log('🗓️ Date selected:', date);
+    setSelectedDate(date);
+    // Reset form fields when date changes
+    form.setValue('startTime', '');
+    form.setValue('endTime', '');
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onToggle}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (open) {
+          onToggle();
+        } else {
+          handleDialogClose();
+        }
+      }}
+    >
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Event</DialogTitle>
+          <DialogTitle>Block Time Period</DialogTitle>
           <DialogDescription>
-            This is just an example of how to use the form. In a real
-            application, you would call the API to create the event
+            Create a blocked time period when you are not available for
+            fittings. This will prevent customers from booking appointments
+            during this time.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form
-            id="event-form"
+            id="schedule-block-form"
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid gap-4 py-4"
           >
-
             <FormField
               control={form.control}
-              name="title"
+              name="description"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel htmlFor="title">Title</FormLabel>
-
+                  <FormLabel htmlFor="description">Description</FormLabel>
                   <FormControl>
                     <Input
-                      id="title"
-                      placeholder="Enter a title"
+                      id="description"
+                      placeholder="e.g., Vacation, Meeting, Personal Time"
                       data-invalid={fieldState.invalid}
                       {...field}
                     />
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Date</label>
+              <SingleDatePicker
+                value={selectedDate}
+                onSelect={handleDateSelect}
+                availableDates={availableDates}
+                placeholder="Select date"
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="startDateTime"
+              name="startTime"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel>Start Date & Time</FormLabel>
+                  <FormLabel>Start Time</FormLabel>
                   <FormControl>
-                    <DateTimeInput
+                    <Select
                       value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select start date and time"
-                      use24HourFormat
-                      data-invalid={fieldState.invalid}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="endDateTime"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>End Date & Time</FormLabel>
-                  <FormControl>
-                    <DateTimeInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select end date and time"
-                      use24HourFormat
-                      data-invalid={fieldState.invalid}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger data-invalid={fieldState.invalid}>
-                        <SelectValue placeholder="Select an option" />
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('endTime', '');
+                      }}
+                      disabled={!selectedDate || availableTimes.length === 0}
+                    >
+                      <SelectTrigger
+                        className={fieldState.invalid ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Select start time" />
                       </SelectTrigger>
-
                       <SelectContent>
-
-                        <SelectItem value="gray">
-                          <div className="flex items-center gap-2">
-                            <div className="bg-gray-600 size-3.5 rounded-full" />
-                            Gray
-                          </div>
-                        </SelectItem>
+                        {availableTimes.map((time) => (
+                          <SelectItem key={time.value} value={time.value}>
+                            {time.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -185,35 +350,58 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
             <FormField
               control={form.control}
-              name="description"
+              name="endTime"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
-
+                  <FormLabel>End Time</FormLabel>
                   <FormControl>
-                    <Textarea
-                      {...field}
+                    <Select
                       value={field.value}
-                      data-invalid={fieldState.invalid}
-                    />
+                      onValueChange={field.onChange}
+                      disabled={
+                        !selectedStartTime || availableEndTimes.length === 0
+                      }
+                    >
+                      <SelectTrigger
+                        className={fieldState.invalid ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Select end time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableEndTimes.map((time) => (
+                          <SelectItem key={time.value} value={time.value}>
+                            {time.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="size-3.5 rounded-full bg-red-600" />
+              Blocked periods will appear in red on your calendar
+            </div>
           </form>
         </Form>
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" onClick={handleDialogClose}>
               Cancel
             </Button>
           </DialogClose>
 
-          <Button form="event-form" type="submit">
-            Create Event
+          <Button
+            form="schedule-block-form"
+            type="submit"
+            disabled={isLoading || !form.formState.isValid}
+            className="min-w-[120px]"
+          >
+            {isLoading ? 'Creating...' : 'Block Time'}
           </Button>
         </DialogFooter>
       </DialogContent>
