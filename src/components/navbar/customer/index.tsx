@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import ContactProfile from '../ContactProfile';
+import SearchComponent from 'components/search/Search';
 
 const NavbarCustomer = (props: {
   onOpenSidenav: () => void;
@@ -75,7 +76,7 @@ const NavbarCustomer = (props: {
 
         {/* Right side - Same as original */}
         <div className="flex items-center gap-4">
-          
+          <SearchComponent/>
           {/* Notification */}
           <Dropdown
             button={

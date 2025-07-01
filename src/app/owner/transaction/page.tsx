@@ -5,7 +5,7 @@ import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
 import Card from 'components/card';
 import RentalForm from 'components/form/owner/RentalForm';
-import TransactionTable from 'components/admin/data-tables/TransactionTable';
+import TransactionTable from 'components/owner/data-tables/TransactionTable';
 
 const Transaction = () => {
   const [stats, setStats] = useState({

@@ -301,9 +301,9 @@ export const useFittingFormStore = create<FittingFormState>()(
       try {
         const startDate = new Date();
         const endDate = new Date();
-        endDate.setDate(startDate.getDate() + 30);
+        endDate.setDate(startDate.getDate() + 60);
 
-        const url = `/api/fitting/available-slots?ownerId=${ownerId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
         const response = await fetch(url);
         
         if (!response.ok) {

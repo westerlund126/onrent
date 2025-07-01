@@ -2,11 +2,9 @@
 import Widget from 'components/widget/Widget';
 import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import CatalogTable from 'components/admin/data-tables/CatalogTable';
+import CatalogTable from 'components/owner/data-tables/CatalogTable';
 import { Button } from '@/components/ui/button';
-import ProductForm from 'components/form/owner/ProductForm';
 import { FaPlus } from 'react-icons/fa';
-import { CldImage, CldUploadButton, CldUploadWidget } from 'next-cloudinary';
 import { useRouter } from 'next/navigation';
 
 const Tables = () => {
