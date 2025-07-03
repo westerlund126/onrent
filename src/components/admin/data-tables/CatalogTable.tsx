@@ -73,7 +73,7 @@ const AdminCatalogTable = () => {
       <Card extra="w-full h-full">
         <header className="relative flex items-center justify-between px-4 pt-4">
           <div className="text-xl font-bold text-navy-700 dark:text-white">
-            Katalog Produk (Admin)
+            Katalog Produk
           </div>
           <Button
             onClick={refreshData}

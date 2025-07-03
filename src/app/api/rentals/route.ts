@@ -15,21 +15,41 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
+    const userType = searchParams.get('userType'); // 'owner' or 'admin'
 
-    const owner = await prisma.user.findUnique({
+    // Get current user
+    const currentUser = await prisma.user.findUnique({
       where: { clerkUserId: userId },
-      select: { id: true },
+      select: { 
+        id: true, 
+        role: true,
+        username: true,
+        businessName: true 
+      },
     });
 
-    if (!owner) {
-      return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    let whereClause = {};
+
+    // Determine access level based on user role and userType parameter
+    if (userType === 'admin' && currentUser.role === 'ADMIN') {
+      // Admin can see all rentals
+      whereClause = {};
+    } else if (userType === 'owner' || currentUser.role === 'OWNER') {
+      // Owner can only see their own rentals
+      whereClause = {
+        ownerId: currentUser.id,
+      };
+    } else {
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
     }
 
     const [rentals, totalCount] = await Promise.all([
       prisma.rental.findMany({
-        where: {
-          ownerId: owner.id,
-        },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -37,6 +57,7 @@ export async function GET(request: NextRequest) {
               username: true,
               first_name: true,
               last_name: true,
+              phone_numbers: true,
             },
           },
           owner: {
@@ -45,6 +66,8 @@ export async function GET(request: NextRequest) {
               username: true,
               businessName: true,
               phone_numbers: true,
+              first_name: true,
+              last_name: true,
             },
           },
           rentalItems: {
@@ -79,9 +102,7 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.rental.count({
-        where: {
-          ownerId: owner.id,
-        },
+        where: whereClause,
       }),
     ]);
 
@@ -93,7 +114,7 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        totalCount,
+        total: totalCount,
         totalPages,
         hasNext: page < totalPages,
         hasPrev: page > 1,

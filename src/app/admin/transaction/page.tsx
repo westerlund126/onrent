@@ -1,9 +1,6 @@
 'use client';
 
-import Widget from 'components/widget/Widget';
-import { MdFactCheck, MdInventory } from 'react-icons/md';
 import { useEffect, useState } from 'react';
-import Card from 'components/card';
 import RentalForm from 'components/form/owner/RentalForm';
 import TransactionTable from 'components/admin/data-tables/TransactionTable';
 
@@ -20,7 +17,7 @@ const Transaction = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/rentals/summary');
+        const res = await fetch('/api/admin/rentals/summary');
         if (!res.ok) throw new Error('failed');
         const data = await res.json();
         setStats(data);

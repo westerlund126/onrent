@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { skuPrefix, generateSku } from 'utils/sku';
+import { auth } from '@clerk/nextjs/server';
 
 const prisma = new PrismaClient();
 
@@ -215,18 +216,54 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { userId: clerkUserId } = await auth();
+
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const params = await context.params;
-    
-    // First, delete all variants associated with the product
+    const productId = parseInt(params.id);
+
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    // Authorization check
+    const isOwner = user.id === product.ownerId;
+    const isAdmin = user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden: you cannot delete this product' },
+        { status: 403 }
+      );
+    }
+
+    // Delete all variant products first
     await prisma.variantProducts.deleteMany({
-      where: { productsId: parseInt(params.id) }
+      where: { productsId: productId }
     });
 
     // Then delete the product
     const deleted = await prisma.products.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: productId },
     });
-    
+
     return NextResponse.json({ success: true, deleted });
   } catch (error) {
     console.error('Failed to delete product:', error);
