@@ -31,6 +31,7 @@ interface UserStore {
   totalPages: number;
   totalItems: number;
   roleUpdateLoading: number | null;
+  deleteLoading: number | null;
   filters: UserFilters;
 
   // Actions
@@ -38,6 +39,7 @@ interface UserStore {
   setFilters: (filters: UserFilters) => void;
   loadUsers: () => Promise<void>;
   updateUserRole: (userId: number, role: string) => Promise<void>;
+  deleteUser: (userId: number) => Promise<void>; 
   refreshData: () => Promise<void>;
   clearError: () => void;
 }
@@ -57,6 +59,7 @@ export const useAdminUserStore = create<UserStore>((set, get) => ({
   totalPages: 1,
   totalItems: 0,
   roleUpdateLoading: null,
+  deleteLoading: null,
   filters: defaultFilters,
 
   // Actions
@@ -160,6 +163,40 @@ export const useAdminUserStore = create<UserStore>((set, get) => ({
     toast.error('Gagal mengubah peran. Silakan coba lagi.');
     }
   },
+
+   deleteUser: async (userId: number) => {
+    set({ deleteLoading: userId, error: null });
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(errorData.message || `Failed to delete user`);
+      }
+
+      set((state) => ({
+        users: state.users.filter((user) => user.id !== userId),
+        totalItems: state.totalItems - 1,
+        deleteLoading: null,
+      }));
+      toast.success('Pengguna berhasil dihapus!');
+      
+      // Optional: Reload data to ensure pagination and totals are correct
+      // if users span multiple pages, simply filtering the current page
+      // might not be enough. Reloading is safer.
+      get().loadUsers();
+
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      set({
+        deleteLoading: null,
+        error: error instanceof Error ? error.message : 'Failed to delete user',
+      });
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus pengguna.');
+    }
+  },
 
   refreshData: async () => {
     await get().loadUsers();

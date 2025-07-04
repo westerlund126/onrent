@@ -1,6 +1,7 @@
 // components/UsersTable.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import {
+  MdDelete,
   MdKeyboardArrowDown,
   MdRefresh,
 } from 'react-icons/md';
@@ -22,6 +23,12 @@ interface RoleChangeConfirmation {
   username: string | null;
   currentRole: string | null;
   newRole: string | null;
+}
+
+interface DeleteConfirmation {
+  isOpen: boolean;
+  userId: number | null;
+  username: string | null;
 }
 
 interface UsersTableProps {
@@ -52,12 +59,14 @@ const UsersTable: React.FC<UsersTableProps> = ({ filters = {} }) => {
     totalPages,
     totalItems,
     roleUpdateLoading,
+    deleteLoading,
     
     setCurrentPage,
     setFilters,
     loadUsers,
     updateUserRole,
     refreshData,
+    deleteUser
   } = useAdminUserStore();
 
   const [roleChangeConfirmation, setRoleChangeConfirmation] = 
@@ -68,6 +77,12 @@ const UsersTable: React.FC<UsersTableProps> = ({ filters = {} }) => {
       currentRole: null,
       newRole: null,
     });
+
+    const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
+    isOpen: false,
+    userId: null,
+    username: null,
+  });
 
   const itemsPerPage = filters.limit || 10;
 
@@ -86,7 +101,7 @@ useEffect(() => {
 }, [defaultFilters, setFilters]);
 
 useEffect(() => {
-  loadUsers(); // will only run after filter is set correctly
+  loadUsers();
 }, []);
 
   const handleRoleChange = (user: User, newRole: string) => {
@@ -115,6 +130,28 @@ useEffect(() => {
       username: null,
       currentRole: null,
       newRole: null,
+    });
+  };
+
+   const handleDeleteClick = (user: User) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      userId: user.id,
+      username: user.username,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.userId) return;
+    await deleteUser(deleteConfirmation.userId);
+    cancelDelete();
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({
+      isOpen: false,
+      userId: null,
+      username: null,
     });
   };
 
@@ -189,6 +226,9 @@ useEffect(() => {
                   <MdKeyboardArrowDown className="ml-1" />
                 </div>
               </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Aksi
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -232,6 +272,20 @@ useEffect(() => {
                     </div>
                   )}
                 </td>
+                <td className="px-4 py-3">
+                   <button
+                   onClick={() => handleDeleteClick(user)}
+                   className="text-red-500 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                   title="Hapus Pengguna"
+                    disabled={roleUpdateLoading === user.id || deleteLoading === user.id} 
+                     >
+                      {deleteLoading === user.id ? (
+                        <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-current"></div>
+                      ) : (
+                        <MdDelete size={20} />
+                      )}
+                      </button>
+                      </td>
               </tr>
             ))}
           </tbody>
@@ -301,6 +355,25 @@ useEffect(() => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={cancelDelete}>
+        <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+          <AlertDialogContent className='bg-white'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apakah Anda Yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menghapus pengguna{' '}
+              <strong>{deleteConfirmation.username}</strong> secara permanen. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
