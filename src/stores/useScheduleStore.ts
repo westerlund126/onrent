@@ -20,7 +20,6 @@ interface ScheduleState {
   isFittingSlotsLoading: boolean;
   error: string | null;
 
-  // Actions
   setWeeklySlots: (slots: IWeeklySlot[]) => void;
   setScheduleBlocks: (blocks: IScheduleBlock[]) => void;
   setFittingSlots: (slots: IFittingSlot[]) => void;
@@ -72,14 +71,14 @@ export const useScheduleStore = create<ScheduleState>()(
 
       fetchWeeklySlots: async () => {
         set({ isLoading: true, error: null });
-
         try {
-          const response = await fetch('/api/fitting/weekly-slots');
+          const response = await fetch('/api/fitting/weekly-slots', {
+            cache: 'no-store',
+          });
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Failed to fetch weekly slots');
           }
-
           const data: { weeklySlots: IWeeklySlot[] } = await response.json();
           set({ weeklySlots: data.weeklySlots || [], isLoading: false });
         } catch (error) {
@@ -92,16 +91,16 @@ export const useScheduleStore = create<ScheduleState>()(
 
       fetchScheduleBlocks: async () => {
         set({ isLoading: true, error: null });
-
         try {
-          const response = await fetch('/api/fitting/schedule-blocks');
+          const response = await fetch('/api/fitting/schedule-blocks', {
+            cache: 'no-store',
+          });
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(
               errorData.error || 'Failed to fetch schedule blocks',
             );
           }
-
           const data: { scheduleBlocks: IScheduleBlock[] } =
             await response.json();
           set({ scheduleBlocks: data.scheduleBlocks || [], isLoading: false });
@@ -118,7 +117,6 @@ export const useScheduleStore = create<ScheduleState>()(
         set({ isFittingSlotsLoading: true, error: null });
 
         try {
-          // Calculate week end date (6 days after week start)
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekStart.getDate() + 6);
           weekEnd.setHours(23, 59, 59, 999);
@@ -127,39 +125,31 @@ export const useScheduleStore = create<ScheduleState>()(
           const dateToISO = encodeURIComponent(weekEnd.toISOString());
 
           const url = `/api/fitting/slots?dateFrom=${dateFromISO}&dateTo=${dateToISO}`;
-          console.log('🌐 API URL:', url);
 
-          const response = await fetch(url);
-          console.log('📡 Response status:', response.status);
+          // Added { cache: 'no-store' } to prevent showing stale data
+          const response = await fetch(url, { cache: 'no-store' });
 
           if (!response.ok) {
             const errorData = await response.json();
-            console.error('❌ API Error:', errorData);
             throw new Error(errorData.error || 'Failed to fetch slots');
           }
 
           const slots: any[] = await response.json();
-          console.log('📦 Raw API response:', slots);
-          console.log('📊 Number of slots received:', slots.length);
 
-          // Log each slot structure
-          if (slots.length > 0) {
-            console.log('🔍 First slot structure:', slots[0]);
-          }
-
-          // Parse slot dates and separate booked/available
           const parseSlot = (slot: any): IFittingSlot => {
             try {
               const isBooked = !!slot.fittingSchedule;
               console.log(
                 `🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
               );
-
-              return {
-                ...slot,
-                dateTime: new Date(slot.dateTime),
-                isBooked: isBooked,
-              };
+              let dateTime: Date;
+              if (typeof slot.dateTime === 'string') {
+                const cleanDateString = slot.dateTime.replace('Z', '');
+                dateTime = new Date(cleanDateString);
+              } else {
+                dateTime = new Date(slot.dateTime);
+              }
+              return { ...slot, dateTime, isBooked };
             } catch (error) {
               console.error('Failed to parse slot date:', slot.dateTime, error);
               return {
@@ -171,29 +161,14 @@ export const useScheduleStore = create<ScheduleState>()(
           };
 
           const parsedSlots = slots.map(parseSlot);
-
           const availableSlots = parsedSlots.filter((slot) => !slot.isBooked);
           const bookedSlots = parsedSlots.filter((slot) => slot.isBooked);
-
-          console.log('✅ Available slots:', availableSlots.length);
-          console.log('❌ Booked slots:', bookedSlots.length);
-
-          // Log some available slots
-          availableSlots.slice(0, 3).forEach((slot, index) => {
-            console.log(`📅 Available slot ${index + 1}:`, {
-              id: slot.id,
-              dateTime: slot.dateTime,
-              isBooked: slot.isBooked,
-            });
-          });
 
           set({
             fittingSlots: availableSlots,
             bookedSlots: bookedSlots,
             isFittingSlotsLoading: false,
           });
-
-          console.log('💾 Store updated successfully');
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
@@ -210,15 +185,15 @@ export const useScheduleStore = create<ScheduleState>()(
         try {
           const dateFrom = new Date();
           const dateTo = new Date();
-          dateTo.setDate(dateFrom.getDate() + 90); // Fetch slots for the next 90 days
+          dateTo.setDate(dateFrom.getDate() + 90);
 
           const dateFromISO = encodeURIComponent(dateFrom.toISOString());
           const dateToISO = encodeURIComponent(dateTo.toISOString());
 
           const url = `/api/fitting/slots?dateFrom=${dateFromISO}&dateTo=${dateToISO}`;
-          console.log('🌐 Fetching all slots from API URL:', url);
 
-          const response = await fetch(url);
+          const response = await fetch(url, { cache: 'no-store' });
+
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(
@@ -227,19 +202,34 @@ export const useScheduleStore = create<ScheduleState>()(
           }
 
           const slots: any[] = await response.json();
-          console.log('📊 Total slots received:', slots.length);
 
-          const parseSlot = (slot: any): IFittingSlot => ({
-            ...slot,
-            dateTime: new Date(slot.dateTime),
-            isBooked: !!slot.fittingSchedule,
-          });
+          const parseSlot = (slot: any): IFittingSlot => {
+            try {
+              const isBooked = !!slot.fittingSchedule;
+              console.log(
+                `🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
+              );
+              let dateTime: Date;
+              if (typeof slot.dateTime === 'string') {
+                const cleanDateString = slot.dateTime.replace('Z', '');
+                dateTime = new Date(cleanDateString);
+              } else {
+                dateTime = new Date(slot.dateTime);
+              }
+              return { ...slot, dateTime, isBooked };
+            } catch (error) {
+              console.error('Failed to parse slot date:', slot.dateTime, error);
+              return {
+                ...slot,
+                dateTime: new Date(),
+                isBooked: !!slot.fittingSchedule,
+              };
+            }
+          };
 
           const parsedSlots = slots.map(parseSlot);
           const availableSlots = parsedSlots.filter((slot) => !slot.isBooked);
           const bookedSlots = parsedSlots.filter((slot) => slot.isBooked);
-
-          console.log('✅ Total available slots:', availableSlots.length);
 
           set({
             fittingSlots: availableSlots,

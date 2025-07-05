@@ -90,52 +90,9 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
     [availableDates],
   );
 
-  // // Prevent popover from closing when clicking inside the calendar
-  // const handleContentClick = React.useCallback((e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  // }, []);
-
-  // // Only close on outside clicks, but ignore trigger button clicks
-  // const handleInteractOutside = React.useCallback((e: Event) => {
-  //   const target = e.target as Element;
-
-  //   console.log('🔍 InteractOutside triggered, target:', target);
-
-  //   // Don't close if clicking on the trigger button or its children
-  //   if (
-  //     triggerRef.current &&
-  //     (triggerRef.current === target || triggerRef.current.contains(target))
-  //   ) {
-  //     console.log('🔘 Ignoring trigger button click');
-  //     e.preventDefault();
-  //     return;
-  //   }
-
-  //   // Don't close if clicking on calendar elements
-  //   if (target) {
-  //     const isCalendarElement =
-  //       target.closest('[role="button"]') ||
-  //       target.closest('[role="gridcell"]') ||
-  //       target.closest('.rdp') ||
-  //       target.closest('[data-radix-popper-content-wrapper]') ||
-  //       target.closest('[data-radix-popover-content]') ||
-  //       target.hasAttribute('data-radix-popover-content');
-
-  //     if (isCalendarElement) {
-  //       console.log('📅 Ignoring calendar interaction');
-  //       e.preventDefault();
-  //       return;
-  //     }
-  //   }
-
-  //   console.log('🚪 Closing popover due to outside interaction');
-  //   setIsOpen(false);
-  // }, []);
-
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen} modal={true}>
       <PopoverTrigger asChild>
-        {/* The triggerRef is no longer needed */}
         <Button
           variant="outline"
           className={cn(
@@ -151,11 +108,9 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
           {value ? formatDate(value, locale) : placeholder}
         </Button>
       </PopoverTrigger>
-      {/* The custom onInteractOutside and onClick handlers are removed */}
       <PopoverContent
         className="w-auto p-0"
         align="start"
-        // Prevent auto-focus issues on open
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Calendar

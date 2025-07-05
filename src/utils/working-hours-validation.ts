@@ -193,35 +193,23 @@ export function sanitizeWorkingHours(workingHours: any): WorkingHours {
   return sanitized as WorkingHours;
 }
 
-/**
- * Checks if a day is enabled (has working hours)
- */
 export function isDayEnabled(day: DayWorkingHours): boolean {
   return day.from > 0 || day.to > 0;
 }
 
-/**
- * Formats an hour number to DateTime object (for Prisma @db.Time fields)
- */
 export function formatHourToTime(hour: number): Date {
   if (!isValidHour(hour)) {
     throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
   }
-  // Create a Date object with the time set to the specified hour
-  // Prisma will extract only the time portion due to @db.Time
   const date = new Date();
- date.setUTCHours(hour, 0, 0, 0);   
- return date;
+  date.setHours(hour, 0, 0, 0); 
+  return date;
 }
 
-/**
- * Parses DateTime object (from Prisma @db.Time fields) to hour number
- */
 export function parseTimeToHour(timeValue: string | Date): number {
   let date: Date;
 
   if (typeof timeValue === 'string') {
-    // Handle string format like "09:00:00" or "09:00"
     const match = timeValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     if (!match) {
       throw new Error(
@@ -243,7 +231,7 @@ export function parseTimeToHour(timeValue: string | Date): number {
     return hour;
   } else if (timeValue instanceof Date) {
     // Handle Date object
- const hour = timeValue.getUTCHours();
+    const hour = timeValue.getHours(); // Changed from getUTCHours to getHours
     if (!isValidHour(hour)) {
       throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
     }
@@ -254,9 +242,6 @@ export function parseTimeToHour(timeValue: string | Date): number {
   }
 }
 
-/**
- * Gets day name from day index
- */
 function getDayName(dayIndex: ValidDayIndex): string {
   const dayNames = [
     'Sunday',
@@ -270,9 +255,6 @@ function getDayName(dayIndex: ValidDayIndex): string {
   return dayNames[dayIndex];
 }
 
-/**
- * Converts working hours to database format
- */
 export function transformToDatabaseFormat(
   workingHours: WorkingHours,
   ownerId: number,
@@ -295,9 +277,6 @@ export function transformToDatabaseFormat(
   return weeklySlots;
 }
 
-/**
- * Converts database format to working hours
- */
 export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
   const workingHours: Partial<WorkingHours> = {};
 

@@ -23,9 +23,14 @@ async function generateFittingSlotsForOwner(
   ownerId: number,
   daysAhead: number = 60,
 ) {
+  console.log('🔍 Starting slot generation for ownerId:', ownerId);
+  
   const weeklySlots = await prisma.weeklySlot.findMany({
     where: { ownerId, isEnabled: true },
   });
+
+  console.log('📅 Weekly slots found:', weeklySlots.length);
+  console.log('📅 Weekly slots data:', JSON.stringify(weeklySlots, null, 2));
 
   if (weeklySlots.length === 0) {
     return { count: 0, message: 'No enabled weekly slots found' };
@@ -35,6 +40,8 @@ async function generateFittingSlotsForOwner(
   const startDate = new Date();
   const endDate = new Date();
   endDate.setDate(startDate.getDate() + daysAhead);
+
+  console.log('📆 Date range:', startDate.toISOString(), 'to', endDate.toISOString());
 
   for (
     let date = new Date(startDate);
@@ -52,30 +59,80 @@ async function generateFittingSlotsForOwner(
       6: 'SATURDAY',
     } as const;
 
-    const weeklySlot = weeklySlots.find(
-      (slot) =>
-        slot.dayOfWeek ===
-        DAY_OF_WEEK_MAP[dayOfWeek as keyof typeof DAY_OF_WEEK_MAP],
+    const dayName = DAY_OF_WEEK_MAP[dayOfWeek as keyof typeof DAY_OF_WEEK_MAP];
+
+    console.log(`🔍 Debug for ${date.toDateString()}:`);
+    console.log(`   dayOfWeek (JS): ${dayOfWeek}`);
+    console.log(`   dayName (mapped): ${dayName}`);
+    console.log(
+      `   Available weekly slots for this owner:`,
+      weeklySlots.map((s) => ({
+        dayOfWeek: s.dayOfWeek,
+        isEnabled: s.isEnabled,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
     );
+
+    const weeklySlot = weeklySlots.find(
+      (slot) => slot.dayOfWeek === dayName
+    );
+
+    console.log(`🗓️  Processing ${date.toDateString()} (${dayName})`);
+    console.log(`🎯 Found weekly slot:`, weeklySlot ? 'YES' : 'NO');
+    
     if (weeklySlot && weeklySlot.isEnabled) {
-      const startHour = weeklySlot.startTime.getHours();
-      const endHour = weeklySlot.endTime.getHours();
+      console.log('⏰ Weekly slot details:', {
+        dayOfWeek: weeklySlot.dayOfWeek,
+        startTime: weeklySlot.startTime,
+        endTime: weeklySlot.endTime,
+        startTimeType: typeof weeklySlot.startTime,
+        endTimeType: typeof weeklySlot.endTime
+      });
+
+      let startHour: number;
+      let endHour: number;
+
+      if (weeklySlot.startTime instanceof Date) {
+        startHour = weeklySlot.startTime.getHours();
+        endHour = weeklySlot.endTime.getHours();
+        console.log('📝 Parsed as Date objects - Start:', startHour, 'End:', endHour);
+      } else {
+        const startTimeStr = String(weeklySlot.startTime);
+        const endTimeStr = String(weeklySlot.endTime);
+        
+        startHour = parseInt(startTimeStr.split(':')[0]);
+        endHour = parseInt(endTimeStr.split(':')[0]);
+        console.log('📝 Parsed as strings - Start:', startHour, 'End:', endHour);
+      }
+      
       if (startHour === 0 && endHour === 0) {
+        console.log('⏭️  Skipping - both hours are 0');
         continue;
       }
 
       if (endHour <= startHour) {
         console.warn(
-          `Invalid time range for ${weeklySlot.dayOfWeek}: ${startHour}:00 - ${endHour}:00`,
+          `❌ Invalid time range for ${weeklySlot.dayOfWeek}: ${startHour}:00 - ${endHour}:00`,
         );
         continue;
       }
+
+      console.log(`⏰ Will create slots from ${startHour}:00 to ${endHour}:00`);
 
       for (let hour = startHour; hour < endHour; hour++) {
         const slotDateTime = new Date(date);
         slotDateTime.setHours(hour, 0, 0, 0);
 
-        if (slotDateTime <= new Date()) continue;
+        console.log(`🕐 Creating slot for: ${slotDateTime.toLocaleString()}`);
+        console.log(`🕐 Slot DateTime ISO: ${slotDateTime.toISOString()}`);
+        console.log(`🕐 Current time: ${new Date().toISOString()}`);
+        console.log(`🕐 Is future slot: ${slotDateTime > new Date()}`);
+
+        if (slotDateTime <= new Date()) {
+          console.log('⏭️  Skipping past time slot');
+          continue;
+        }
 
         const existingSlot = await prisma.fittingSlot.findFirst({
           where: {
@@ -84,7 +141,10 @@ async function generateFittingSlotsForOwner(
           },
         });
 
+        console.log(`🔍 Existing slot check: ${existingSlot ? 'EXISTS' : 'NOT FOUND'}`);
+
         if (!existingSlot) {
+          console.log('✅ Adding slot to creation queue');
           slotsToCreate.push({
             ownerId,
             dateTime: slotDateTime,
@@ -95,14 +155,27 @@ async function generateFittingSlotsForOwner(
     }
   }
 
-  const result = await prisma.fittingSlot.createMany({
-    data: slotsToCreate,
-    skipDuplicates: true,
-  });
+  console.log(`📊 Total slots to create: ${slotsToCreate.length}`);
 
+  if (slotsToCreate.length > 0) {
+    console.log('💾 Creating slots in database...');
+    const result = await prisma.fittingSlot.createMany({
+      data: slotsToCreate,
+      skipDuplicates: true,
+    });
+
+    console.log(`✅ Successfully created ${result.count} slots`);
+
+    return {
+      count: result.count,
+      message: `Generated ${result.count} booking slots for the next ${daysAhead} days`,
+    };
+  }
+
+  console.log('❌ No slots to create');
   return {
-    count: result.count,
-    message: `Generated ${result.count} booking slots for the next ${daysAhead} days`,
+    count: 0,
+    message: 'No new slots to generate.',
   };
 }
 
@@ -112,7 +185,7 @@ async function checkForExistingBookings(ownerId: number) {
       fittingSlot: {
         ownerId,
         dateTime: {
-          gte: new Date(), 
+          gte: new Date(),
         },
       },
       status: {
@@ -305,7 +378,7 @@ export async function POST(
       message: 'Working hours updated successfully',
       ownerId: caller.id,
       workingHours: sanitizedWorkingHours,
-      slotsGenerated: slotGeneration.count, 
+      slotsGenerated: slotGeneration.count,
       slotGeneration,
     });
   } catch (error) {

@@ -81,65 +81,76 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     }
   }, [fittingSlots, isLoading]);
 
-  // Replace your availableDates useMemo in AddEventDialog with this fixed version:
-
   const availableDates = useMemo(() => {
     console.log('🔄 availableDates useMemo called');
     console.log('🔍 Current fittingSlots:', fittingSlots?.length || 0);
-
-    // Make sure we have fittingSlots from the store
+  
     if (!fittingSlots || fittingSlots.length === 0) {
       console.log('⚠️ No fitting slots available in store');
       return [];
     }
-
-    // Get available slots directly from store
+  
     const availableSlots = getAvailableSlots();
     console.log('📋 Available slots from store:', availableSlots.length);
-
+  
     if (availableSlots.length === 0) {
       console.log('⚠️ No available slots found');
       return [];
     }
-
-    // Debug: Log first few slots to understand structure
-    console.log('📋 First few available slots:', availableSlots.slice(0, 3));
-
-    // Create a Set to store unique date strings
+  
+    // ✅ ADD THIS DEBUG CODE
+    console.log('🧪 DEBUG: First 10 slots with day names:');
+    availableSlots.slice(0, 10).forEach((slot, index) => {
+      const date = new Date(slot.dateTime);
+      const dayName = date.toLocaleDateString('id-ID', { weekday: 'long' });
+      const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
+      console.log(`  ${index + 1}. ${dayName} (${dayOfWeek}) - ${slot.dateTime}`);
+    });
+  
+    // ✅ CHECK FOR SATURDAY SPECIFICALLY
+    const saturdaySlots = availableSlots.filter((slot) => {
+      const date = new Date(slot.dateTime);
+      return date.getDay() === 6; // Saturday
+    });
+    console.log('🧪 DEBUG: Saturday slots found:', saturdaySlots.length);
+    if (saturdaySlots.length > 0) {
+      console.log('🧪 DEBUG: First Saturday slot:', saturdaySlots[0]);
+    }
+  
     const uniqueDates = new Set<string>();
-
+  
     availableSlots.forEach((slot, index) => {
       try {
-        // Handle dateTime as Date object (which is what your console shows)
         let date: Date;
-
+  
         if (slot.dateTime instanceof Date) {
           date = slot.dateTime;
         } else if (typeof slot.dateTime === 'string') {
           date = new Date(slot.dateTime);
         } else {
           console.warn('⚠️ Invalid dateTime format:', slot.dateTime);
-          return; // Skip this slot
+          return; 
         }
-
-        // Check if date is valid
+  
         if (isNaN(date.getTime())) {
           console.warn('⚠️ Invalid date:', slot.dateTime);
-          return; // Skip this slot
+          return; 
         }
-
-        // Format as YYYY-MM-DD (matching what SingleDatePicker expects)
+  
         const dateString =
           date.getFullYear() +
           '-' +
           String(date.getMonth() + 1).padStart(2, '0') +
           '-' +
           String(date.getDate()).padStart(2, '0');
-
+  
         uniqueDates.add(dateString);
-
+  
+        if (date.getDay() === 6) {
+          console.log(`🧪 DEBUG: Saturday date added: ${dateString}`);
+        }
+  
         if (index < 5) {
-          // Only log first 5 for debugging
           console.log(
             `📅 Processing slot ${index + 1}: ${slot.id} -> dateTime: ${
               slot.dateTime
@@ -150,13 +161,20 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
         console.error('❌ Error processing slot:', slot, error);
       }
     });
-
-    const result = Array.from(uniqueDates).sort(); // Sort the dates
+  
+    const result = Array.from(uniqueDates).sort();
+    
+    const saturdayDates = result.filter(dateStr => {
+      const date = new Date(dateStr);
+      return date.getDay() === 6;
+    });
+    console.log('🧪 DEBUG: Saturday dates in final result:', saturdayDates);
+    
     console.log('📊 Final availableDates:', result);
     console.log('📊 Number of available dates:', result.length);
-
+  
     return result;
-  }, [fittingSlots, getAvailableSlots]); // Add fittingSlots as dependency
+  }, [fittingSlots, getAvailableSlots]);
 
   useEffect(() => {
     console.log('🎯 availableDates changed:', availableDates);
@@ -251,7 +269,6 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
   const handleDateSelect = (date: Date | undefined) => {
     console.log('🗓️ Date selected:', date);
     setSelectedDate(date);
-    // Reset form fields when date changes
     form.setValue('startTime', '');
     form.setValue('endTime', '');
   };
