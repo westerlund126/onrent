@@ -1,4 +1,4 @@
-// app/api/users/route.ts (for App Router) or pages/api/users.ts (for Pages Router)
+// app/api/admin/users/route.ts 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 

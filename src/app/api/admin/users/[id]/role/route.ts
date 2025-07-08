@@ -7,7 +7,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Clerk authentication
     const { userId } = await auth();
 
     if (!userId) {

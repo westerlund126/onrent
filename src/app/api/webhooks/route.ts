@@ -38,6 +38,16 @@ const verifyWebhook = async (body: string, headers: Record<string, string>) => {
 
 const storeUserInDatabase = async (userData: any) => {
   try {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { clerkUserId: userData.id },
+    });
+
+    if (existingUser) {
+      console.log(`User ${userData.id} already exists in database`);
+      return existingUser;
+    }
+
     return await prisma.user.create({
       data: {
         clerkUserId: userData.id,
@@ -49,8 +59,79 @@ const storeUserInDatabase = async (userData: any) => {
       },
     });
   } catch (error) {
-    console.error('Error: Failed to store event in the database:', error);
-    throw new Error('Failed to store event in the database');
+    console.error('Error: Failed to store user in the database:', error);
+    throw new Error('Failed to store user in the database');
+  }
+};
+
+const updateUserInDatabase = async (userData: any) => {
+  try {
+    // Check if user exists first
+    const existingUser = await prisma.user.findUnique({
+      where: { clerkUserId: userData.id },
+    });
+
+    if (!existingUser) {
+      console.log(
+        `User ${userData.id} not found in database for update, creating new user`,
+      );
+      return await storeUserInDatabase(userData);
+    }
+
+    return await prisma.user.update({
+      where: { clerkUserId: userData.id },
+      data: {
+        email: userData.email_addresses[0]?.email_address,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        username: userData.username,
+        imageUrl: userData.image_url,
+      },
+    });
+  } catch (error) {
+    console.error('Error: Failed to update user in the database:', error);
+    throw new Error('Failed to update user in the database');
+  }
+};
+
+const deleteUserFromDatabase = async (clerkUserId: string) => {
+  try {
+    // Use a transaction to handle all related deletions
+    await prisma.$transaction(async (tx) => {
+      // Find the user first
+      const user = await tx.user.findUnique({
+        where: { clerkUserId },
+      });
+
+      if (!user) {
+        console.log(
+          `User with clerkUserId ${clerkUserId} not found in database`,
+        );
+        return;
+      }
+
+      // Delete related records first (based on your schema)
+      await tx.wishlist.deleteMany({
+        where: { userId: user.id },
+      });
+
+      // Add other related table deletions here if needed
+      // await tx.orders.deleteMany({ where: { userId: user.id } });
+      // await tx.reviews.deleteMany({ where: { userId: user.id } });
+      // await tx.rentals.deleteMany({ where: { userId: user.id } });
+
+      // Finally delete the user
+      await tx.user.delete({
+        where: { id: user.id },
+      });
+
+      console.log(
+        `User ${clerkUserId} and all related records deleted successfully`,
+      );
+    });
+  } catch (error) {
+    console.error('Error: Failed to delete user from database:', error);
+    throw new Error('Failed to delete user from database');
   }
 };
 
@@ -67,73 +148,94 @@ export async function POST(req: Request) {
       'svix-signature': svix_signature,
     });
 
-    console.log('Verified event:', evt);
+    console.log('Verified event:', evt.type, 'for user:', evt.data.id);
 
     // Handle different event types
-    if (evt.type === 'user.created') {
-      const {
-        id,
-        email_addresses,
-        username,
-        image_url,
-        first_name,
-        last_name,
-      } = evt.data;
-
-      const newUser = await storeUserInDatabase({
-        id,
-        email_addresses,
-        username,
-        image_url,
-        first_name,
-        last_name,
-      });
-
-      return new Response(JSON.stringify(newUser), {
-        status: 201,
-      });
-    } else if (evt.type === 'user.updated') {
-      const {
-        id,
-        email_addresses,
-        username,
-        image_url,
-        first_name,
-        last_name,
-      } = evt.data;
-
-      const updatedUser = await prisma.user.update({
-        where: { clerkUserId: id },
-        data: {
-          email: email_addresses[0]?.email_address,
+    switch (evt.type) {
+      case 'user.created': {
+        const {
+          id,
+          email_addresses,
+          username,
+          image_url,
           first_name,
           last_name,
+        } = evt.data;
+
+        const newUser = await storeUserInDatabase({
+          id,
+          email_addresses,
           username,
-          imageUrl: image_url,
-        },
-      });
+          image_url,
+          first_name,
+          last_name,
+        });
 
-      return new Response(JSON.stringify(updatedUser), {
-        status: 200,
-      });
-    } else if (evt.type === 'user.deleted') {
-      const { id } = evt.data;
+        return new Response(JSON.stringify(newUser), {
+          status: 201,
+        });
+      }
 
-      await prisma.user.delete({
-        where: { clerkUserId: id },
-      });
+      case 'user.updated': {
+        const {
+          id,
+          email_addresses,
+          username,
+          image_url,
+          first_name,
+          last_name,
+        } = evt.data;
 
-      return new Response('User deleted successfully', {
-        status: 200,
-      });
+        const updatedUser = await updateUserInDatabase({
+          id,
+          email_addresses,
+          username,
+          image_url,
+          first_name,
+          last_name,
+        });
+
+        return new Response(JSON.stringify(updatedUser), {
+          status: 200,
+        });
+      }
+
+      case 'user.deleted': {
+        const { id } = evt.data;
+
+        await deleteUserFromDatabase(id);
+
+        return new Response(
+          JSON.stringify({
+            message: 'User and related records deleted successfully',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      default:
+        console.log(`Unhandled webhook event type: ${evt.type}`);
+        return new Response(
+          JSON.stringify({
+            message: 'Webhook received but event type is not handled',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
     }
-
-    // If the event type is not handled
-    return new Response('Webhook received but event type is not handled', {
-      status: 200,
-    });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error handling webhook:', err);
-    return new Response(err.message, { status: 400 });
+    return new Response(
+      JSON.stringify({ error: err.message || 'Unknown error' }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 }

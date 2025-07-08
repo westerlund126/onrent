@@ -1,10 +1,6 @@
 // components/UsersTable.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  MdDelete,
-  MdKeyboardArrowDown,
-  MdRefresh,
-} from 'react-icons/md';
+import { MdDelete, MdKeyboardArrowDown, MdRefresh } from 'react-icons/md';
 import Card from 'components/card';
 import { useAdminUserStore, User, UserFilters } from 'stores/useAdminUserStore';
 import {
@@ -15,7 +11,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface RoleChangeConfirmation {
   isOpen: boolean;
@@ -36,7 +42,9 @@ interface UsersTableProps {
 }
 
 const getFullName = (user: User) => {
-  return user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+  return user.last_name
+    ? `${user.first_name} ${user.last_name}`
+    : user.first_name;
 };
 
 const getRoleDisplayName = (role: string) => {
@@ -60,16 +68,15 @@ const UsersTable: React.FC<UsersTableProps> = ({ filters = {} }) => {
     totalItems,
     roleUpdateLoading,
     deleteLoading,
-    
     setCurrentPage,
     setFilters,
     loadUsers,
     updateUserRole,
     refreshData,
-    deleteUser
+    deleteUser,
   } = useAdminUserStore();
 
-  const [roleChangeConfirmation, setRoleChangeConfirmation] = 
+  const [roleChangeConfirmation, setRoleChangeConfirmation] =
     useState<RoleChangeConfirmation>({
       isOpen: false,
       userId: null,
@@ -78,35 +85,39 @@ const UsersTable: React.FC<UsersTableProps> = ({ filters = {} }) => {
       newRole: null,
     });
 
-    const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
-    isOpen: false,
-    userId: null,
-    username: null,
-  });
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState<DeleteConfirmation>({
+      isOpen: false,
+      userId: null,
+      username: null,
+    });
 
   const itemsPerPage = filters.limit || 10;
 
-  const defaultFilters: UserFilters = useMemo(() => ({
-  roles: ['CUSTOMER', 'OWNER'],
-  limit: 10,
-}), []);
+  const defaultFilters: UserFilters = useMemo(
+    () => ({
+      roles: ['CUSTOMER', 'OWNER'],
+      limit: 10,
+    }),
+    [],
+  );
 
-useEffect(() => {
-  const storeFilters = useAdminUserStore.getState().filters;
-  const areFiltersEqual =
-    JSON.stringify(storeFilters) === JSON.stringify(defaultFilters);
-  if (!areFiltersEqual) {
-    setFilters(defaultFilters);
-  }
-}, [defaultFilters, setFilters]);
+  useEffect(() => {
+    const storeFilters = useAdminUserStore.getState().filters;
+    const areFiltersEqual =
+      JSON.stringify(storeFilters) === JSON.stringify(defaultFilters);
+    if (!areFiltersEqual) {
+      setFilters(defaultFilters);
+    }
+  }, [defaultFilters, setFilters]);
 
-useEffect(() => {
-  loadUsers();
-}, []);
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const handleRoleChange = (user: User, newRole: string) => {
     if (newRole === user.role) return;
-    
+
     setRoleChangeConfirmation({
       isOpen: true,
       userId: user.id,
@@ -117,9 +128,13 @@ useEffect(() => {
   };
 
   const confirmRoleChange = async () => {
-    if (!roleChangeConfirmation.userId || !roleChangeConfirmation.newRole) return;
-    
-    await updateUserRole(roleChangeConfirmation.userId, roleChangeConfirmation.newRole);
+    if (!roleChangeConfirmation.userId || !roleChangeConfirmation.newRole)
+      return;
+
+    await updateUserRole(
+      roleChangeConfirmation.userId,
+      roleChangeConfirmation.newRole,
+    );
     cancelRoleChange();
   };
 
@@ -133,7 +148,7 @@ useEffect(() => {
     });
   };
 
-   const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (user: User) => {
     setDeleteConfirmation({
       isOpen: true,
       userId: user.id,
@@ -226,9 +241,11 @@ useEffect(() => {
                   <MdKeyboardArrowDown className="ml-1" />
                 </div>
               </th>
+              {/* START: Added Action Column Header */}
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
                 Aksi
               </th>
+              {/* END: Added Action Column Header */}
             </tr>
           </thead>
           <tbody>
@@ -245,9 +262,7 @@ useEffect(() => {
                 <td className="px-4 py-3 font-semibold text-secondary-500">
                   {getFullName(user)}
                 </td>
-                <td className="px-4 py-3 text-gray-700">
-                  {user.email}
-                </td>
+                <td className="px-4 py-3 text-gray-700">{user.email}</td>
                 <td className="px-4 py-3">
                   <Select
                     value={user.role}
@@ -272,20 +287,26 @@ useEffect(() => {
                     </div>
                   )}
                 </td>
+                {/* START: Added Action Column Cell with Delete Button */}
                 <td className="px-4 py-3">
-                   <button
-                   onClick={() => handleDeleteClick(user)}
-                   className="text-red-500 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                   title="Hapus Pengguna"
-                    disabled={roleUpdateLoading === user.id || deleteLoading === user.id} 
-                     >
-                      {deleteLoading === user.id ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-current"></div>
-                      ) : (
-                        <MdDelete size={20} />
-                      )}
-                      </button>
-                      </td>
+                  <button
+                    onClick={() => handleDeleteClick(user)}
+                    className="text-red-500 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Hapus Pengguna"
+                    // Disable button if a role is being updated or this user is being deleted
+                    disabled={
+                      roleUpdateLoading === user.id || deleteLoading === user.id
+                    }
+                  >
+                    {/* Show spinner when this specific user is being deleted */}
+                    {deleteLoading === user.id ? (
+                      <div className="border-current h-5 w-5 animate-spin rounded-full border-b-2"></div>
+                    ) : (
+                      <MdDelete size={20} />
+                    )}
+                  </button>
+                </td>
+                {/* END: Added Action Column Cell with Delete Button */}
               </tr>
             ))}
           </tbody>
@@ -340,35 +361,47 @@ useEffect(() => {
         </div>
       )}
 
-      <AlertDialog open={roleChangeConfirmation.isOpen} onOpenChange={(open) => !open && cancelRoleChange()}>
-          <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-          <AlertDialogContent className='bg-white'>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Ubah Role?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Apakah Anda yakin ingin mengubah {roleChangeConfirmation.username} role dari {getRoleDisplayName(roleChangeConfirmation.currentRole!)} menjadi {getRoleDisplayName(roleChangeConfirmation.newRole!)}?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmRoleChange}>Ya</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={cancelDelete}>
+      <AlertDialog
+        open={roleChangeConfirmation.isOpen}
+        onOpenChange={(open) => !open && cancelRoleChange()}
+      >
         <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
-          <AlertDialogContent className='bg-white'>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ubah Role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin mengubah {roleChangeConfirmation.username}{' '}
+              role dari{' '}
+              {getRoleDisplayName(roleChangeConfirmation.currentRole!)} menjadi{' '}
+              {getRoleDisplayName(roleChangeConfirmation.newRole!)}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRoleChange}>
+              Ya
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={cancelDelete}>
+        <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Apakah Anda Yakin?</AlertDialogTitle>
             <AlertDialogDescription>
               Tindakan ini akan menghapus pengguna{' '}
-              <strong>{deleteConfirmation.username}</strong> secara permanen. Tindakan ini tidak dapat dibatalkan.
+              <strong>{deleteConfirmation.username}</strong> secara permanen.
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelDelete}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
