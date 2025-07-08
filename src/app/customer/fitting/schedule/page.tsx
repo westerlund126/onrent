@@ -34,9 +34,8 @@ import Image from 'next/image';
 import { SingleDatePicker } from 'components/date-time-range-picker/single-date-picker';
 import { parse } from 'date-fns';
 import { toZonedTime, format} from 'date-fns-tz';
-import { id } from 'date-fns/locale'; // Indonesian locale for formatting
+import { id } from 'date-fns/locale'; 
 
-// Define your target timezone in one place
 const timeZone = 'Asia/Jakarta';
 
 const FittingSchedulePage = () => {
