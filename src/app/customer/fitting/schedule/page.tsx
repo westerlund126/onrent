@@ -32,6 +32,12 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from 'utils/product';
 import Image from 'next/image';
 import { SingleDatePicker } from 'components/date-time-range-picker/single-date-picker';
+import { parse } from 'date-fns';
+import { toZonedTime, format} from 'date-fns-tz';
+import { id } from 'date-fns/locale'; // Indonesian locale for formatting
+
+// Define your target timezone in one place
+const timeZone = 'Asia/Jakarta';
 
 const FittingSchedulePage = () => {
   const router = useRouter();
@@ -78,10 +84,8 @@ const FittingSchedulePage = () => {
       return;
     }
 
-    // Set page context in the store
     setPageContext(type, productId, ownerId);
 
-    // Fetch all necessary data using store actions
     if (ownerId) {
       fetchOwnerData(ownerId);
       fetchAvailableSlots(ownerId);
@@ -93,7 +97,6 @@ const FittingSchedulePage = () => {
       fetchCurrentUserData();
     }
 
-    // Reset store on component unmount
     return () => {
       reset();
     };
@@ -117,76 +120,65 @@ const FittingSchedulePage = () => {
   }, [error, setError]);
 
   const availableDates = useMemo(() => {
+    console.log("🔄 2. Processing 'availableDates'...");
   const dateMap = new Map();
   availableSlots.forEach((slot) => {
-    const date = new Date(slot.dateTime);
-    const dateKey = [
-      date.getUTCFullYear(),
-      (date.getUTCMonth() + 1).toString().padStart(2, '0'),
-      date.getUTCDate().toString().padStart(2, '0')
-    ].join('-');
+    const zonedDate = toZonedTime(slot.dateTime, timeZone);
+
+    const dateKey = format(zonedDate, 'yyyy-MM-dd');
     
     if (!dateMap.has(dateKey)) {
+      const label = format(zonedDate, 'eeee, d MMMM yyyy', { 
+        locale: id, 
+        timeZone 
+      });
+
       dateMap.set(dateKey, {
         value: dateKey,
-        label: date.toLocaleDateString('id-ID', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          timeZone: 'UTC'
-        }),
+        label: label,
         slots: [],
-        date: new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) // Add actual Date object
+        date: zonedDate,
       });
     }
     dateMap.get(dateKey).slots.push(slot);
   });
   return Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
+  
 }, [availableSlots]);
 
-const getSelectedDateString = (date: Date | undefined): string => {
-  if (!date) return '';
-  return [
-    date.getFullYear(),
-    (date.getMonth() + 2).toString().padStart(2, '0'),
-    date.getDate().toString().padStart(2, '0')
-  ].join('-');
-};
 
-// Add this helper to convert string date to Date object
+
 const getDateFromString = (dateString: string): Date | undefined => {
   if (!dateString) return undefined;
-  const parts = dateString.split('-').map(part => parseInt(part, 10));
-  return new Date(parts[0], parts[1] - 1, parts[2]);
+  return parse(dateString, 'yyyy-MM-dd', new Date());
 };
 
 const availableDateStrings = useMemo(() => {
   return availableDates.map(date => date.value);
 }, [availableDates]);
 
-  const availableTimes = useMemo(() => {
+const availableTimes = useMemo(() => {
   const selectedDateString = formData.selectedDate;
+  console.log(`🔄 3. Finding available times for date: "${selectedDateString}"`);
   if (!selectedDateString) return [];
   
   const dateData = availableDates.find((date) => date.value === selectedDateString);
   if (!dateData) return [];
   
   return dateData.slots
-    .map((slot) => {
-      const date = new Date(slot.dateTime);
-      // Use UTC components directly
-      const hours = date.getUTCHours().toString().padStart(2, '0');
-      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-      const timeString = `${hours}:${minutes}`;
-      
-      return {
-        value: timeString,
-        label: `${timeString} WIB`,
-        slot: slot,
-      };
-    })
-    .sort((a, b) => a.value.localeCompare(b.value));
+  .map((slot) => {
+    const zonedDate = toZonedTime(slot.dateTime, timeZone);
+    const timeString = format(zonedDate, 'HH:mm', { timeZone });
+
+    const label = format(zonedDate, 'HH:mm zzz', { timeZone });
+
+    return {
+      value: timeString,
+      label: label,
+      slot: slot,
+    };
+  })
+  .sort((a, b) => a.value.localeCompare(b.value));
 }, [formData.selectedDate, availableDates]);
 
   const availableVariants = useMemo(() => {
@@ -197,9 +189,8 @@ const availableDateStrings = useMemo(() => {
   }, [productData]);
 
 
-  // --- Event Handlers ---
  const handleDateChange = (date: Date | undefined) => {
-  const dateString = date ? getSelectedDateString(date) : '';
+  const dateString = date ? format(date, 'yyyy-MM-dd') : '';
   updateFormField('selectedDate', dateString);
   updateFormField('selectedTime', ''); 
   setSelectedSlot(null);
@@ -214,7 +205,6 @@ const availableDateStrings = useMemo(() => {
   };
 
   const handleSubmit = async () => {
-    // Basic frontend validation
     if (!formData.customerName.trim()) {
       toast.error('Nama lengkap harus diisi');
       return;
@@ -421,10 +411,10 @@ const availableDateStrings = useMemo(() => {
                       </SelectTrigger>
                       <SelectContent>
                         {availableTimes.map((time) => (
-                          <SelectItem key={time.value} value={time.value}>
-                            {time.label}
-                          </SelectItem>
-                        ))}
+  <SelectItem key={time.value} value={time.value}>
+    {time.label}
+  </SelectItem>
+))}
                       </SelectContent>
                     </Select>
                     {formData.selectedDate && availableTimes.length === 0 && (

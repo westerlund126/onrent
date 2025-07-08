@@ -35,7 +35,12 @@ import { SingleDatePicker } from 'components/date-time-range-picker/single-date-
 import { useScheduleStore } from 'stores';
 import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
 import { useMemo, useEffect, useState } from 'react';
+import {id} from 'date-fns/locale';
+import {parse}  from 'date-fns';
+import { toZonedTime, format} from 'date-fns-tz';
 
+
+const timeZone = 'Asia/Jakarta';
 interface IProps {
   children: React.ReactNode;
   startDate?: Date;
@@ -110,7 +115,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     // ✅ CHECK FOR SATURDAY SPECIFICALLY
     const saturdaySlots = availableSlots.filter((slot) => {
       const date = new Date(slot.dateTime);
-      return date.getDay() === 6; // Saturday
+      return date.getDay() === 6; 
     });
     console.log('🧪 DEBUG: Saturday slots found:', saturdaySlots.length);
     if (saturdaySlots.length > 0) {
