@@ -1,6 +1,4 @@
 'use client';
-import { useEffect, useState } from 'react';
-import RentalForm from 'components/form/owner/RentalForm';
 import UsersTable from 'components/admin/data-tables/UsersTable';
 
 const Users = () => {

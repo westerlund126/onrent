@@ -35,7 +35,12 @@ import { SingleDatePicker } from 'components/date-time-range-picker/single-date-
 import { useScheduleStore } from 'stores';
 import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
 import { useMemo, useEffect, useState } from 'react';
+import {id} from 'date-fns/locale';
+import {parse}  from 'date-fns';
+import { toZonedTime, format} from 'date-fns-tz';
 
+
+const timeZone = 'Asia/Jakarta';
 interface IProps {
   children: React.ReactNode;
   startDate?: Date;
@@ -82,98 +87,23 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
   }, [fittingSlots, isLoading]);
 
   const availableDates = useMemo(() => {
-    console.log('🔄 availableDates useMemo called');
-    console.log('🔍 Current fittingSlots:', fittingSlots?.length || 0);
-  
-    if (!fittingSlots || fittingSlots.length === 0) {
-      console.log('⚠️ No fitting slots available in store');
-      return [];
-    }
-  
+    console.log('🔄 Processing availableDates...');
     const availableSlots = getAvailableSlots();
-    console.log('📋 Available slots from store:', availableSlots.length);
-  
-    if (availableSlots.length === 0) {
-      console.log('⚠️ No available slots found');
+    if (!availableSlots || availableSlots.length === 0) {
       return [];
     }
-  
-    // ✅ ADD THIS DEBUG CODE
-    console.log('🧪 DEBUG: First 10 slots with day names:');
-    availableSlots.slice(0, 10).forEach((slot, index) => {
-      const date = new Date(slot.dateTime);
-      const dayName = date.toLocaleDateString('id-ID', { weekday: 'long' });
-      const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
-      console.log(`  ${index + 1}. ${dayName} (${dayOfWeek}) - ${slot.dateTime}`);
-    });
-  
-    // ✅ CHECK FOR SATURDAY SPECIFICALLY
-    const saturdaySlots = availableSlots.filter((slot) => {
-      const date = new Date(slot.dateTime);
-      return date.getDay() === 6; // Saturday
-    });
-    console.log('🧪 DEBUG: Saturday slots found:', saturdaySlots.length);
-    if (saturdaySlots.length > 0) {
-      console.log('🧪 DEBUG: First Saturday slot:', saturdaySlots[0]);
-    }
-  
+
     const uniqueDates = new Set<string>();
-  
-    availableSlots.forEach((slot, index) => {
-      try {
-        let date: Date;
-  
-        if (slot.dateTime instanceof Date) {
-          date = slot.dateTime;
-        } else if (typeof slot.dateTime === 'string') {
-          date = new Date(slot.dateTime);
-        } else {
-          console.warn('⚠️ Invalid dateTime format:', slot.dateTime);
-          return; 
-        }
-  
-        if (isNaN(date.getTime())) {
-          console.warn('⚠️ Invalid date:', slot.dateTime);
-          return; 
-        }
-  
-        const dateString =
-          date.getFullYear() +
-          '-' +
-          String(date.getMonth() + 1).padStart(2, '0') +
-          '-' +
-          String(date.getDate()).padStart(2, '0');
-  
-        uniqueDates.add(dateString);
-  
-        if (date.getDay() === 6) {
-          console.log(`🧪 DEBUG: Saturday date added: ${dateString}`);
-        }
-  
-        if (index < 5) {
-          console.log(
-            `📅 Processing slot ${index + 1}: ${slot.id} -> dateTime: ${
-              slot.dateTime
-            } -> formatted: ${dateString}`,
-          );
-        }
-      } catch (error) {
-        console.error('❌ Error processing slot:', slot, error);
-      }
+
+    availableSlots.forEach((slot) => {
+      const zonedDate = toZonedTime(slot.dateTime, timeZone);
+      
+      const dateString = format(zonedDate, 'yyyy-MM-dd');
+      
+      uniqueDates.add(dateString);
     });
-  
-    const result = Array.from(uniqueDates).sort();
-    
-    const saturdayDates = result.filter(dateStr => {
-      const date = new Date(dateStr);
-      return date.getDay() === 6;
-    });
-    console.log('🧪 DEBUG: Saturday dates in final result:', saturdayDates);
-    
-    console.log('📊 Final availableDates:', result);
-    console.log('📊 Number of available dates:', result.length);
-  
-    return result;
+
+    return Array.from(uniqueDates).sort();
   }, [fittingSlots, getAvailableSlots]);
 
   useEffect(() => {
@@ -183,43 +113,27 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
   const availableTimes = useMemo(() => {
     if (!selectedDate) return [];
 
-    const selectedDateString =
-      selectedDate.getFullYear() +
-      '-' +
-      String(selectedDate.getMonth() + 1).padStart(2, '0') +
-      '-' +
-      String(selectedDate.getDate()).padStart(2, '0');
+    const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
 
     const availableSlots = getAvailableSlots();
+
     const slotsForDate = availableSlots.filter((slot) => {
-      const slotDate = new Date(slot.dateTime);
-      const slotDateString =
-        slotDate.getFullYear() +
-        '-' +
-        String(slotDate.getMonth() + 1).padStart(2, '0') +
-        '-' +
-        String(slotDate.getDate()).padStart(2, '0');
+      const zonedDate = toZonedTime(slot.dateTime, timeZone);
+      const slotDateString = format(zonedDate, 'yyyy-MM-dd');
       return slotDateString === selectedDateString;
     });
 
     return slotsForDate
       .map((slot) => {
-        const time = new Date(slot.dateTime);
-        const timeString = time.toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        });
+        const label = format(slot.dateTime, 'HH:mm', { timeZone });
 
         return {
           value: slot.dateTime.toISOString(),
-          label: timeString,
+          label: label, 
           slot: slot,
         };
       })
-      .sort(
-        (a, b) => new Date(a.value).getTime() - new Date(b.value).getTime(),
-      );
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [selectedDate, getAvailableSlots]);
 
   const availableEndTimes = useMemo(() => {
