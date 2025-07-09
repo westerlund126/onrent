@@ -66,13 +66,11 @@ export function AgendaEventCard({ schedule, scheduleCurrentDay, scheduleTotalDay
 
   const handleButtonClick = (action: 'approve' | 'reject') => {
     alert(`You clicked ${action}!`);
-    // Add your approve/reject logic here
   };
 
 
   return (
     <div className={agendaEventCardClasses} onKeyDown={handleKeyDown} tabIndex={-1} >
-      {/* The EventDetailsDialog wraps the details part, making it the clickable trigger */}
       <EventDetailsDialog schedule={schedule}>
           <div role="button" tabIndex={0} className="flex flex-col gap-2 focus-visible:outline-none">
             <div className="flex items-center gap-1.5">
@@ -110,7 +108,6 @@ export function AgendaEventCard({ schedule, scheduleCurrentDay, scheduleTotalDay
           </div>
       </EventDetailsDialog>
 
-      {/* --- Approve and Reject Buttons with Text --- */}
       <div className="flex flex-shrink-0 items-center gap-2">
         <button
           onClick={() => handleButtonClick('approve')}
@@ -127,7 +124,6 @@ export function AgendaEventCard({ schedule, scheduleCurrentDay, scheduleTotalDay
           Reject
         </button>
       </div>
-       {/* --- End of Buttons --- */}
     </div>
   );
 }
