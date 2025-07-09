@@ -106,9 +106,6 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     return Array.from(uniqueDates).sort();
   }, [fittingSlots, getAvailableSlots]);
 
-  useEffect(() => {
-    console.log('🎯 availableDates changed:', availableDates);
-  }, [availableDates]);
 
   const availableTimes = useMemo(() => {
     if (!selectedDate) return [];
@@ -322,7 +319,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline" onClick={handleDialogClose}>
-              Cancel
+              Batal
             </Button>
           </DialogClose>
 
