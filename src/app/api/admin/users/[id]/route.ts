@@ -3,11 +3,11 @@ import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 
 export async function DELETE(
-  request: NextRequest, // The request object is unused but required for the signature
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-     const { userId } = await auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -23,9 +23,13 @@ export async function DELETE(
       );
     }
 
-    const userIdToDelete = parseInt((await params).id, 10);
+    const resolvedParams = await params;
+    const userIdToDelete = parseInt(resolvedParams.id, 10);
     if (isNaN(userIdToDelete)) {
-      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid user ID format' },
+        { status: 400 },
+      );
     }
 
     const userToDelete = await prisma.user.findUnique({
@@ -47,8 +51,10 @@ export async function DELETE(
       where: { id: userIdToDelete },
     });
 
-    return NextResponse.json({ message: 'User deleted successfully' }, { status: 200 });
-    
+    return NextResponse.json(
+      { message: 'User deleted successfully' },
+      { status: 200 },
+    );
   } catch (error) {
     console.error('Error deleting user:', error);
     return NextResponse.json(
