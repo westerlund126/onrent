@@ -106,9 +106,6 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     return Array.from(uniqueDates).sort();
   }, [fittingSlots, getAvailableSlots]);
 
-  useEffect(() => {
-    console.log('🎯 availableDates changed:', availableDates);
-  }, [availableDates]);
 
   const availableTimes = useMemo(() => {
     if (!selectedDate) return [];
@@ -118,17 +115,17 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     const availableSlots = getAvailableSlots();
 
     const slotsForDate = availableSlots.filter((slot) => {
-      const zonedDate = toZonedTime(slot.dateTime, timeZone);
-      const slotDateString = format(zonedDate, 'yyyy-MM-dd');
+      const slotDateString = format(slot.dateTime, 'yyyy-MM-dd');
       return slotDateString === selectedDateString;
     });
 
     return slotsForDate
       .map((slot) => {
-        const label = format(slot.dateTime, 'HH:mm', { timeZone });
+        const dateTime = slot.dateTime ? new Date(`${slot.dateTime}Z`) : new Date()
+        const label = format(dateTime, 'HH:mm');
 
         return {
-          value: slot.dateTime.toISOString(),
+          value: dateTime.toISOString(),
           label: label, 
           slot: slot,
         };
@@ -322,7 +319,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline" onClick={handleDialogClose}>
-              Cancel
+              Batal
             </Button>
           </DialogClose>
 

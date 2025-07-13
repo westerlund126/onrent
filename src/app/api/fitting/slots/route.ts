@@ -39,11 +39,20 @@ export async function GET(request: NextRequest) {
     if (dateFrom || dateTo) {
       whereClause.dateTime = {};
       if (dateFrom) {
-        whereClause.dateTime.gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        whereClause.dateTime.lte = new Date(dateTo);
-      }
+		  const parsedDateFrom = new Date(dateFrom);
+		  if (isNaN(parsedDateFrom.getTime())) {
+			return NextResponse.json({ error: 'Invalid dateFrom' }, { status: 400 });
+		  }
+		  whereClause.dateTime.gte = parsedDateFrom.toISOString();
+		}
+		
+		if (dateTo) {
+		  const parsedDateTo = new Date(dateTo);
+		  if (isNaN(parsedDateTo.getTime())) {
+			return NextResponse.json({ error: 'Invalid dateTo' }, { status: 400 });
+		  }
+		  whereClause.dateTime.lte = parsedDateTo.toISOString();
+		}
     }
 
     if (availableOnly) {

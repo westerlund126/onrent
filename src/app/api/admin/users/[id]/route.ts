@@ -136,8 +136,11 @@ const cascadeDeleteUser = async (userId: number) => {
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { userId } = await auth();
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -156,7 +159,13 @@ export async function DELETE(
 
     const resolvedParams = await params;
     const userIdToDelete = parseInt(resolvedParams.id, 10);
+    const resolvedParams = await params;
+    const userIdToDelete = parseInt(resolvedParams.id, 10);
     if (isNaN(userIdToDelete)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID format' },
+        { status: 400 },
+      );
       return NextResponse.json(
         { error: 'Invalid user ID format' },
         { status: 400 },
