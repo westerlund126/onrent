@@ -4,11 +4,12 @@ import { prisma } from 'lib/prisma';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { status } = await request.json();
-    const fittingId = parseInt(params.id);
+    const resolvedParams = await params;
+    const fittingId = parseInt(resolvedParams.id);
 
     const updatedFitting = await prisma.fittingSchedule.update({
       where: { id: fittingId },
@@ -24,7 +25,7 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to update fitting status' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

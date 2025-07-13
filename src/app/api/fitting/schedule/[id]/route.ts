@@ -106,7 +106,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -124,7 +124,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const scheduleId = parseInt(params.id);
+    const resolvedParams = await params;
+    const scheduleId = parseInt(resolvedParams.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
@@ -263,7 +264,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -281,7 +282,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const scheduleId = parseInt(params.id);
+    const resolvedParams = await params;
+    const scheduleId = parseInt(resolvedParams.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
