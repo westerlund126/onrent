@@ -6,6 +6,7 @@ import { FAQSection } from "components/customer/layout/sections/faq";
 import { FeaturesSection } from "components/customer/layout/sections/features";
 import { FooterSection } from "components/customer/layout/sections/footer";
 import { HeroSection } from "components/customer/layout/sections/hero";
+import NewArrivals from "components/customer/layout/sections/newarrivals";
 import { PricingSection } from "components/customer/layout/sections/pricing";
 import { ServicesSection } from "components/customer/layout/sections/services";
 import { SponsorsSection } from "components/customer/layout/sections/sponsors";
@@ -45,17 +46,19 @@ export default function CustomerLanding() {
     <>
       <HeroSection />
       <SponsorsSection />
-      <BenefitsSection />
       <CategoryShowcase/>
-      <FeaturesSection />
-      <ServicesSection />
-      <TestimonialSection />
+      <BenefitsSection />
+      <NewArrivals />
+
+      {/* <FeaturesSection />
+      <ServicesSection /> */}
+      {/* <TestimonialSection />
       <TeamSection />
       <CommunitySection />
       <PricingSection />
-      <ContactSection />
+      <ContactSection /> */}
       <FAQSection />
-      <FooterSection />
+      {/* <FooterSection /> */}
     </>
   );
 }
