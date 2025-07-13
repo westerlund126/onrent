@@ -153,7 +153,6 @@ export async function POST(request: NextRequest) {
       data: {
         ownerId: caller.id,
         dateTime: new Date(dateTime),
-        isAutoConfirm,
       },
       include: {
         owner: {
