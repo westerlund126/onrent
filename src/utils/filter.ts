@@ -1,6 +1,16 @@
 import { Product, ProductVariant } from 'types/product';
 import { FilterState } from 'components/catalog/FilterCard';
 
+export const getAvailableCategories = (products: Product[]): string[] => {
+  const categories = new Set<string>();
+  products.forEach(product => {
+    // Assuming product object has a 'category' property
+    if (product.category) {
+      categories.add(product.category);
+    }
+  });
+  return Array.from(categories).sort();
+};
 
 export const getAvailableSizes = (products: Product[]): string[] => {
   const sizes = new Set<string>();
@@ -51,12 +61,26 @@ export const hasAvailableVariants = (product: Product): boolean => {
 
 
 export const filterProducts = (products: Product[], filters: FilterState): Product[] => {
-  if (!filters.selectedSize && !filters.selectedColor && !filters.selectedPriceRange) {
+  const hasVariantFilters = filters.selectedSize || filters.selectedColor || filters.selectedPriceRange || filters.selectedCategory;
+
+  // Return all products if no filters are active at all
+  if (!filters.selectedCategory && !hasVariantFilters) {
     return products;
   }
-  
+
   return products.filter(product => {
-    const matchingVariants = product.VariantProducts.filter(variant => {
+    // 1. Filter by Category first
+    if (filters.selectedCategory && product.category !== filters.selectedCategory) {
+      return false;
+    }
+
+    // 2. If there are no other filters (size, color, price), the product passes
+    if (!hasVariantFilters) {
+      return true;
+    }
+
+    // 3. If there are other filters, check if at least one variant matches them
+    const hasMatchingVariant = product.VariantProducts.some(variant => {
       if (!variant.isAvailable || variant.isRented) return false;
 
       if (filters.selectedSize && variant.size !== filters.selectedSize) {
@@ -74,10 +98,10 @@ export const filterProducts = (products: Product[], filters: FilterState): Produ
         }
       }
 
-      return true;
+      return true; // This variant matches all active variant filters
     });
 
-    return matchingVariants.length > 0;
+    return hasMatchingVariant;
   });
 };
 

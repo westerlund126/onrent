@@ -12,34 +12,41 @@ interface FAQProps {
 }
 
 const FAQList: FAQProps[] = [
-  {
-    question: "Is this template free?",
-    answer: "Yes. It is a free NextJS Shadcn template.",
+ {
+    question: "Apakah rental wajib dilakukan jika sudah melakukan fitting?",
+    answer:
+      "Rental tidak diwajibkan untuk dilakukan jika memang tidak ada produk yang sesuai dengan keinginan Anda.",
     value: "item-1",
   },
   {
-    question: "Duis aute irure dolor in reprehenderit in voluptate velit?",
+    question: "Apakah rental dapat dilakukan secara online tanpa fitting terlebih dahulu?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint labore quidem quam consectetur sapiente, iste rerum reiciendis animi nihil nostrum sit quo, modi quod.",
+      "Tidak bisa. Untuk memastikan pakaian pas dan sesuai dengan keinginan Anda, kami mewajibkan semua pelanggan untuk melakukan sesi fitting di lokasi kami sebelum menyelesaikan proses sewa.",
     value: "item-2",
   },
   {
-    question:
-      "Lorem ipsum dolor sit amet Consectetur natus dolor minus quibusdam?",
+    question: "Berapa lama durasi standar untuk menyewa satu pakaian?",
     answer:
-      "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Labore qui nostrum reiciendis veritatis.",
+      "Durasi sewa standar kami adalah 3 (tiga) hari. Jika Anda memerlukan waktu sewa yang lebih lama, silakan diskusikan dengan tim kami saat sesi fitting untuk penyesuaian biaya.",
     value: "item-3",
   },
   {
-    question: "Excepteur sint occaecat cupidata non proident sunt?",
-    answer: "Lorem ipsum dolor sit amet consectetur, adipisicing elit.",
+    question: "Apa yang terjadi jika pakaian yang saya sewa rusak atau hilang?",
+    answer:
+      "Pelanggan bertanggung jawab atas pakaian yang disewa. Untuk kerusakan kecil, mungkin akan ada biaya perbaikan. Untuk kerusakan besar atau kehilangan, pelanggan akan dikenakan biaya penggantian sesuai dengan nilai pakaian tersebut.",
     value: "item-4",
   },
   {
-    question:
-      "Enim ad minim veniam, quis nostrud exercitation ullamco laboris?",
-    answer: "consectetur adipisicing elit. Sint labore.",
+    question: "Metode pembayaran apa saja yang diterima?",
+    answer:
+      "Kami menerima berbagai metode pembayaran, termasuk transfer bank, kartu kredit/debit, dan dompet digital (e-wallet) yang tersedia saat Anda melakukan checkout di aplikasi.",
     value: "item-5",
+  },
+  {
+    question: "Bisakah saya membatalkan pesanan sewa yang sudah dikonfirmasi?",
+    answer:
+      "Pesanan yang sudah dibayar tidak dapat dibatalkan atau diuangkan kembali (non-refundable). Namun, Anda dapat mengajukan perubahan jadwal (reschedule) sewa setidaknya 7 hari sebelum tanggal pengambilan, tergantung ketersediaan produk.",
+    value: "item-6",
   },
 ];
 
@@ -52,7 +59,7 @@ export const FAQSection = () => {
         </h2>
 
         <h2 className="text-3xl md:text-4xl text-center font-bold">
-          Common Questions
+          Pertanyaan yang Sering Diajukan
         </h2>
       </div>
 
