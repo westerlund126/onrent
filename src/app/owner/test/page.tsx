@@ -41,19 +41,16 @@ export default function OneSignalTestPage() {
     ]);
   };
 
-  // Initialize OneSignal
   useEffect(() => {
     if (typeof window !== 'undefined' && !scriptLoaded) {
       addDebugInfo('Starting OneSignal initialization...');
 
-      // Check if OneSignal is already available
       if (window.OneSignal) {
         addDebugInfo('OneSignal already available globally');
         setScriptLoaded(true);
         return;
       }
 
-      // Check if script is already loaded
       const existingScript = document.querySelector(
         'script[src*="OneSignalSDK"]',
       );
@@ -71,7 +68,6 @@ export default function OneSignalTestPage() {
         return;
       }
 
-      // Add OneSignal script
       const script = document.createElement('script');
       script.src =
         'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
@@ -95,14 +91,18 @@ export default function OneSignalTestPage() {
     if (scriptLoaded && !isInitialized) {
       addDebugInfo('Script loaded, waiting for OneSignal to be available...');
 
-      // Wait for OneSignal to be available
-      const checkOneSignal = () => {
+      const checkOneSignal = (attempts = 0) => {
+        if (attempts > 50) {
+          addDebugInfo('ERROR: OneSignal failed to load after 5 seconds');
+          return;
+        }
+
         if (window.OneSignal) {
           addDebugInfo('OneSignal is now available, initializing...');
           initializeOneSignal();
         } else {
           addDebugInfo('OneSignal not yet available, retrying in 100ms...');
-          setTimeout(checkOneSignal, 100);
+          setTimeout(() => checkOneSignal(attempts + 1), 100);
         }
       };
 
@@ -116,20 +116,20 @@ export default function OneSignalTestPage() {
 
       await window.OneSignal.init({
         appId: '61505641-03dc-4eb9-91a6-178833446fbd',
-        safari_web_id: 'web.onesignal.auto.YOUR_SAFARI_WEB_ID', // Replace with your Safari Web ID if needed
+        safari_web_id: 'web.onesignal.auto.YOUR_SAFARI_WEB_ID',
+        serviceWorkerPath: '/._OneSignalSDKWorker.js', 
+        serviceWorkerUpdaterPath: '/._OneSignalSDK-v16-ServiceWorker.js',
         notifyButton: {
-          enable: false, // Disable the default notify button
+          enable: false, 
         },
-        allowLocalhostAsSecureOrigin: true, // For development
+        allowLocalhostAsSecureOrigin: true, 
       });
 
       addDebugInfo('OneSignal.init() completed successfully');
       setIsInitialized(true);
 
-      // Get initial states
       await updateUserStates();
 
-      // Set up event listeners
       setupEventListeners();
     } catch (error) {
       addDebugInfo(`ERROR during initialization: ${error}`);
@@ -139,22 +139,18 @@ export default function OneSignalTestPage() {
 
   const updateUserStates = async () => {
     try {
-      // Check current subscription status
       const subscribed = await window.OneSignal.User.PushSubscription.optedIn;
       setIsSubscribed(subscribed);
       addDebugInfo(`Subscription status: ${subscribed}`);
 
-      // Get permission state
       const permissionState = await window.OneSignal.Notifications.permission;
       setPermission(permissionState);
       addDebugInfo(`Permission state: ${permissionState}`);
 
-      // Get user ID
       const userIdValue = await window.OneSignal.User.onesignalId;
       setUserId(userIdValue || '');
       addDebugInfo(`User ID: ${userIdValue || 'Not available'}`);
 
-      // Get push token
       const tokenValue = await window.OneSignal.User.PushSubscription.token;
       setPushToken(tokenValue || '');
       addDebugInfo(`Push token: ${tokenValue ? 'Available' : 'Not available'}`);
@@ -166,7 +162,6 @@ export default function OneSignalTestPage() {
 
   const setupEventListeners = () => {
     try {
-      // Listen for subscription changes
       window.OneSignal.User.PushSubscription.addEventListener(
         'change',
         (event: any) => {
@@ -176,13 +171,11 @@ export default function OneSignalTestPage() {
         },
       );
 
-      // Listen for notification clicks
       window.OneSignal.Notifications.addEventListener('click', (event: any) => {
         setLastNotification(`Clicked: ${event.notification.title}`);
         addDebugInfo(`Notification clicked: ${event.notification.title}`);
       });
 
-      // Listen for permission changes
       window.OneSignal.Notifications.addEventListener(
         'permissionChange',
         (event: any) => {
@@ -208,7 +201,6 @@ export default function OneSignalTestPage() {
     setLoading((prev) => ({ ...prev, init: true }));
 
     try {
-      // Check if we're in a secure context (HTTPS)
       if (!window.isSecureContext) {
         addDebugInfo('ERROR: Not in secure context (HTTPS required)');
         return;
@@ -219,7 +211,6 @@ export default function OneSignalTestPage() {
       setPermission(permission);
       addDebugInfo(`Permission result: ${permission}`);
 
-      // Update user states after permission change
       await updateUserStates();
     } catch (error) {
       console.error('Error requesting permission:', error);
@@ -243,7 +234,6 @@ export default function OneSignalTestPage() {
       setIsSubscribed(true);
       addDebugInfo('Successfully subscribed user');
 
-      // Update user states after subscription
       await updateUserStates();
     } catch (error) {
       console.error('Error subscribing:', error);
@@ -267,7 +257,7 @@ export default function OneSignalTestPage() {
       setIsSubscribed(false);
       addDebugInfo('Successfully unsubscribed user');
 
-      // Update user states after unsubscription
+
       await updateUserStates();
     } catch (error) {
       console.error('Error unsubscribing:', error);
@@ -289,8 +279,7 @@ export default function OneSignalTestPage() {
     setLoading((prev) => ({ ...prev, notification: true }));
 
     try {
-      // This would typically be done from your backend
-      // Here we're just simulating what a test notification would look like
+
       setLastNotification(
         'Test notification sent! (In production, send from your backend)',
       );
