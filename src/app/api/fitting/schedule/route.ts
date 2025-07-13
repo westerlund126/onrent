@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build variant IDs array from different possible inputs
     let allVariantIds: number[] = [];
 
     if (variantIds.length > 0) {
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
       ),
     );
 
-    // First, validate the fitting slot outside the transaction
     const fittingSlot = await prisma.fittingSlot.findUnique({
       where: { id: parseInt(fittingSlotId) },
       include: {
@@ -76,7 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate variants outside the transaction if provided
     let existingVariants: any[] = [];
     if (variantIdsNumeric.length > 0) {
       existingVariants = await prisma.variantProducts.findMany({
@@ -100,13 +97,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Now run the transaction with shorter operations
     const result = await prisma.$transaction(async (tx) => {
-      // Double-check the slot is still available
       const currentSlot = await tx.fittingSlot.findUnique({
         where: { id: parseInt(fittingSlotId) },
         include: {
-          owner: { select: { id: true } }, // Get the owner ID
+          owner: { select: { id: true } }, 
         },
       });
 
@@ -114,7 +109,6 @@ export async function POST(request: NextRequest) {
         throw new Error('Fitting slot was just booked by another user');
       }
 
-      // Update user phone number if provided
       if (phoneNumber && phoneNumber !== user.phone_numbers) {
         await tx.user.update({
           where: { id: user.id },
@@ -122,11 +116,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // FIX 1: Add ownerId to FittingSchedule creation
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
-          ownerId: fittingSlot.owner.id, // Add the owner ID
+          ownerId: fittingSlot.owner.id,
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
@@ -145,7 +138,7 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             products: {
-              select: { ownerId: true }, // Get the product owner ID
+              select: { ownerId: true }, 
             },
           },
         });
@@ -158,14 +151,13 @@ export async function POST(request: NextRequest) {
           throw new Error(`Variants not found: ${missingIds.join(', ')}`);
         }
 
-        // FIX 2: Add ownerId to FittingProduct creation
         await tx.fittingProduct.createMany({
           data: variantIdsNumeric.map((variantId: number) => {
             const variant = existingVariants.find((v) => v.id === variantId);
             return {
               fittingId: fittingSchedule.id,
               variantProductId: Number(variantId),
-              ownerId: variant!.products.ownerId, // Add the product owner ID
+              ownerId: variant!.products.ownerId, 
             };
           }),
           skipDuplicates: true,
@@ -174,10 +166,9 @@ export async function POST(request: NextRequest) {
 
       return fittingSchedule.id;
     }, {
-      timeout: 10000, // 10 second timeout
+      timeout: 10000, 
     });
 
-    // Fetch complete schedule with relations
     const completeSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: result },
       include: {
@@ -276,7 +267,6 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       } else {
-        // Default to caller's own schedules
         whereClause.fittingSlot = { ownerId: caller.id };
       }
     } else if (caller.role === 'ADMIN') {

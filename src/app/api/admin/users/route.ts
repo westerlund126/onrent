@@ -1,4 +1,4 @@
-// app/api/users/route.ts (for App Router) or pages/api/users.ts (for Pages Router)
+// app/api/users/route.ts 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 
@@ -7,26 +7,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Get query parameters
     const rolesParam = searchParams.get('roles');
     const search = searchParams.get('search');
     const limitParam = searchParams.get('limit');
     const pageParam = searchParams.get('page');
 
-    // Parse parameters
     const roles = rolesParam ? rolesParam.split(',') : ['CUSTOMER', 'OWNER'];
     const limit = limitParam ? parseInt(limitParam, 10) : 10;
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const skip = (page - 1) * limit;
 
-    // Build where clause
     const whereClause: any = {
       role: {
         in: roles,
       },
     };
 
-    // Add search functionality
     if (search) {
       whereClause.OR = [
         {
@@ -56,12 +52,10 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get total count for pagination
     const totalItems = await prisma.user.count({
       where: whereClause,
     });
 
-    // Get users
     const users = await prisma.user.findMany({
       where: whereClause,
       select: {

@@ -9,12 +9,14 @@ interface FittingState {
   fittingSlots: IFittingSlot[];
   isLoading: boolean;
   error: string | null;
+  scheduleLoadingStates: Record<number, boolean>;
 
   setSelectedDate: (date: Date) => void;
   setFittingSchedules: (schedules: IFittingSchedule[]) => void;
   setFittingSlots: (slots: IFittingSlot[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setScheduleLoading: (scheduleId: number, loading: boolean) => void;
 
   fetchFittingSchedules: (dateFrom?: string, dateTo?: string) => Promise<void>;
   fetchFittingSlots: (dateFrom?: string, dateTo?: string) => Promise<void>;
@@ -31,6 +33,7 @@ interface FittingState {
   ) => Promise<void>;
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
+  rejectFittingSchedule: (scheduleId: number) => Promise<void>; // Add this method
 
   createFittingSlot: (slotData: {
     dateTime: string;
@@ -53,6 +56,7 @@ export const useFittingStore = create<FittingState>()(
     fittingSlots: [],
     isLoading: false,
     error: null,
+    scheduleLoadingStates: {}, // Initialize empty loading states
 
     setSelectedDate: (date) =>
       set((state) => {
@@ -84,6 +88,11 @@ export const useFittingStore = create<FittingState>()(
     setError: (error) =>
       set((state) => {
         state.error = error;
+      }),
+
+    setScheduleLoading: (scheduleId, loading) =>
+      set((state) => {
+        state.scheduleLoadingStates[scheduleId] = loading;
       }),
 
     fetchFittingSchedules: async (dateFrom, dateTo) => {
@@ -230,7 +239,7 @@ export const useFittingStore = create<FittingState>()(
 
     updateFittingSchedule: async (scheduleId, updates) => {
       set((state) => {
-        state.isLoading = true;
+        state.scheduleLoadingStates[scheduleId] = true;
         state.error = null;
       });
 
@@ -253,12 +262,22 @@ export const useFittingStore = create<FittingState>()(
             (s) => s.id === scheduleId,
           );
           if (index !== -1) {
+            // Process the updated schedule similar to fetchFittingSchedules
+            const base = new Date(updatedSchedule.fittingSlot?.dateTime ?? null);
+            const duration = updatedSchedule.duration ?? 60;
+
             state.fittingSchedules[index] = {
               ...state.fittingSchedules[index],
               ...updatedSchedule,
+              startTime: base,
+              endTime: new Date(base.getTime() + duration * 60 * 1000),
+              title: `${updatedSchedule.user?.first_name || 'Unknown'} - ${
+                updatedSchedule.fittingType?.name || 'Fitting'
+              }`,
+              color: updatedSchedule.fittingType?.color || 'blue',
             };
           }
-          state.isLoading = false;
+          state.scheduleLoadingStates[scheduleId] = false;
         });
       } catch (error) {
         console.error('Failed to update fitting schedule:', error);
@@ -267,8 +286,9 @@ export const useFittingStore = create<FittingState>()(
             error instanceof Error
               ? error.message
               : 'Failed to update schedule';
-          state.isLoading = false;
+          state.scheduleLoadingStates[scheduleId] = false;
         });
+        throw error; 
       }
     },
 
@@ -277,6 +297,7 @@ export const useFittingStore = create<FittingState>()(
         await get().updateFittingSchedule(scheduleId, { status: 'CANCELED' });
       } catch (error) {
         console.error('Failed to cancel fitting schedule:', error);
+        throw error;
       }
     },
 
@@ -285,6 +306,16 @@ export const useFittingStore = create<FittingState>()(
         await get().updateFittingSchedule(scheduleId, { status: 'CONFIRMED' });
       } catch (error) {
         console.error('Failed to confirm fitting schedule:', error);
+        throw error;
+      }
+    },
+
+    rejectFittingSchedule: async (scheduleId) => {
+      try {
+        await get().updateFittingSchedule(scheduleId, { status: 'REJECTED' });
+      } catch (error) {
+        console.error('Failed to reject fitting schedule:', error);
+        throw error;
       }
     },
 
