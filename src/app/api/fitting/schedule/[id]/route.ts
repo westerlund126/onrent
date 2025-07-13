@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -25,7 +25,8 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const scheduleId = parseInt(params.id);
+    const resolvedParams = await params;
+    const scheduleId = parseInt(resolvedParams.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
