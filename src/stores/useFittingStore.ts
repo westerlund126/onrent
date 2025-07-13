@@ -1,20 +1,27 @@
-//stores/useFittingStore.ts
+// stores/useFittingStore.ts
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { IFittingSchedule, IFittingSlot } from 'types/fitting';
+import type {
+  IFittingSchedule,
+  IFittingSlot,
+  OwnerSettings,
+} from 'types/fitting';
 
 interface FittingState {
   selectedDate: Date;
   fittingSchedules: IFittingSchedule[];
   fittingSlots: IFittingSlot[];
+  ownerSettings: OwnerSettings | null;
   isLoading: boolean;
   error: string | null;
+  scheduleLoadingStates: Record<number, boolean>;
 
   setSelectedDate: (date: Date) => void;
   setFittingSchedules: (schedules: IFittingSchedule[]) => void;
   setFittingSlots: (slots: IFittingSlot[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setScheduleLoading: (scheduleId: number, loading: boolean) => void;
 
   fetchFittingSchedules: (dateFrom?: string, dateTo?: string) => Promise<void>;
   fetchFittingSlots: (dateFrom?: string, dateTo?: string) => Promise<void>;
@@ -24,6 +31,7 @@ interface FittingState {
     note?: string;
     phoneNumber?: string;
     variantId?: number;
+    variantIds?: number[];
   }) => Promise<IFittingSchedule | null>;
   updateFittingSchedule: (
     scheduleId: number,
@@ -31,16 +39,20 @@ interface FittingState {
   ) => Promise<void>;
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
+  rejectFittingSchedule: (scheduleId: number) => Promise<void>;
 
+  // Owner settings methods
+  fetchOwnerSettings: () => Promise<void>;
+  updateOwnerSettings: (settings: Partial<OwnerSettings>) => Promise<void>;
+
+  // Slot methods (without auto-confirm)
   createFittingSlot: (slotData: {
     dateTime: string;
-    isAutoConfirm?: boolean;
   }) => Promise<IFittingSlot | null>;
   updateFittingSlot: (
     slotId: number,
     updates: {
       dateTime?: string;
-      isAutoConfirm?: boolean;
       allowUpdateWhenBooked?: boolean;
     },
   ) => Promise<void>;
@@ -51,8 +63,10 @@ export const useFittingStore = create<FittingState>()(
     selectedDate: new Date(),
     fittingSchedules: [],
     fittingSlots: [],
+    ownerSettings: null, // Added owner settings
     isLoading: false,
     error: null,
+    scheduleLoadingStates: {},
 
     setSelectedDate: (date) =>
       set((state) => {
@@ -84,6 +98,11 @@ export const useFittingStore = create<FittingState>()(
     setError: (error) =>
       set((state) => {
         state.error = error;
+      }),
+
+    setScheduleLoading: (scheduleId, loading) =>
+      set((state) => {
+        state.scheduleLoadingStates[scheduleId] = loading;
       }),
 
     fetchFittingSchedules: async (dateFrom, dateTo) => {
@@ -122,7 +141,7 @@ export const useFittingStore = create<FittingState>()(
             color: schedule.fittingType?.color || 'blue',
           };
         });
-        
+
         set((state) => {
           state.fittingSchedules = processedSchedules;
           state.isLoading = false;
@@ -175,6 +194,77 @@ export const useFittingStore = create<FittingState>()(
       }
     },
 
+    // Owner settings methods
+    fetchOwnerSettings: async () => {
+      set((state) => {
+        state.isLoading = true;
+        state.error = null;
+      });
+
+      try {
+        const response = await fetch('/api/owner/settings');
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch owner settings: ${response.statusText}`,
+          );
+        }
+
+        const { data } = await response.json();
+
+        set((state) => {
+          state.ownerSettings = data;
+          state.isLoading = false;
+        });
+      } catch (error) {
+        console.error('Failed to fetch owner settings:', error);
+        set((state) => {
+          state.error =
+            error instanceof Error
+              ? error.message
+              : 'Failed to fetch owner settings';
+          state.isLoading = false;
+        });
+      }
+    },
+
+    updateOwnerSettings: async (settings) => {
+      set((state) => {
+        state.isLoading = true;
+        state.error = null;
+      });
+
+      try {
+        const response = await fetch('/api/owner/settings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update owner settings');
+        }
+
+        const { data } = await response.json();
+
+        set((state) => {
+          state.ownerSettings = data;
+          state.isLoading = false;
+        });
+      } catch (error) {
+        console.error('Failed to update owner settings:', error);
+        set((state) => {
+          state.error =
+            error instanceof Error
+              ? error.message
+              : 'Failed to update owner settings';
+          state.isLoading = false;
+        });
+        throw error;
+      }
+    },
+
     createFittingSchedule: async (scheduleData) => {
       set((state) => {
         state.isLoading = true;
@@ -187,7 +277,9 @@ export const useFittingStore = create<FittingState>()(
           duration: scheduleData.duration || 60,
           note: scheduleData.note,
           phoneNumber: scheduleData.phoneNumber,
-          variantIds: scheduleData.variantId ? [scheduleData.variantId] : [],
+          variantIds: scheduleData.variantId
+            ? [scheduleData.variantId, ...(scheduleData.variantIds || [])]
+            : scheduleData.variantIds || [],
         };
 
         const response = await fetch('/api/fitting/schedule', {
@@ -201,7 +293,7 @@ export const useFittingStore = create<FittingState>()(
           throw new Error(errorData.error || 'Failed to create schedule');
         }
 
-        const { schedule: newSchedule } = await response.json();
+        const { schedule: newSchedule, message } = await response.json();
 
         set((state) => {
           state.fittingSchedules.push(newSchedule);
@@ -230,7 +322,7 @@ export const useFittingStore = create<FittingState>()(
 
     updateFittingSchedule: async (scheduleId, updates) => {
       set((state) => {
-        state.isLoading = true;
+        state.scheduleLoadingStates[scheduleId] = true;
         state.error = null;
       });
 
@@ -253,12 +345,24 @@ export const useFittingStore = create<FittingState>()(
             (s) => s.id === scheduleId,
           );
           if (index !== -1) {
+            // Process the updated schedule similar to fetchFittingSchedules
+            const base = new Date(
+              updatedSchedule.fittingSlot?.dateTime ?? null,
+            );
+            const duration = updatedSchedule.duration ?? 60;
+
             state.fittingSchedules[index] = {
               ...state.fittingSchedules[index],
               ...updatedSchedule,
+              startTime: base,
+              endTime: new Date(base.getTime() + duration * 60 * 1000),
+              title: `${updatedSchedule.user?.first_name || 'Unknown'} - ${
+                updatedSchedule.fittingType?.name || 'Fitting'
+              }`,
+              color: updatedSchedule.fittingType?.color || 'blue',
             };
           }
-          state.isLoading = false;
+          state.scheduleLoadingStates[scheduleId] = false;
         });
       } catch (error) {
         console.error('Failed to update fitting schedule:', error);
@@ -267,8 +371,9 @@ export const useFittingStore = create<FittingState>()(
             error instanceof Error
               ? error.message
               : 'Failed to update schedule';
-          state.isLoading = false;
+          state.scheduleLoadingStates[scheduleId] = false;
         });
+        throw error;
       }
     },
 
@@ -277,6 +382,7 @@ export const useFittingStore = create<FittingState>()(
         await get().updateFittingSchedule(scheduleId, { status: 'CANCELED' });
       } catch (error) {
         console.error('Failed to cancel fitting schedule:', error);
+        throw error;
       }
     },
 
@@ -285,10 +391,21 @@ export const useFittingStore = create<FittingState>()(
         await get().updateFittingSchedule(scheduleId, { status: 'CONFIRMED' });
       } catch (error) {
         console.error('Failed to confirm fitting schedule:', error);
+        throw error;
       }
     },
 
-    createFittingSlot: async ({ dateTime, isAutoConfirm = false }) => {
+    rejectFittingSchedule: async (scheduleId) => {
+      try {
+        await get().updateFittingSchedule(scheduleId, { status: 'REJECTED' });
+      } catch (error) {
+        console.error('Failed to reject fitting schedule:', error);
+        throw error;
+      }
+    },
+
+    // Updated slot methods without isAutoConfirm
+    createFittingSlot: async ({ dateTime }) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -298,7 +415,7 @@ export const useFittingStore = create<FittingState>()(
         const response = await fetch('/api/fitting/slots', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dateTime, isAutoConfirm }),
+          body: JSON.stringify({ dateTime }),
         });
 
         if (!response.ok) {

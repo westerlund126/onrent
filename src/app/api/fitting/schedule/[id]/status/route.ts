@@ -1,0 +1,30 @@
+// /api/fitting/[id]/status/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from 'lib/prisma';
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { status } = await request.json();
+    const fittingId = parseInt(params.id);
+
+    const updatedFitting = await prisma.fittingSchedule.update({
+      where: { id: fittingId },
+      data: { status },
+      include: {
+        user: true,
+        fittingSlot: true,
+        FittingProduct: true,
+      },
+    });
+
+    return NextResponse.json(updatedFitting);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to update fitting status' },
+      { status: 500 }
+    );
+  }
+}

@@ -1,4 +1,4 @@
-//api/fitting/schedule/route.ts
+// api/fitting/schedule/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build variant IDs array from different possible inputs
     let allVariantIds: number[] = [];
 
     if (variantIds.length > 0) {
@@ -54,11 +53,16 @@ export async function POST(request: NextRequest) {
       ),
     );
 
-    // First, validate the fitting slot outside the transaction
+    // Get fitting slot with owner's auto-confirm setting
     const fittingSlot = await prisma.fittingSlot.findUnique({
       where: { id: parseInt(fittingSlotId) },
       include: {
-        owner: { select: { id: true } }
+        owner: {
+          select: {
+            id: true,
+            isAutoConfirm: true, // Now from User model
+          }
+        }
       }
     });
 
@@ -76,7 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate variants outside the transaction if provided
     let existingVariants: any[] = [];
     if (variantIdsNumeric.length > 0) {
       existingVariants = await prisma.variantProducts.findMany({
@@ -100,13 +103,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Now run the transaction with shorter operations
+    const initialStatus = fittingSlot.owner.isAutoConfirm ? 'CONFIRMED' : 'PENDING';
+
     const result = await prisma.$transaction(async (tx) => {
-      // Double-check the slot is still available
       const currentSlot = await tx.fittingSlot.findUnique({
         where: { id: parseInt(fittingSlotId) },
         include: {
-          owner: { select: { id: true } }, // Get the owner ID
+          owner: { select: { id: true } }, 
         },
       });
 
@@ -114,7 +117,6 @@ export async function POST(request: NextRequest) {
         throw new Error('Fitting slot was just booked by another user');
       }
 
-      // Update user phone number if provided
       if (phoneNumber && phoneNumber !== user.phone_numbers) {
         await tx.user.update({
           where: { id: user.id },
@@ -122,15 +124,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // FIX 1: Add ownerId to FittingSchedule creation
       const fittingSchedule = await tx.fittingSchedule.create({
         data: {
           userId: user.id,
-          ownerId: fittingSlot.owner.id, // Add the owner ID
+          ownerId: fittingSlot.owner.id,
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
-          status: fittingSlot.isAutoConfirm ? 'CONFIRMED' : 'PENDING',
+          status: initialStatus, // Use owner-level setting
         },
       });
 
@@ -140,32 +141,13 @@ export async function POST(request: NextRequest) {
       });
 
       if (variantIdsNumeric.length > 0) {
-        const existingVariants = await tx.variantProducts.findMany({
-          where: { id: { in: variantIdsNumeric } },
-          select: {
-            id: true,
-            products: {
-              select: { ownerId: true }, // Get the product owner ID
-            },
-          },
-        });
-        console.log('existingVariants:', existingVariants);
-
-        if (existingVariants.length !== variantIdsNumeric.length) {
-          const missingIds = variantIdsNumeric.filter(
-            (id) => !existingVariants.some((v) => v.id === id),
-          );
-          throw new Error(`Variants not found: ${missingIds.join(', ')}`);
-        }
-
-        // FIX 2: Add ownerId to FittingProduct creation
         await tx.fittingProduct.createMany({
           data: variantIdsNumeric.map((variantId: number) => {
             const variant = existingVariants.find((v) => v.id === variantId);
             return {
               fittingId: fittingSchedule.id,
               variantProductId: Number(variantId),
-              ownerId: variant!.products.ownerId, // Add the product owner ID
+              ownerId: variant!.products.ownerId,
             };
           }),
           skipDuplicates: true,
@@ -174,10 +156,9 @@ export async function POST(request: NextRequest) {
 
       return fittingSchedule.id;
     }, {
-      timeout: 10000, // 10 second timeout
+      timeout: 10000, 
     });
 
-    // Fetch complete schedule with relations
     const completeSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: result },
       include: {
@@ -227,8 +208,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      message: 'Fitting schedule created successfully',
+      message: initialStatus === 'CONFIRMED'
+        ? 'Fitting scheduled and automatically confirmed'
+        : 'Fitting scheduled - pending confirmation',
       schedule: completeSchedule,
+      status: initialStatus,
     });
   } catch (error: any) {
     console.error('Error creating fitting schedule:', error);
@@ -262,6 +246,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const ownerIdParam = searchParams.get('ownerId');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
 
     let whereClause: any = {};
 
@@ -271,18 +257,27 @@ export async function GET(request: NextRequest) {
       if (ownerIdParam) {
         const requestedOwnerId = parseInt(ownerIdParam);
         if (requestedOwnerId === caller.id) {
-          whereClause.fittingSlot = { ownerId: caller.id };
+          whereClause.ownerId = caller.id;
         } else {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       } else {
-        // Default to caller's own schedules
-        whereClause.fittingSlot = { ownerId: caller.id };
+        whereClause.ownerId = caller.id;
       }
     } else if (caller.role === 'ADMIN') {
       if (ownerIdParam) {
-        whereClause.fittingSlot = { ownerId: parseInt(ownerIdParam) };
+        whereClause.ownerId = parseInt(ownerIdParam);
       }
+    }
+
+    if (dateFrom || dateTo) {
+      whereClause.fittingSlot = {
+        ...whereClause.fittingSlot,
+        dateTime: {
+          ...(dateFrom && { gte: new Date(dateFrom) }),
+          ...(dateTo && { lte: new Date(dateTo) }),
+        },
+      };
     }
 
     const schedules = await prisma.fittingSchedule.findMany({
@@ -307,6 +302,7 @@ export async function GET(request: NextRequest) {
                 phone_numbers: true,
                 email: true,
                 imageUrl: true,
+                isAutoConfirm: true, // Include owner's auto-confirm setting
               },
             },
           },

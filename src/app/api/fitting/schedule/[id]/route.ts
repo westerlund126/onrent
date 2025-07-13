@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -24,8 +24,8 @@ export async function GET(
     if (!caller) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    const resolvedParams = await params; 
-    const scheduleId = parseInt(resolvedParams.id);
+
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
@@ -49,6 +49,7 @@ export async function GET(
                 phone_numbers: true,
                 email: true,
                 imageUrl: true,
+                isAutoConfirm: true, // Add owner's auto-confirm setting
               },
             },
           },
@@ -83,7 +84,6 @@ export async function GET(
       );
     }
 
-    // Check authorization - users can only see their own schedules or schedules for their slots
     const canAccess =
       caller.role === 'ADMIN' ||
       schedule.userId === caller.id ||
@@ -105,7 +105,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -123,13 +123,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const resolvedParams = await params;
-    const scheduleId = parseInt(resolvedParams.id);
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
       include: {
-        fittingSlot: true,
+        fittingSlot: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                isAutoConfirm: true, // Include for reference
+              },
+            },
+          },
+        },
       },
     });
 
@@ -140,7 +148,6 @@ export async function PATCH(
       );
     }
 
-    // Check authorization for updates
     const canUpdate =
       caller.role === 'ADMIN' ||
       schedule.userId === caller.id ||
@@ -152,7 +159,6 @@ export async function PATCH(
 
     const updates = await request.json();
 
-    // Validate status updates
     if (updates.status) {
       const validStatuses = [
         'PENDING',
@@ -165,7 +171,6 @@ export async function PATCH(
         return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
       }
 
-      // Validate status transitions
       if (schedule.status === 'COMPLETED' && updates.status !== 'COMPLETED') {
         return NextResponse.json(
           { error: 'Cannot change status of completed appointment' },
@@ -216,6 +221,7 @@ export async function PATCH(
                   phone_numbers: true,
                   email: true,
                   imageUrl: true,
+                  isAutoConfirm: true, // Add owner's auto-confirm setting
                 },
               },
             },
@@ -256,7 +262,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -274,8 +280,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const resolvedParams = await params; 
-    const scheduleId = parseInt(resolvedParams.id);
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
@@ -292,7 +297,6 @@ export async function DELETE(
       );
     }
 
-    // Check authorization for deletion
     const canDelete =
       caller.role === 'ADMIN' ||
       schedule.userId === caller.id ||
@@ -302,21 +306,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Use transaction for safe deletion
     await prisma.$transaction(async (tx) => {
-      // Delete fitting products first (due to foreign key constraints)
       if (schedule.FittingProduct.length > 0) {
         await tx.fittingProduct.deleteMany({
           where: { fittingId: scheduleId },
         });
       }
 
-      // Delete the schedule
       await tx.fittingSchedule.delete({
         where: { id: scheduleId },
       });
 
-      // Free up the slot
       await tx.fittingSlot.update({
         where: { id: schedule.fittingSlotId },
         data: { isBooked: false },
