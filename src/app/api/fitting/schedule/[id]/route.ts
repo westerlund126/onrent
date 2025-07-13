@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -24,8 +24,8 @@ export async function GET(
     if (!caller) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    const resolvedParams = await params; 
-    const scheduleId = parseInt(resolvedParams.id);
+
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
@@ -49,6 +49,7 @@ export async function GET(
                 phone_numbers: true,
                 email: true,
                 imageUrl: true,
+                isAutoConfirm: true, // Add owner's auto-confirm setting
               },
             },
           },
@@ -104,7 +105,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -122,13 +123,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const resolvedParams = await params;
-    const scheduleId = parseInt(resolvedParams.id);
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
       include: {
-        fittingSlot: true,
+        fittingSlot: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                isAutoConfirm: true, // Include for reference
+              },
+            },
+          },
+        },
       },
     });
 
@@ -212,6 +221,7 @@ export async function PATCH(
                   phone_numbers: true,
                   email: true,
                   imageUrl: true,
+                  isAutoConfirm: true, // Add owner's auto-confirm setting
                 },
               },
             },
@@ -252,7 +262,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -270,8 +280,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const resolvedParams = await params; 
-    const scheduleId = parseInt(resolvedParams.id);
+    const scheduleId = parseInt(params.id);
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },

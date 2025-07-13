@@ -21,6 +21,7 @@ model User {
   first_name      String
   last_name       String?
   username        String            @unique
+  isAutoConfirm   Boolean          @default(false)
   businessBio     String?
   FittingProduct  FittingProduct[]  @relation("FittingProductOwner")
   OwnerFittings   FittingSchedule[] @relation("OwnerFittings")
@@ -142,7 +143,6 @@ model FittingSlot {
   id              Int              @id @default(autoincrement())
   ownerId         Int
   dateTime        DateTime
-  isAutoConfirm   Boolean          @default(false)
   isBooked        Boolean          @default(false)
   fittingSchedule FittingSchedule?
   owner           User             @relation(fields: [ownerId], references: [id])

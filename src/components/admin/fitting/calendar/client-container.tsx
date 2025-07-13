@@ -106,7 +106,6 @@ export function ClientContainer({ view }: IProps) {
 
   const singleDaySchedule = filteredSchedule;
 
-  // Note: agenda view is now handled separately in the layout
 
   return (
     <div className="overflow-hidden rounded-xl border-2 bg-white px-5">

@@ -4,6 +4,7 @@ import { Settings, CalendarClockIcon } from 'lucide-react';
 
 import { ChangeWorkingHoursInput } from 'components/admin/fitting/calendar/change-working-hours-input';
 import { ChangeBadgeVariantInput } from 'components/admin/fitting/calendar/change-badge-variant-input';
+import { ChangeAutoConfirm } from 'components/admin/fitting/calendar/change-auto-confirm';
 
 const Availability = () => {
   return (
@@ -15,6 +16,19 @@ const Availability = () => {
             <p className="text-base font-semibold">
               Pengaturan Waktu Operasional
             </p>
+          </div>
+        </div>
+
+        <div>
+          <div className="mt-4 flex flex-col gap-6">
+            <ChangeWorkingHoursInput />
+            <div className="flex items-center gap-2">
+              <Settings className="size-4" />
+              <p className="text-base font-semibold">
+                Pengaturan Konfirmasi Permintaan Fitting
+              </p>
+            </div>
+            <ChangeAutoConfirm />
           </div>
         </div>
 

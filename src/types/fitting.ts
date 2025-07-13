@@ -61,10 +61,13 @@ export interface IFittingSlot {
   id: number;
   ownerId: number;
   dateTime: Date;
-  isAutoConfirm: boolean;
   isBooked: boolean;
   owner: IUser;
   fittingSchedule?: IFittingSchedule;
+}
+
+export interface OwnerSettings {
+  isAutoConfirm: boolean;
 }
 
 export type DayOfWeek =
