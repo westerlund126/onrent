@@ -21,8 +21,11 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       window.OneSignal.push(function () {
         console.log("OneSignal push function called");
         
+        const appId = "61505641-03dc-4eb9-91a6-178833446fbd";
+        console.log("Using App ID:", appId);
+        
         window.OneSignal.init({
-          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+          appId: appId,
           notifyButton: { 
             enable: true,
             size: 'medium',
@@ -43,23 +46,24 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
               cancelButtonText: "Cancel"
             }
           }
-        }).then(() => {
-          console.log("OneSignal initialized successfully");
-          console.log("Permission:", window.OneSignal.getNotificationPermission());
+        });
+        
+        // Wait for initialization to complete
+        window.OneSignal.push(function() {
+          console.log("OneSignal post-init check");
+          console.log("Is initialized:", window.OneSignal.initialized);
           
           // Set external user ID if provided
           if (userId) {
+            console.log("Setting external user ID:", userId);
             window.OneSignal.setExternalUserId(userId);
           }
           
-          // Check permission and show prompt if needed
-          const permission = window.OneSignal.getNotificationPermission();
-          if (permission === 'default') {
-            console.log("Showing slidedown prompt...");
+          // Show prompt after a short delay
+          setTimeout(() => {
+            console.log("Attempting to show slidedown prompt...");
             window.OneSignal.showSlidedownPrompt();
-          }
-        }).catch((error) => {
-          console.error("OneSignal initialization error:", error);
+          }, 3000);
         });
       });
     };
