@@ -26,53 +26,46 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
         
         window.OneSignal.init({
           appId: appId,
-          notifyButton: { 
-            enable: true,
-            size: 'medium',
-            theme: 'default',
-            position: 'bottom-right'
-          },
           allowLocalhostAsSecureOrigin: true,
           autoResubscribe: true,
           autoRegister: true
         });
       });
       
-      // Wait for OneSignal to be fully ready before showing prompts
-      const checkInitialized = () => {
+      // Try to show prompt without waiting for full initialization
+      setTimeout(() => {
         window.OneSignal.push(function() {
-          console.log("Checking if OneSignal is ready...");
-          console.log("Is initialized:", window.OneSignal.initialized);
+          console.log("Attempting to show prompt regardless of initialization status...");
           
-          if (window.OneSignal.initialized) {
-            console.log("OneSignal is ready!");
-            
-            // Set external user ID if provided
-            if (userId) {
-              console.log("Setting external user ID:", userId);
-              window.OneSignal.setExternalUserId(userId);
-            }
-            
-            // Check current permission
-            window.OneSignal.getNotificationPermission().then(permission => {
-              console.log("Current permission:", permission);
-              
-              if (permission === 'default') {
-                console.log("Showing slidedown prompt...");
-                window.OneSignal.showSlidedownPrompt();
-              } else {
-                console.log("Permission already granted or denied:", permission);
-              }
-            });
-          } else {
-            console.log("OneSignal not ready yet, retrying in 1 second...");
-            setTimeout(checkInitialized, 1000);
+          // Set external user ID if provided
+          if (userId) {
+            console.log("Setting external user ID:", userId);
+            window.OneSignal.setExternalUserId(userId);
+          }
+          
+          // Try multiple methods to show the prompt
+          try {
+            console.log("Trying showSlidedownPrompt...");
+            window.OneSignal.showSlidedownPrompt();
+          } catch (error) {
+            console.error("showSlidedownPrompt failed:", error);
+          }
+          
+          try {
+            console.log("Trying showNativePrompt...");
+            window.OneSignal.showNativePrompt();
+          } catch (error) {
+            console.error("showNativePrompt failed:", error);
+          }
+          
+          try {
+            console.log("Trying registerForPushNotifications...");
+            window.OneSignal.registerForPushNotifications();
+          } catch (error) {
+            console.error("registerForPushNotifications failed:", error);
           }
         });
-      };
-      
-      // Start checking after a short delay
-      setTimeout(checkInitialized, 2000);
+      }, 3000);
     };
 
     // Add a small delay to ensure DOM is ready
