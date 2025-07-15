@@ -131,9 +131,6 @@ export async function PATCH(
       where: { id: slotId },
       data: {
         ...(updates.dateTime && { dateTime: new Date(updates.dateTime) }),
-        ...(updates.isAutoConfirm !== undefined && {
-          isAutoConfirm: updates.isAutoConfirm,
-        }),
       },
       include: {
         owner: {

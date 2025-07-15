@@ -201,10 +201,8 @@ export function formatHourToTime(hour: number): Date {
   if (!isValidHour(hour)) {
     throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
   }
-  
-  // Create a date in WIB timezone (UTC+7)
   const date = new Date();
-  date.setUTCHours(hour - 7, 0, 0, 0); // Convert WIB to UTC for database storage
+  date.setHours(hour, 0, 0, 0); 
   return date;
 }
 
@@ -232,66 +230,16 @@ export function parseTimeToHour(timeValue: string | Date): number {
 
     return hour;
   } else if (timeValue instanceof Date) {
-    // Convert UTC time from database back to WIB for display
-    const hour = timeValue.getUTCHours() + 7; // Convert UTC to WIB
-    const adjustedHour = hour >= 24 ? hour - 24 : hour; // Handle day overflow
-    
-    if (!isValidHour(adjustedHour)) {
-      throw new Error(`Invalid hour: ${adjustedHour}. Must be 0-23.`);
+    // Handle Date object
+    const hour = timeValue.getHours(); // Changed from getUTCHours to getHours
+    if (!isValidHour(hour)) {
+      throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
     }
 
-    return adjustedHour;
+    return hour;
   } else {
     throw new Error('Time value must be a string or Date object');
   }
-}
-
-// Alternative approach using Intl.DateTimeFormat for more robust timezone handling
-export function formatHourToTimeWithTimezone(hour: number): Date {
-  if (!isValidHour(hour)) {
-    throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
-  }
-  
-  // Create a date representing the hour in WIB timezone
-  const today = new Date();
-  const wibDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour, 0, 0);
-  
-  // Convert to UTC for database storage
-  const utcDate = new Date(wibDate.getTime() - (7 * 60 * 60 * 1000));
-  return utcDate;
-}
-
-export function parseTimeToHourWithTimezone(timeValue: Date): number {
-  // Convert UTC time from database to WIB for display
-  const wibTime = new Date(timeValue.getTime() + (7 * 60 * 60 * 1000));
-  return wibTime.getUTCHours();
-}
-
-// Updated slot generation with timezone awareness
-export function createSlotDateTimeInWIB(date: Date, hour: number): Date {
-  // Create the slot datetime in WIB timezone
-  const slotDateTime = new Date(date);
-  slotDateTime.setHours(hour, 0, 0, 0);
-  
-  // Convert to UTC for database storage
-  const utcDateTime = new Date(slotDateTime.getTime() - (7 * 60 * 60 * 1000));
-  return utcDateTime;
-}
-
-// Helper function to display time in WIB format
-export function displayTimeInWIB(utcDate: Date): string {
-  const wibTime = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
-  return wibTime.toLocaleTimeString('id-ID', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false 
-  });
-}
-
-// Helper function to get current time in WIB
-export function getCurrentTimeInWIB(): Date {
-  const now = new Date();
-  return new Date(now.getTime() + (7 * 60 * 60 * 1000));
 }
 
 function getDayName(dayIndex: ValidDayIndex): string {
