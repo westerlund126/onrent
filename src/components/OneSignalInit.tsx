@@ -79,7 +79,6 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       });
     });
 
-    // Load SDK if not already loaded
     if (!document.getElementById("oneSignalSDK")) {
       const script = document.createElement("script");
       script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
