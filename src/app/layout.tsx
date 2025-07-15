@@ -1,3 +1,4 @@
+"use client";
 import React, { ReactNode } from 'react';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
 import { idID } from '@clerk/localizations';
