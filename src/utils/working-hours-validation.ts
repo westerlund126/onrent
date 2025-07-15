@@ -202,7 +202,7 @@ export function formatHourToTime(hour: number): Date {
     throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
   }
   const date = new Date();
-  date.setHours(hour, 0, 0, 0); 
+  date.setUTCHours(hour, 0, 0, 0); 
   return date;
 }
 
@@ -231,7 +231,7 @@ export function parseTimeToHour(timeValue: string | Date): number {
     return hour;
   } else if (timeValue instanceof Date) {
     // Handle Date object
-    const hour = timeValue.getHours(); // Changed from getUTCHours to getHours
+    const hour = timeValue.getUTCHours(); // Changed from getUTCHours to getHours
     if (!isValidHour(hour)) {
       throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
     }
