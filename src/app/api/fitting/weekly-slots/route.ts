@@ -163,7 +163,6 @@ async function generateFittingSlotsForOwner(
           slotsToCreate.push({
             ownerId,
             dateTime: slotDateTime,
-            // isAutoConfirm: true,
           });
         }
       }
