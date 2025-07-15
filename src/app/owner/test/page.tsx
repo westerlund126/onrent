@@ -117,7 +117,7 @@ export default function OneSignalTestPage() {
       await window.OneSignal.init({
         appId: '61505641-03dc-4eb9-91a6-178833446fbd',
         safari_web_id: 'web.onesignal.auto.YOUR_SAFARI_WEB_ID',
-        serviceWorkerPath: '/._OneSignalSDKWorker.js', 
+        serviceWorkerPath: '/OneSignalSDKWorker.js', 
         serviceWorkerUpdaterPath: '/._OneSignalSDK-v16-ServiceWorker.js',
         notifyButton: {
           enable: false, 
