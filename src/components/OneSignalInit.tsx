@@ -18,7 +18,7 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       
       window.OneSignal = window.OneSignal || [];
       
-      window.OneSignal.push(function () {
+              window.OneSignal.push(function () {
         console.log("OneSignal push function called");
         
         const appId = "61505641-03dc-4eb9-91a6-178833446fbd";
@@ -34,38 +34,45 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
           },
           allowLocalhostAsSecureOrigin: true,
           autoResubscribe: true,
-          autoRegister: true,
-          promptOptions: {
-            slidedown: {
-              enabled: true,
-              autoPrompt: true,
-              timeDelay: 2, // Show after 2 seconds
-              pageViews: 1, // Show after 1 page view
-              actionMessage: "We'd like to show you notifications for the latest news and updates.",
-              acceptButtonText: "Allow",
-              cancelButtonText: "Cancel"
-            }
-          }
-        });
-        
-        // Wait for initialization to complete
-        window.OneSignal.push(function() {
-          console.log("OneSignal post-init check");
-          console.log("Is initialized:", window.OneSignal.initialized);
-          
-          // Set external user ID if provided
-          if (userId) {
-            console.log("Setting external user ID:", userId);
-            window.OneSignal.setExternalUserId(userId);
-          }
-          
-          // Show prompt after a short delay
-          setTimeout(() => {
-            console.log("Attempting to show slidedown prompt...");
-            window.OneSignal.showSlidedownPrompt();
-          }, 3000);
+          autoRegister: true
         });
       });
+      
+      // Wait for OneSignal to be fully ready before showing prompts
+      const checkInitialized = () => {
+        window.OneSignal.push(function() {
+          console.log("Checking if OneSignal is ready...");
+          console.log("Is initialized:", window.OneSignal.initialized);
+          
+          if (window.OneSignal.initialized) {
+            console.log("OneSignal is ready!");
+            
+            // Set external user ID if provided
+            if (userId) {
+              console.log("Setting external user ID:", userId);
+              window.OneSignal.setExternalUserId(userId);
+            }
+            
+            // Check current permission
+            window.OneSignal.getNotificationPermission().then(permission => {
+              console.log("Current permission:", permission);
+              
+              if (permission === 'default') {
+                console.log("Showing slidedown prompt...");
+                window.OneSignal.showSlidedownPrompt();
+              } else {
+                console.log("Permission already granted or denied:", permission);
+              }
+            });
+          } else {
+            console.log("OneSignal not ready yet, retrying in 1 second...");
+            setTimeout(checkInitialized, 1000);
+          }
+        });
+      };
+      
+      // Start checking after a short delay
+      setTimeout(checkInitialized, 2000);
     };
 
     // Add a small delay to ensure DOM is ready
