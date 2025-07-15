@@ -11,9 +11,9 @@ import {
   TooltipProvider,
 } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
-// --- FIX: Import the correct type from its original source ---
-import type { TWorkingHours } from 'types/fitting';
+import {
+  useWorkingHoursStore
+} from 'stores/useWorkingHoursStore';
 
 const DAYS_OF_WEEK = [
   { index: 0, name: 'Minggu' },
@@ -53,14 +53,14 @@ const HourSelect = ({
 export function ChangeWorkingHoursInput() {
   const {
     workingHours,
+    setWorkingHours,
     fetchWorkingHours,
     updateWorkingHours,
     isLoading,
     error,
   } = useWorkingHoursStore();
 
-  // --- FIX: Use the correct type ---
-  const [localWorkingHours, setLocalWorkingHours] = useState<TWorkingHours>({
+  const [localWorkingHours, setLocalWorkingHours] = useState<typeof workingHours>({
     ...workingHours,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -68,27 +68,7 @@ export function ChangeWorkingHoursInput() {
 
   useEffect(() => {
     fetchWorkingHours().then(() => {
-      const fetchedUtcHours = useWorkingHoursStore.getState().workingHours;
-      console.log('Data from API (UTC):', fetchedUtcHours);
-
-      const wibHoursForDisplay: TWorkingHours = { ...fetchedUtcHours };
-
-      // Type-safe loop to convert UTC to WIB for display
-      for (let i = 0; i < 7; i++) {
-        const dayIndex = i as keyof TWorkingHours;
-        const day = wibHoursForDisplay[dayIndex];
-
-        // Only convert hours for active days, leave {from: 0, to: 0} as is
-        if (day && (day.from !== 0 || day.to !== 0)) {
-          wibHoursForDisplay[dayIndex] = {
-            from: (day.from + 7) % 24,
-            to: (day.to + 7) % 24,
-          };
-        }
-      }
-
-      console.log('Data for Display (WIB):', wibHoursForDisplay);
-      setLocalWorkingHours(wibHoursForDisplay);
+      setLocalWorkingHours(useWorkingHoursStore.getState().workingHours);
     });
   }, [fetchWorkingHours]);
 
@@ -96,10 +76,9 @@ export function ChangeWorkingHoursInput() {
     setLocalWorkingHours((prev) => ({
       ...prev,
       [dayIndex]:
-        prev[dayIndex as keyof TWorkingHours].from > 0 ||
-        prev[dayIndex as keyof TWorkingHours].to > 0
+        prev[dayIndex].from > 0 || prev[dayIndex].to > 0
           ? { from: 0, to: 0 }
-          : { from: 9, to: 17 }, // Default WIB hours
+          : { from: 9, to: 17 },
     }));
   };
 
@@ -111,7 +90,7 @@ export function ChangeWorkingHoursInput() {
     setLocalWorkingHours((prev) => ({
       ...prev,
       [dayIndex]: {
-        ...prev[dayIndex as keyof TWorkingHours],
+        ...prev[dayIndex],
         [type]: hour,
       },
     }));
@@ -121,30 +100,10 @@ export function ChangeWorkingHoursInput() {
     setIsSaving(true);
     setSuccess(null);
 
-    const hoursInWIB = localWorkingHours;
-    const hoursToSendInUTC: TWorkingHours = { ...hoursInWIB };
-
-    // Type-safe loop to convert WIB back to UTC for saving
-    for (let i = 0; i < 7; i++) {
-      const dayIndex = i as keyof TWorkingHours;
-      const day = hoursToSendInUTC[dayIndex];
-
-      // Only convert hours for active days
-      if (day && (day.from !== 0 || day.to !== 0)) {
-        hoursToSendInUTC[dayIndex] = {
-          from: (day.from - 7 + 24) % 24, // Add 24 to prevent negative numbers
-          to: (day.to - 7 + 24) % 24,
-        };
-      }
-    }
-
-    console.log('Data being sent to API (UTC):', hoursToSendInUTC);
-
     try {
-      await updateWorkingHours(hoursToSendInUTC);
+      await updateWorkingHours(localWorkingHours);
       setSuccess('Jam Operasional berhasil diperbarui.');
     } catch (err) {
-      // Optional: Handle error display
     } finally {
       setIsSaving(false);
     }
@@ -192,8 +151,9 @@ export function ChangeWorkingHoursInput() {
 
       <div className="space-y-4">
         {DAYS_OF_WEEK.map((day) => {
-          const dayData = localWorkingHours[day.index as keyof TWorkingHours];
-          const isDayActive = dayData && (dayData.from > 0 || dayData.to > 0);
+          const isDayActive =
+            localWorkingHours[day.index].from > 0 ||
+            localWorkingHours[day.index].to > 0;
 
           return (
             <div
@@ -202,7 +162,7 @@ export function ChangeWorkingHoursInput() {
             >
               <div className="flex w-40 items-center gap-2">
                 <Switch
-                  checked={!!isDayActive}
+                  checked={isDayActive}
                   onCheckedChange={() => handleToggleDay(day.index)}
                 />
                 <span className="text-sm font-medium">{day.name}</span>
@@ -213,7 +173,7 @@ export function ChangeWorkingHoursInput() {
                   <div className="flex items-center gap-2">
                     <span>Dari</span>
                     <HourSelect
-                      value={dayData.from}
+                      value={localWorkingHours[day.index].from}
                       onChange={(hour) =>
                         handleTimeChange(day.index, 'from', hour)
                       }
@@ -223,7 +183,7 @@ export function ChangeWorkingHoursInput() {
                   <div className="flex items-center gap-2">
                     <span>Sampai</span>
                     <HourSelect
-                      value={dayData.to}
+                      value={localWorkingHours[day.index].to}
                       onChange={(hour) =>
                         handleTimeChange(day.index, 'to', hour)
                       }
@@ -242,6 +202,7 @@ export function ChangeWorkingHoursInput() {
       </div>
 
       <Button className="mt-4 w-fit" onClick={handleSave} disabled={isSaving}>
+        {/* {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />} */}
         {isSaving ? 'Menyimpan...' : 'Simpan'}
       </Button>
     </div>
