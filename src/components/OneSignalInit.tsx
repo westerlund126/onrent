@@ -13,28 +13,56 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
     // Check if we're in a browser environment
     if (typeof window === "undefined") return;
     
-    // Check if OneSignal is already loaded
-    if ("OneSignal" in window) return;
+    // Check if OneSignal is already initialized
+    if (window.OneSignal && window.OneSignal.initialized) return;
     
-    const oneSignalScript = document.createElement("script");
-    oneSignalScript.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
-    oneSignalScript.async = true;
-    document.head.appendChild(oneSignalScript);
-    
-    // Initialize OneSignal array if it doesn't exist
-    (window as Window).OneSignal = (window as Window).OneSignal || [];
-    
-    (window as Window).OneSignal.push(function () {
-      (window as Window).OneSignal.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-        notifyButton: { enable: true },
-        allowLocalhostAsSecureOrigin: true,
-      });
+    const initOneSignal = () => {
+      window.OneSignal = window.OneSignal || [];
       
-      if (userId) {
-        (window as Window).OneSignal.setExternalUserId(userId);
-      }
-    });
+      window.OneSignal.push(function () {
+        window.OneSignal.init({
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+          notifyButton: { 
+            enable: true,
+            size: 'medium',
+            theme: 'default',
+            position: 'bottom-right'
+          },
+          allowLocalhostAsSecureOrigin: true,
+          promptOptions: {
+            slidedown: {
+              enabled: true,
+              autoPrompt: true,
+              timeDelay: 3, // Show after 3 seconds
+              pageViews: 1, // Show after 1 page view
+              actionMessage: "We'd like to show you notifications for the latest news and updates.",
+              acceptButtonText: "Allow",
+              cancelButtonText: "Cancel"
+            }
+          }
+        });
+        
+        // Set external user ID if provided
+        if (userId) {
+          window.OneSignal.setExternalUserId(userId);
+        }
+        
+        // Force show the prompt if not already shown
+        window.OneSignal.showSlidedownPrompt();
+      });
+    };
+
+    // Check if OneSignal script is already loaded
+    if ("OneSignal" in window) {
+      initOneSignal();
+    } else {
+      // Load OneSignal script
+      const oneSignalScript = document.createElement("script");
+      oneSignalScript.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
+      oneSignalScript.async = true;
+      oneSignalScript.onload = initOneSignal;
+      document.head.appendChild(oneSignalScript);
+    }
   }, [userId]);
   
   return null;
