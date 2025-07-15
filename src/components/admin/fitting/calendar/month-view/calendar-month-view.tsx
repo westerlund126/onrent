@@ -82,13 +82,6 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
           note: fittingSchedule.note || 'No additional notes',
           fittingSlot: slot,
         });
-        console.log('Debug schedule item:', {
-          customerName,
-          status: fittingSchedule.status,
-          color: getStatusColor(fittingSchedule.status),
-          user: fittingSchedule.user,
-          title: `${customerName}`,
-        });
       }
     });
 
@@ -106,15 +99,11 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     return singleDay;
   }, [fittingSchedules, fittingSlots]);
 
-  console.log('fittingSchedules from store:', fittingSchedules);
-  console.log('fittingSlots from store:', fittingSlots);
-  console.log('processedSchedule:', processedSchedule);
-
   const allSchedule = useMemo(
     () => [...processedSingleDaySchedule, ...processedSchedule],
     [processedSingleDaySchedule, processedSchedule],
   );
-  console.log('allSchedule:', allSchedule);
+ ;
 
   const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
 

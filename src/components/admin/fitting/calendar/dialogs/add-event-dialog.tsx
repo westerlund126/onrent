@@ -310,8 +310,8 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
             />
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="size-3.5 rounded-full bg-red-600" />
-              Blocked periods will appear in red on your calendar
+              <div className="size-3.5 rounded-full bg-gray-700" />
+              Blocked periods will appear in gray on your calendar
             </div>
           </form>
         </Form>

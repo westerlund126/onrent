@@ -40,12 +40,9 @@ interface FittingState {
   cancelFittingSchedule: (scheduleId: number) => Promise<void>;
   confirmFittingSchedule: (scheduleId: number) => Promise<void>;
   rejectFittingSchedule: (scheduleId: number) => Promise<void>;
-
-  // Owner settings methods
   fetchOwnerSettings: () => Promise<void>;
   updateOwnerSettings: (settings: Partial<OwnerSettings>) => Promise<void>;
 
-  // Slot methods (without auto-confirm)
   createFittingSlot: (slotData: {
     dateTime: string;
   }) => Promise<IFittingSlot | null>;
@@ -63,7 +60,7 @@ export const useFittingStore = create<FittingState>()(
     selectedDate: new Date(),
     fittingSchedules: [],
     fittingSlots: [],
-    ownerSettings: null, // Added owner settings
+    ownerSettings: null, 
     isLoading: false,
     error: null,
     scheduleLoadingStates: {},
@@ -194,7 +191,6 @@ export const useFittingStore = create<FittingState>()(
       }
     },
 
-    // Owner settings methods
     fetchOwnerSettings: async () => {
       set((state) => {
         state.isLoading = true;

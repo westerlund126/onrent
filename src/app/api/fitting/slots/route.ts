@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { dateTime, isAutoConfirm = false } = await request.json();
+    const { dateTime } = await request.json();
 
     if (!dateTime) {
       return NextResponse.json(
