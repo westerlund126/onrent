@@ -34,7 +34,6 @@ const Availability = () => {
 
         <div>
           <div className="mt-4 flex flex-col gap-6">
-            <ChangeWorkingHoursInput />
             <div className="flex items-center gap-2">
               <Settings className="size-4" />
               <p className="text-base font-semibold">

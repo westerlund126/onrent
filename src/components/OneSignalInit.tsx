@@ -39,49 +39,80 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
           }
         });
         
-        // Set external user ID if provided
-        if (userId) {
-          console.log("Setting external user ID:", userId);
-          window.OneSignal.setExternalUserId(userId);
-        }
-        
-        // Check subscription status and show prompt accordingly
-        window.OneSignal.isPushNotificationsEnabled().then(function(isEnabled) {
-          console.log("Push notifications enabled:", isEnabled);
+        // Wait for OneSignal to be fully ready before proceeding
+        window.OneSignal.on('ready', function() {
+          console.log("OneSignal is ready!");
           
-          if (!isEnabled) {
-            console.log("User is not subscribed, showing prompt...");
-            
-            // Wait a bit more for full initialization
-            setTimeout(() => {
-              // Try slidedown prompt first
-              window.OneSignal.showSlidedownPrompt().then(function() {
-                console.log("Slidedown prompt shown successfully");
-              }).catch(function(error) {
-                console.error("Slidedown prompt failed:", error);
+          // Set external user ID if provided
+          if (userId) {
+            console.log("Setting external user ID:", userId);
+            window.OneSignal.setExternalUserId(userId);
+          }
+          
+          // Check subscription status and show prompt accordingly
+          try {
+            window.OneSignal.isPushNotificationsEnabled().then(function(isEnabled) {
+              console.log("Push notifications enabled:", isEnabled);
+              
+              if (!isEnabled) {
+                console.log("User is not subscribed, showing prompt...");
                 
-                // Fallback to native prompt
-                window.OneSignal.showNativePrompt().then(function() {
-                  console.log("Native prompt shown successfully");
-                }).catch(function(error) {
-                  console.error("Native prompt also failed:", error);
-                  
-                  // Last resort: direct registration
-                  window.OneSignal.registerForPushNotifications();
+                // Wait a bit more for full initialization
+                setTimeout(() => {
+                  // Try slidedown prompt first
+                  window.OneSignal.showSlidedownPrompt().then(function() {
+                    console.log("Slidedown prompt shown successfully");
+                  }).catch(function(error) {
+                    console.error("Slidedown prompt failed:", error);
+                    
+                    // Fallback to native prompt
+                    window.OneSignal.showNativePrompt().then(function() {
+                      console.log("Native prompt shown successfully");
+                    }).catch(function(error) {
+                      console.error("Native prompt also failed:", error);
+                      
+                      // Last resort: direct registration
+                      window.OneSignal.registerForPushNotifications();
+                    });
+                  });
+                }, 1000);
+              } else {
+                console.log("User is already subscribed to push notifications");
+                
+                // Get the subscription info
+                window.OneSignal.getUserId().then(function(userId) {
+                  console.log("OneSignal User ID:", userId);
                 });
-              });
-            }, 1000);
-          } else {
-            console.log("User is already subscribed to push notifications");
+              }
+            }).catch(function(error) {
+              console.error("Error checking push notification status:", error);
+            });
+          } catch (error) {
+            console.error("Error in subscription check:", error);
+          }
+        });
+        
+        // Fallback: If 'ready' event doesn't fire, try after a timeout
+        setTimeout(() => {
+          if (!window.OneSignal.initialized) {
+            console.log("OneSignal not ready after timeout, forcing initialization check...");
             
-            // Get the subscription info
-            window.OneSignal.getUserId().then(function(userId) {
-              console.log("OneSignal User ID:", userId);
+            // Set external user ID if provided
+            if (userId) {
+              console.log("Setting external user ID:", userId);
+              window.OneSignal.setExternalUserId(userId);
+            }
+            
+            // Force show prompt without checking subscription status
+            console.log("Forcing prompt display...");
+            window.OneSignal.showSlidedownPrompt().catch(function(error) {
+              console.error("Forced slidedown failed:", error);
+              window.OneSignal.showNativePrompt().catch(function(error) {
+                console.error("Forced native prompt failed:", error);
+              });
             });
           }
-        }).catch(function(error) {
-          console.error("Error checking push notification status:", error);
-        });
+        }, 5000);
       });
     };
     
