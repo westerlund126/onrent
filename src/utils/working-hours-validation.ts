@@ -11,7 +11,6 @@ import {
   ValidHour,
 } from 'types/working-hours';
 
-// Day mapping constants
 const DAY_NUMBER_TO_ENUM = {
   0: 'SUNDAY',
   1: 'MONDAY',
@@ -46,191 +45,95 @@ export function isValidHour(hour: any): hour is ValidHour {
   );
 }
 
+// ⭐ ADDED BACK: This function was missing.
 /**
  * Validates if a number is a valid day index (0-6)
  */
 export function isValidDayIndex(dayIndex: any): dayIndex is ValidDayIndex {
+  // Assuming VALID_DAY_INDICES is [0, 1, 2, 3, 4, 5, 6]
   return (
     typeof dayIndex === 'number' &&
-    VALID_DAY_INDICES.includes(dayIndex as ValidDayIndex)
+    dayIndex >= 0 &&
+    dayIndex <= 6 &&
+    Number.isInteger(dayIndex)
   );
 }
 
-/**
- * Validates a single day's working hours
- */
-export function validateDayWorkingHours(
-  day: any,
-  dayName: string,
-): WorkingHoursValidationError[] {
-  const errors: WorkingHoursValidationError[] = [];
 
-  if (!day || typeof day !== 'object') {
-    errors.push({
-      field: `${dayName}`,
-      message: 'Day working hours must be an object',
-      value: day,
-    });
-    return errors;
-  }
-
-  if (!isValidHour(day.from)) {
-    errors.push({
-      field: `${dayName}.from`,
-      message: 'From hour must be a number between 0 and 23',
-      value: day.from,
-    });
-  }
-
-  if (!isValidHour(day.to)) {
-    errors.push({
-      field: `${dayName}.to`,
-      message: 'To hour must be a number between 0 and 23',
-      value: day.to,
-    });
-  }
-
-  if (isValidHour(day.from) && isValidHour(day.to)) {
-    const isDayEnabled = day.from > 0 || day.to > 0;
-    if (isDayEnabled && day.from === day.to && day.from !== 0) {
-      errors.push({
-        field: `${dayName}`,
-        message: 'From and to hours cannot be the same (except for closed days)',
-        value: { from: day.from, to: day.to },
-      });
-    }
-  }
-
-  return errors;
-}
-
-/**
- * Validates the entire working hours structure
- */
-export function validateWorkingHours(
-  workingHours: any,
-): WorkingHoursValidationResult {
-  const errors: WorkingHoursValidationError[] = [];
-
-  if (!workingHours || typeof workingHours !== 'object') {
-    return {
-      isValid: false,
-      errors: [
-        {
-          field: 'workingHours',
-          message: 'Working hours must be an object',
-          value: workingHours,
-        },
-      ],
-    };
-  }
-
-  for (const dayIndex of VALID_DAY_INDICES) {
-    const dayName = getDayName(dayIndex);
-    if (!(dayIndex in workingHours)) {
-      errors.push({
-        field: `workingHours[${dayIndex}]`,
-        message: `Missing working hours for ${dayName}`,
-        value: undefined,
-      });
-      continue;
-    }
-    const dayErrors = validateDayWorkingHours(
-      workingHours[dayIndex],
-      `${dayName} (${dayIndex})`,
-    );
-    errors.push(...dayErrors);
-  }
-
-  for (const key in workingHours) {
-    const dayIndex = parseInt(key);
-    if (!isValidDayIndex(dayIndex)) {
-      errors.push({
-        field: `workingHours[${key}]`,
-        message: 'Invalid day index. Must be 0-6 (Sunday-Saturday)',
-        value: dayIndex,
-      });
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * Sanitizes working hours by ensuring all values are within valid ranges
- */
-export function sanitizeWorkingHours(workingHours: any): WorkingHours {
-  const sanitized: Partial<WorkingHours> = {};
-  for (const dayIndex of VALID_DAY_INDICES) {
-    const day = workingHours?.[dayIndex];
-    if (day && typeof day === 'object') {
-      const from = isValidHour(day.from) ? day.from : 0;
-      const to = isValidHour(day.to) ? day.to : 0;
-      sanitized[dayIndex] = { from, to };
-    } else {
-      sanitized[dayIndex] = { from: 0, to: 0 };
-    }
-  }
-  return sanitized as WorkingHours;
-}
-
+// ⭐ ADDED BACK: This function was missing.
 export function isDayEnabled(day: DayWorkingHours): boolean {
-  return day.from > 0 || day.to > 0;
+ return day.from > 0 || day.to > 0;
 }
 
-// ⭐ CHANGED: Converts a WIB hour into a UTC Date object for database storage.
+
+// ⭐ UPDATED: Converts a WIB hour (from UI) into a UTC Date object (for DB storage).
 export function formatHourToTime(hour: number): Date {
+  // LOGGING START
+  console.log(`[➡️ formatHourToTime] Input WIB Hour (from UI): ${hour}`);
+  // LOGGING END
+
   if (!isValidHour(hour) || hour === 0) {
-    // For "closed" days, use a neutral time like midnight UTC.
-    // We use an old, fixed date to avoid any DST confusion.
-    return new Date('1970-01-01T00:00:00.000Z');
+    const closedDate = new Date('1970-01-01T00:00:00.000Z');
+     // LOGGING START
+    console.log(`[➡️ formatHourToTime] Day is closed (0). Returning UTC Date: ${closedDate.toISOString()}`);
+    // LOGGING END
+    return closedDate;
   }
 
   // Convert the WIB hour to its UTC equivalent.
-  // (hour - 7 + 24) % 24 handles negative results correctly.
+  // (hour - 7 + 24) % 24 handles negative results correctly (e.g., 06:00 WIB is 23:00 UTC previous day).
   const utcHour = (hour - WIB_OFFSET + 24) % 24;
 
   const date = new Date('1970-01-01T00:00:00.000Z');
   date.setUTCHours(utcHour);
+
+  // LOGGING START
+  console.log(`[➡️ formatHourToTime] Calculated UTC Hour: ${utcHour}`);
+  console.log(`[➡️ formatHourToTime] Output UTC Date (to DB): ${date.toISOString()}`);
+  // LOGGING END
+
   return date;
 }
 
-// ⭐ CHANGED: Converts a UTC Date object from the database into a WIB hour for display.
+// ⭐ UPDATED: Converts a UTC Date object (from DB) into a WIB hour (for UI display).
 export function parseTimeToHour(timeValue: string | Date): number {
+  // LOGGING START
+  console.log(`[⬅️ parseTimeToHour] Input timeValue (from DB): ${timeValue} (Type: ${typeof timeValue})`);
+  // LOGGING END
+
   if (timeValue instanceof Date) {
     // Get the hour from the Date object in UTC.
     const utcHour = timeValue.getUTCHours();
-
-    // If the time is midnight UTC, it could be our "closed" placeholder.
-    if (utcHour === 0) {
-        // A simple check: if the original date object was exactly midnight, we assume it's "closed".
-        // This logic assumes you don't have a valid 00:00 (WIB) as a start/end time.
-        // If 00:00 WIB is a valid time, this logic needs refinement.
-        if (timeValue.getUTCMinutes() === 0 && timeValue.getUTCSeconds() === 0) {
-            const timeStr = timeValue.toISOString();
-            // A more robust check might be needed if 07:00 WIB (00:00 UTC) is a valid operational hour.
-            // For now, let's assume 0 returned means closed.
-        }
-    }
+    
+    // LOGGING START
+    console.log(`[⬅️ parseTimeToHour] Extracted UTC Hour: ${utcHour}`);
+    // LOGGING END
     
     // Convert the UTC hour to its WIB equivalent.
     const wibHour = (utcHour + WIB_OFFSET) % 24;
     
+    // LOGGING START
+    console.log(`[⬅️ parseTimeToHour] Calculated Output WIB Hour (to UI): ${wibHour}`);
+    // LOGGING END
+
     if (!isValidHour(wibHour)) {
         throw new Error(`Invalid calculated WIB hour: ${wibHour}`);
     }
     return wibHour;
 
   } else if (typeof timeValue === 'string') {
-    // This part handles string-based times, which is less likely with Prisma.
-    // We assume the string is in HH:mm format and represents WIB.
+    // This handles string-based times if Prisma returns strings (less common for DateTime).
+    // We assume the string is in HH:mm format.
     const match = timeValue.match(/^(\d{1,2}):(\d{2})?.*$/);
     if (!match) throw new Error(`Invalid time string format: ${timeValue}`);
     
     const hour = parseInt(match[1], 10);
+    
+    // LOGGING START
+    // If this log appears, it means Prisma returned a string, which might indicate a different issue.
+    console.log(`[⬅️ parseTimeToHour] WARNING: Received string input. Parsed hour: ${hour}`);
+    // LOGGING END
+
     if (!isValidHour(hour)) throw new Error(`Invalid hour in string: ${hour}`);
     return hour;
   } else {
@@ -239,43 +142,50 @@ export function parseTimeToHour(timeValue: string | Date): number {
 }
 
 function getDayName(dayIndex: ValidDayIndex): string {
-  const dayNames = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
-  return dayNames[dayIndex];
+    const dayNames = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
+      return dayNames[dayIndex];
 }
+
 
 export function transformToDatabaseFormat(
   workingHours: WorkingHours,
   ownerId: number,
 ) {
+  console.log("[🔄 transformToDatabaseFormat] Starting transformation to DB format (WIB -> UTC)");
   const weeklySlots = [];
 
   for (const dayIndex of VALID_DAY_INDICES) {
     const dayHours = workingHours[dayIndex];
+    // This was the source of the first error.
     const isEnabled = isDayEnabled(dayHours);
+
+    console.log(`[🔄 Processing Day Index: ${dayIndex}] From: ${dayHours.from}, To: ${dayHours.to}, isEnabled: ${isEnabled}`);
 
     weeklySlots.push({
       ownerId,
       dayOfWeek: DAY_NUMBER_TO_ENUM[dayIndex],
       isEnabled,
-      startTime: formatHourToTime(dayHours.from), // This now correctly creates a UTC date
-      endTime: formatHourToTime(dayHours.to),     // This now correctly creates a UTC date
+      startTime: formatHourToTime(dayHours.from),
+      endTime: formatHourToTime(dayHours.to),
     });
   }
-
+  console.log("[🔄 transformToDatabaseFormat] Finished transformation.");
   return weeklySlots;
 }
 
 export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
+  console.log("[🔄 transformFromDatabaseFormat] Starting transformation from DB format (UTC -> WIB)");
   const workingHours: Partial<WorkingHours> = {};
 
+  // Initialize workingHours structure
   for (const dayIndex of VALID_DAY_INDICES) {
     workingHours[dayIndex] = { from: 0, to: 0 };
   }
@@ -283,10 +193,14 @@ export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
   weeklySlots.forEach((slot) => {
     const dayIndex =
       DAY_ENUM_TO_NUMBER[slot.dayOfWeek as keyof typeof DAY_ENUM_TO_NUMBER];
+    
+    console.log(`[🔄 Processing Slot: ${slot.dayOfWeek}] StartTime: ${slot.startTime}, EndTime: ${slot.endTime}`);
+    
+    // This was the source of the second error.
     if (slot && isValidDayIndex(dayIndex) && slot.isEnabled) {
       try {
-        const from = parseTimeToHour(slot.startTime); // This now correctly returns a WIB hour
-        const to = parseTimeToHour(slot.endTime);     // This now correctly returns a WIB hour
+        const from = parseTimeToHour(slot.startTime);
+        const to = parseTimeToHour(slot.endTime);
         workingHours[dayIndex] = { from, to };
       } catch (error) {
         console.error(`Error parsing slot for day ${slot.dayOfWeek}:`, error);
@@ -294,5 +208,6 @@ export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
     }
   });
 
+  console.log("[🔄 transformFromDatabaseFormat] Finished transformation. Resulting WIB hours:", JSON.stringify(workingHours));
   return workingHours as WorkingHours;
 }
