@@ -12,43 +12,76 @@ const ONESIGNAL_APP_ID = '61505641-03dc-4eb9-91a6-178833446fbd';
 
 export default function OneSignalInit({ userId }: { userId?: string }) {
   const initializedRef = useRef(false);
-  const scriptLoadedRef = useRef(false);
+  const userIdRef = useRef(userId);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   const initializeOneSignal = async () => {
     console.log('[OneSignal] Starting initialization...');
 
     if (!window.OneSignal) {
-      window.OneSignal = [];
+      console.error('[OneSignal] OneSignal not available');
+      return false;
     }
 
     try {
-      await window.OneSignal.push(() => {
-        return window.OneSignal.init({
-          appId: ONESIGNAL_APP_ID,
-          allowLocalhostAsSecureOrigin: true,
-          autoResubscribe: true,
-          autoRegister: false,
-          debug: true,
-          promptOptions: {
-            slidedown: {
-              enabled: true,
-              actionMessage:
-                'Kami ingin mengirimkan notifikasi tentang pembaruan penyewaan Anda.',
-              acceptButtonText: 'Izinkan',
-              cancelButtonText: 'Tidak, Terima Kasih',
-            },
+      await window.OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        allowLocalhostAsSecureOrigin: true,
+        autoResubscribe: true,
+        autoRegister: false, // We'll handle registration manually
+        debug: true,
+        promptOptions: {
+          slidedown: {
+            enabled: true,
+            actionMessage:
+              'Kami ingin mengirimkan notifikasi tentang pembaruan penyewaan Anda.',
+            acceptButtonText: 'Izinkan',
+            cancelButtonText: 'Tidak, Terima Kasih',
           },
-          serviceWorkerParam: { scope: '/' },
-          serviceWorkerPath: 'OneSignalSDKWorker.js',
-        });
+        },
+        serviceWorkerParam: { scope: '/' },
+        serviceWorkerPath: 'OneSignalSDKWorker.js',
       });
 
       console.log('[OneSignal] Initialization successful!');
       window.OneSignalInitialized = true;
+
+      // Set up event listeners
+      window.OneSignal.on(
+        'subscriptionChange',
+        function (isSubscribed: boolean) {
+          console.log('[OneSignal] Subscription changed:', isSubscribed);
+          if (isSubscribed && userIdRef.current) {
+            setExternalUserId(userIdRef.current);
+          }
+        },
+      );
+
       return true;
     } catch (err) {
       console.error('[OneSignal] Initialization failed:', err);
       return false;
+    }
+  };
+
+  const setExternalUserId = async (userId: string) => {
+    try {
+      await window.OneSignal.setExternalUserId(userId);
+      console.log('[OneSignal] External user ID set:', userId);
+    } catch (error) {
+      console.error('[OneSignal] Failed to set external user ID:', error);
+    }
+  };
+
+  const removeExternalUserId = async () => {
+    try {
+      await window.OneSignal.removeExternalUserId();
+      console.log('[OneSignal] External user ID removed');
+    } catch (error) {
+      console.error('[OneSignal] Failed to remove external user ID:', error);
     }
   };
 
@@ -59,188 +92,133 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
     }
 
     try {
-      await window.OneSignal.push(async () => {
-        const currentExternalId = await window.OneSignal.getExternalUserId();
+      const currentExternalId = await window.OneSignal.getExternalUserId();
+      const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
 
-        if (userId) {
-          if (currentExternalId !== userId) {
-            console.log('[OneSignal] Setting external user ID:', userId);
-            await window.OneSignal.setExternalUserId(userId);
-          }
-        } else {
-          if (currentExternalId) {
-            console.log('[OneSignal] Removing external user ID');
-            await window.OneSignal.removeExternalUserId();
-          }
+      if (userId) {
+        if (currentExternalId !== userId && isSubscribed) {
+          console.log('[OneSignal] Setting external user ID:', userId);
+          await setExternalUserId(userId);
         }
-      });
+      } else {
+        if (currentExternalId) {
+          console.log('[OneSignal] Removing external user ID');
+          await removeExternalUserId();
+        }
+      }
     } catch (error) {
       console.error('[OneSignal] User identity management failed:', error);
     }
   };
 
   const showNotificationPrompt = async () => {
-    if (!window.OneSignal) {
+    if (!window.OneSignal || !window.OneSignalInitialized) {
       console.warn('[OneSignal] SDK not available for prompt');
       return;
     }
 
     try {
-      await window.OneSignal.push(async () => {
-        const isSubscribed =
-          await window.OneSignal.isPushNotificationsEnabled();
-        console.log(
-          '[OneSignal] Subscription status:',
-          isSubscribed ? 'Subscribed' : 'Not subscribed',
-        );
+      const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
+      console.log(
+        '[OneSignal] Subscription status:',
+        isSubscribed ? 'Subscribed' : 'Not subscribed',
+      );
 
-        if (!isSubscribed) {
+      if (!isSubscribed) {
+        try {
+          await window.OneSignal.showSlidedownPrompt();
+          console.log('[OneSignal] Slidedown prompt shown');
+        } catch (slideError) {
+          console.warn(
+            '[OneSignal] Slidedown failed, trying native prompt...',
+            slideError,
+          );
           try {
-            await window.OneSignal.showSlidedownPrompt();
-            console.log('[OneSignal] Slidedown prompt shown');
-          } catch (slideError) {
+            await window.OneSignal.showNativePrompt();
+            console.log('[OneSignal] Native prompt shown');
+          } catch (nativeError) {
             console.warn(
-              '[OneSignal] Slidedown failed, trying native prompt...',
-              slideError,
+              '[OneSignal] Native prompt failed, using direct registration...',
+              nativeError,
             );
-            try {
-              await window.OneSignal.showNativePrompt();
-              console.log('[OneSignal] Native prompt shown');
-            } catch (nativeError) {
-              console.warn(
-                '[OneSignal] Native prompt failed, using direct registration...',
-                nativeError,
-              );
-              window.OneSignal.registerForPushNotifications();
-            }
+            await window.OneSignal.registerForPushNotifications();
           }
         }
-      });
+      } else if (userId) {
+        // User is already subscribed, set external ID
+        await setExternalUserId(userId);
+      }
     } catch (error) {
       console.error('[OneSignal] Prompt display failed:', error);
     }
   };
 
-  const tryAlternativeInit = () => {
-    console.log('[OneSignal] Trying alternative initialization...');
-
-    const script = document.createElement('script');
-    script.innerHTML = `
-      window.OneSignal = window.OneSignal || [];
-      window.OneSignal.push(function() {
-        window.OneSignal.init({
-          appId: "${ONESIGNAL_APP_ID}",
-          allowLocalhostAsSecureOrigin: true,
-          autoResubscribe: true,
-          autoRegister: false,
-          debug: true,
-          promptOptions: {
-            slidedown: {
-              enabled: true,
-              actionMessage: "Kami ingin mengirimkan notifikasi tentang pembaruan penyewaan Anda.",
-              acceptButtonText: "Izinkan",
-              cancelButtonText: "Tidak, Terima Kasih",
-            },
-          },
-          serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "OneSignalSDKWorker.js",
-        }).then(function() {
-          console.log("[OneSignal] Alternative initialization successful!");
-          window.OneSignalInitialized = true;
-        }).catch(function(err) {
-          console.error("[OneSignal] Alternative initialization failed:", err);
-        });
-      });
-    `;
-    document.head.appendChild(script);
-  };
-
-  const tryDirectInitialization = () => {
-    console.log('[OneSignal] Trying direct initialization...');
-
-    window.OneSignal = window.OneSignal || [];
-
-    fetch('https://cdn.onesignal.com/sdks/OneSignalSDK.js')
-      .then((response) => response.text())
-      .then((scriptContent) => {
-        const script = document.createElement('script');
-        script.textContent = scriptContent;
-        document.head.appendChild(script);
-
-        setTimeout(() => {
-          if (window.OneSignal) {
-            initializeOneSignal();
-          }
-        }, 500);
-      })
-      .catch((error) => {
-        console.error('[OneSignal] Direct initialization failed:', error);
-      });
-  };
-
   const loadOneSignalScript = () => {
-    const existingScript = document.getElementById('oneSignalSDK');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    console.log('[OneSignal] Loading SDK script...');
-    const script = document.createElement('script');
-    script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js';
-    script.async = true;
-    script.id = 'oneSignalSDK';
-    script.crossOrigin = 'anonymous';
-
-    script.onload = async () => {
-      console.log('[OneSignal] Script loaded successfully');
-
-      try {
-        const initSuccess = await initializeOneSignal();
-
-        if (initSuccess) {
-          await manageUserIdentity();
-          await showNotificationPrompt();
-        } else {
-          tryAlternativeInit();
-        }
-      } catch (error) {
-        console.error('[OneSignal] Initialization failed after load:', error);
-        tryAlternativeInit();
+    return new Promise<void>((resolve, reject) => {
+      // Remove existing script if any
+      const existingScript = document.getElementById('oneSignalSDK');
+      if (existingScript) {
+        existingScript.remove();
       }
-    };
 
-    script.onerror = (e) => {
-      console.error('[OneSignal] Script load error:', e);
-      tryDirectInitialization();
-    };
+      console.log('[OneSignal] Loading SDK script...');
+      const script = document.createElement('script');
+      script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js';
+      script.async = true;
+      script.id = 'oneSignalSDK';
+      script.crossOrigin = 'anonymous';
 
-    document.head.appendChild(script);
+      script.onload = () => {
+        console.log('[OneSignal] Script loaded successfully');
+        resolve();
+      };
+
+      script.onerror = (e) => {
+        console.error('[OneSignal] Script load error:', e);
+        reject(e);
+      };
+
+      document.head.appendChild(script);
+    });
   };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     if (initializedRef.current) return;
+
     initializedRef.current = true;
 
+    const setupOneSignal = async () => {
+      try {
+        // Check if OneSignal is already loaded
+        if (!window.OneSignal) {
+          await loadOneSignalScript();
+          // Wait a bit for the script to be processed
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        if (!window.OneSignalInitialized) {
+          const success = await initializeOneSignal();
+          if (success) {
+            await manageUserIdentity();
+            await showNotificationPrompt();
+          }
+        } else {
+          console.log('[OneSignal] Already initialized');
+          await manageUserIdentity();
+        }
+      } catch (error) {
+        console.error('[OneSignal] Setup failed:', error);
+      }
+    };
+
+    setupOneSignal();
+  }, []);
+
+  // Handle user ID changes
+  useEffect(() => {
     if (window.OneSignalInitialized) {
-      console.log('[OneSignal] Already initialized');
       manageUserIdentity();
-      return;
-    }
-
-    if (window.OneSignal && !window.OneSignalInitialized) {
-      console.log('[OneSignal] SDK available but not initialized');
-      initializeOneSignal().then(() => {
-        manageUserIdentity();
-        showNotificationPrompt();
-      });
-      return;
-    }
-
-    if (!scriptLoadedRef.current) {
-      scriptLoadedRef.current = true;
-      loadOneSignalScript();
     }
   }, [userId]);
 

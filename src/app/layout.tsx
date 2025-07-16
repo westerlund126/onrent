@@ -1,4 +1,4 @@
-// app/layout.tsx 
+// app/layout.tsx
 'use client';
 
 import React, { ReactNode } from 'react';
@@ -8,9 +8,14 @@ import AppWrappers from './AppWrappers';
 import { Toaster } from '@/components/ui/sonner';
 import OneSignalInit from 'components/OneSignalInit';
 
-
 function OneSignalWrapper() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+
+  // Only render OneSignal after Clerk has loaded
+  if (!isLoaded) {
+    return null;
+  }
+
   return <OneSignalInit userId={user?.id} />;
 }
 
