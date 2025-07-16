@@ -14,13 +14,11 @@ import {
 import { useFittingStore } from 'stores/useFittingStore';
 
 export function ChangeAutoConfirm() {
-  const { ownerSettings, isLoading, updateOwnerSettings, fetchOwnerSettings } =
-    useFittingStore((state) => ({
-      ownerSettings: state.ownerSettings,
-      isLoading: state.isLoading,
-      updateOwnerSettings: state.updateOwnerSettings,
-      fetchOwnerSettings: state.fetchOwnerSettings,
-    }));
+  const ownerSettings = useFittingStore((state) => state.ownerSettings);
+const isLoading = useFittingStore((state) => state.isLoading);
+const updateOwnerSettings = useFittingStore((state) => state.updateOwnerSettings);
+const fetchOwnerSettings = useFittingStore((state) => state.fetchOwnerSettings);
+
 
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
