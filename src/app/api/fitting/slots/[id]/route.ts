@@ -131,7 +131,6 @@ export async function PATCH(
       where: { id: slotId },
       data: {
         ...(updates.dateTime && { dateTime: new Date(updates.dateTime) }),
-        
       },
       include: {
         owner: {
