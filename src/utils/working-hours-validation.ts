@@ -11,7 +11,7 @@ import {
   ValidHour,
 } from 'types/working-hours';
 
-// Day mapping constants
+
 const DAY_NUMBER_TO_ENUM = {
   0: 'SUNDAY',
   1: 'MONDAY',
@@ -301,3 +301,4 @@ export function transformFromDatabaseFormat(weeklySlots: any[]): WorkingHours {
 
   return workingHours as WorkingHours;
 }
+
