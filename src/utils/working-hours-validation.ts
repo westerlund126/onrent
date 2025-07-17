@@ -202,8 +202,9 @@ export function formatHourToTime(hour: number): Date {
     throw new Error(`Invalid hour: ${hour}. Must be 0-23.`);
   }
   const date = new Date();
-  date.setHours(hour, 0, 0, 0); 
-  return new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  date.setHours(hour, 0, 0, 0);
+  const indonesianDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+  return indonesianDate;
 }
 
 export function parseTimeToHour(timeValue: string | Date): number {
