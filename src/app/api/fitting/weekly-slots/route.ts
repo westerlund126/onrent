@@ -24,7 +24,7 @@ async function generateFittingSlotsForOwner(
   daysAhead: number = 60,
 ) {
   console.log('🔍 Starting slot generation for ownerId:', ownerId);
-  
+
   const weeklySlots = await prisma.weeklySlot.findMany({
     where: { ownerId, isEnabled: true },
   });
@@ -41,7 +41,12 @@ async function generateFittingSlotsForOwner(
   const endDate = new Date();
   endDate.setDate(startDate.getDate() + daysAhead);
 
-  console.log('📆 Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+  console.log(
+    '📆 Date range:',
+    startDate.toISOString(),
+    'to',
+    endDate.toISOString(),
+  );
 
   for (
     let date = new Date(startDate);
@@ -74,20 +79,18 @@ async function generateFittingSlotsForOwner(
       })),
     );
 
-    const weeklySlot = weeklySlots.find(
-      (slot) => slot.dayOfWeek === dayName
-    );
+    const weeklySlot = weeklySlots.find((slot) => slot.dayOfWeek === dayName);
 
     console.log(`🗓️  Processing ${date.toDateString()} (${dayName})`);
     console.log(`🎯 Found weekly slot:`, weeklySlot ? 'YES' : 'NO');
-    
+
     if (weeklySlot && weeklySlot.isEnabled) {
       console.log('⏰ Weekly slot details:', {
         dayOfWeek: weeklySlot.dayOfWeek,
         startTime: weeklySlot.startTime,
         endTime: weeklySlot.endTime,
         startTimeType: typeof weeklySlot.startTime,
-        endTimeType: typeof weeklySlot.endTime
+        endTimeType: typeof weeklySlot.endTime,
       });
 
       let startHour: number;
@@ -96,16 +99,26 @@ async function generateFittingSlotsForOwner(
       if (weeklySlot.startTime instanceof Date) {
         startHour = weeklySlot.startTime.getHours();
         endHour = weeklySlot.endTime.getHours();
-        console.log('📝 Parsed as Date objects - Start:', startHour, 'End:', endHour);
+        console.log(
+          '📝 Parsed as Date objects - Start:',
+          startHour,
+          'End:',
+          endHour,
+        );
       } else {
         const startTimeStr = String(weeklySlot.startTime);
         const endTimeStr = String(weeklySlot.endTime);
-        
+
         startHour = parseInt(startTimeStr.split(':')[0]);
         endHour = parseInt(endTimeStr.split(':')[0]);
-        console.log('📝 Parsed as strings - Start:', startHour, 'End:', endHour);
+        console.log(
+          '📝 Parsed as strings - Start:',
+          startHour,
+          'End:',
+          endHour,
+        );
       }
-      
+
       if (startHour === 0 && endHour === 0) {
         console.log('⏭️  Skipping - both hours are 0');
         continue;
@@ -141,7 +154,9 @@ async function generateFittingSlotsForOwner(
           },
         });
 
-        console.log(`🔍 Existing slot check: ${existingSlot ? 'EXISTS' : 'NOT FOUND'}`);
+        console.log(
+          `🔍 Existing slot check: ${existingSlot ? 'EXISTS' : 'NOT FOUND'}`,
+        );
 
         if (!existingSlot) {
           console.log('✅ Adding slot to creation queue');

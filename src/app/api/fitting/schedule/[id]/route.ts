@@ -50,7 +50,7 @@ export async function GET(
                 phone_numbers: true,
                 email: true,
                 imageUrl: true,
-                isAutoConfirm: true, // Add owner's auto-confirm setting
+                isAutoConfirm: true,
               },
             },
           },
@@ -135,7 +135,7 @@ export async function PATCH(
             owner: {
               select: {
                 id: true,
-                isAutoConfirm: true, // Include for reference
+                isAutoConfirm: true,
               },
             },
           },
@@ -288,7 +288,12 @@ export async function DELETE(
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
       include: {
-        fittingSlot: true,
+        fittingSlot: {
+          select: {
+            id: true,
+            ownerId: true,
+          },
+        },
         FittingProduct: true,
       },
     });

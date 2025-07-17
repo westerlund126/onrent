@@ -8,7 +8,7 @@ import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import MainProfileCard from 'components/owner/profile/MainProfileCard';
 import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';
-import CategoriesCard from 'components/owner/profile/CategoriesCard';
+import MapCard from 'components/owner/profile/MapCard'; // Changed from CategoriesCard
 import BusinessStatsCard from 'components/owner/profile/BusinessStatsCard';
 
 interface ProfileData {
@@ -126,8 +126,11 @@ const OwnerBusinessProfile = () => {
           {/* Working Hours Card */}
           <WorkingHoursCard workingHours={workingHours} />
 
-          {/* Categories Card */}
-          <CategoriesCard />
+          {/* Map Card - Replaces Categories Card */}
+          <MapCard
+            businessAddress={profileData.businessAddress}
+            businessName={profileData.businessName}
+          />
 
           {/* Business Stats Card */}
           <BusinessStatsCard />

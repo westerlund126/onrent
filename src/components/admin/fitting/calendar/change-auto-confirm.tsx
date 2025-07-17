@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,46 +11,46 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '@/components/ui/tooltip';
+import { useFittingStore } from 'stores/useFittingStore';
 
 export function ChangeAutoConfirm() {
-  const [isAutoConfirm, setIsAutoConfirm] = useState(false);
+  const ownerSettings = useFittingStore((state) => state.ownerSettings);
+const isLoading = useFittingStore((state) => state.isLoading);
+const updateOwnerSettings = useFittingStore((state) => state.updateOwnerSettings);
+const fetchOwnerSettings = useFittingStore((state) => state.fetchOwnerSettings);
+
+
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isAutoConfirm = ownerSettings?.isAutoConfirm ?? false;
+
   const handleToggleAutoConfirm = async (enabled: boolean) => {
-    setIsAutoConfirm(enabled);
     setIsSaving(true);
     setSuccess(null);
     setError(null);
 
     try {
-      const response = await fetch('/api/user/settings', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isAutoConfirm: enabled,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update auto-confirm setting');
-      }
+      await updateOwnerSettings({ isAutoConfirm: enabled });
 
       setSuccess(
         enabled
           ? 'Auto-confirm diaktifkan. Semua booking baru akan otomatis dikonfirmasi.'
           : 'Auto-confirm dinonaktifkan. Booking baru memerlukan konfirmasi manual.',
       );
-    } catch (err) {
+    } catch {
       setError('Gagal mengubah pengaturan auto-confirm');
-      setIsAutoConfirm(!enabled);
     } finally {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (ownerSettings === null) {
+      fetchOwnerSettings();
+    }
+  }, [ownerSettings, fetchOwnerSettings]);
 
   return (
     <div className="space-y-4">
@@ -76,10 +76,12 @@ export function ChangeAutoConfirm() {
         <Switch
           checked={isAutoConfirm}
           onCheckedChange={handleToggleAutoConfirm}
-          disabled={isSaving}
+          disabled={isSaving || isLoading || ownerSettings === null}
         />
         <div className="flex items-center gap-2">
-          {isSaving && <Loader2 className="size-4 animate-spin" />}
+          {(isSaving || isLoading) && (
+            <Loader2 className="size-4 animate-spin" />
+          )}
           <span className="text-sm">
             {isAutoConfirm ? 'Aktif' : 'Nonaktif'}
           </span>
