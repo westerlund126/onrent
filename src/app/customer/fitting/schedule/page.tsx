@@ -166,9 +166,10 @@ const availableTimes = useMemo(() => {
   
   return dateData.slots
   .map((slot) => {
-    const timeString = format(slot.dateTime, 'HH:mm');
+	const dateTime = slot.dateTime ? new Date(slot.dateTime) : new Date();
+    const timeString = format(dateTime, 'HH:mm');
 
-    const label = format(slot.dateTime, 'HH:mm');
+    const label = format(dateTime, 'HH:mm');
 
     return {
       value: timeString,
