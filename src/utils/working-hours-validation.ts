@@ -203,7 +203,7 @@ export function formatHourToTime(hour: number): Date {
   }
   const date = new Date();
   date.setHours(hour, 0, 0, 0); 
-  return date;
+  return new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
 }
 
 export function parseTimeToHour(timeValue: string | Date): number {
