@@ -166,10 +166,9 @@ const availableTimes = useMemo(() => {
   
   return dateData.slots
   .map((slot) => {
-    const zonedDate = toZonedTime(slot.dateTime, timeZone);
-    const timeString = format(zonedDate, 'HH:mm', { timeZone });
+    const timeString = format(slot.dateTime, 'HH:mm');
 
-    const label = format(zonedDate, 'HH:mm zzz', { timeZone });
+    const label = format(slot.dateTime, 'HH:mm');
 
     return {
       value: timeString,
