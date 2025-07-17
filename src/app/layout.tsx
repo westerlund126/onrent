@@ -11,7 +11,6 @@ import OneSignalInit from 'components/OneSignalInit';
 function OneSignalWrapper() {
   const { user, isLoaded } = useUser();
 
-  // Only render OneSignal after Clerk has loaded
   if (!isLoaded) {
     return null;
   }

@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-const ONESIGNAL_APP_ID = '61505641-03dc-4eb9-91a6-178833446fbd';
+const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
 export default function OneSignalInit({ userId }: { userId?: string }) {
   const initializedRef = useRef(false);
@@ -31,7 +31,7 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
         appId: ONESIGNAL_APP_ID,
         allowLocalhostAsSecureOrigin: true,
         autoResubscribe: true,
-        autoRegister: false, // We'll handle registration manually
+        autoRegister: false,
         debug: true,
         promptOptions: {
           slidedown: {
@@ -49,7 +49,6 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       console.log('[OneSignal] Initialization successful!');
       window.OneSignalInitialized = true;
 
-      // Set up event listeners
       window.OneSignal.on(
         'subscriptionChange',
         function (isSubscribed: boolean) {
@@ -76,12 +75,12 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
     }
   };
 
-  const removeExternalUserId = async () => {
+  const logoutUser = async () => {
     try {
-      await window.OneSignal.removeExternalUserId();
-      console.log('[OneSignal] External user ID removed');
+      await window.OneSignal.logout();
+      console.log('[OneSignal] Logged out external user');
     } catch (error) {
-      console.error('[OneSignal] Failed to remove external user ID:', error);
+      console.error('[OneSignal] Logout failed:', error);
     }
   };
 
@@ -96,14 +95,25 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
 
       if (userId) {
-        if (currentExternalId !== userId && isSubscribed) {
-          console.log('[OneSignal] Setting external user ID:', userId);
+        if (currentExternalId && currentExternalId !== userId) {
+          console.log(
+            '[OneSignal] Detected user switch. Logging out previous user:',
+            currentExternalId,
+          );
+          await logoutUser();
+        }
+
+        const freshExternalId = await window.OneSignal.getExternalUserId();
+        if (freshExternalId !== userId && isSubscribed) {
+          console.log('[OneSignal] Setting new external user ID:', userId);
           await setExternalUserId(userId);
         }
       } else {
         if (currentExternalId) {
-          console.log('[OneSignal] Removing external user ID');
-          await removeExternalUserId();
+          console.log(
+            '[OneSignal] No user ID, logging out current OneSignal user',
+          );
+          await logoutUser();
         }
       }
     } catch (error) {
@@ -145,7 +155,6 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
           }
         }
       } else if (userId) {
-        // User is already subscribed, set external ID
         await setExternalUserId(userId);
       }
     } catch (error) {
@@ -155,7 +164,6 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
 
   const loadOneSignalScript = () => {
     return new Promise<void>((resolve, reject) => {
-      // Remove existing script if any
       const existingScript = document.getElementById('oneSignalSDK');
       if (existingScript) {
         existingScript.remove();
@@ -190,10 +198,8 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
 
     const setupOneSignal = async () => {
       try {
-        // Check if OneSignal is already loaded
         if (!window.OneSignal) {
           await loadOneSignalScript();
-          // Wait a bit for the script to be processed
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
@@ -201,7 +207,6 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
           const success = await initializeOneSignal();
           if (success) {
             await manageUserIdentity();
-            await showNotificationPrompt();
           }
         } else {
           console.log('[OneSignal] Already initialized');
@@ -215,11 +220,15 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
     setupOneSignal();
   }, []);
 
-  // Handle user ID changes
   useEffect(() => {
-    if (window.OneSignalInitialized) {
-      manageUserIdentity();
-    }
+    const triggerAfterLogin = async () => {
+      if (!window.OneSignalInitialized || !userId) return;
+
+      await manageUserIdentity();
+      await showNotificationPrompt(); 
+    };
+
+    triggerAfterLogin();
   }, [userId]);
 
   return null;
