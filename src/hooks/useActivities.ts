@@ -50,6 +50,17 @@ export const useActivities = (page = 1, limit = 10) => {
     fetchActivities(1);
   };
 
+  const updateActivityStatus = (activityId, type, newStatus) => {
+    setActivities(currentActivities =>
+      currentActivities.map(activity =>
+        (activity.id === activityId && activity.type === type)
+          ? { ...activity, status: newStatus }
+          : activity
+      )
+    );
+  };
+
+
   return {
     activities,
     loading,
@@ -57,7 +68,8 @@ export const useActivities = (page = 1, limit = 10) => {
     pagination,
     loadMore,
     refresh,
-    fetchActivities
+    fetchActivities,
+    updateActivityStatus,
   };
 };
 

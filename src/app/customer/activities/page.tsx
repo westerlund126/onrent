@@ -1,6 +1,6 @@
 // components/CustomerActivityPage.js
 "use client";
-import { Calendar, Package, Eye, AlertCircle } from 'lucide-react';
+import { Calendar, Package, Eye, AlertCircle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useActivities } from 'hooks/useActivities';
@@ -16,16 +16,49 @@ import {
   isValidFittingStatus,
   FittingStatus
 } from 'utils/fitting';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 const CustomerActivityPage = () => {
   const router = useRouter();
-  const { activities, loading, error, pagination, loadMore, refresh } = useActivities();
+  const { activities, loading, error, pagination, loadMore, refresh, updateActivityStatus } = useActivities();
+  const [cancelingId, setCancelingId] = useState(null); 
 
   const handleViewDetail = (activity) => {
     router.push(`/customer/activities/${activity.type}/${activity.id}`);
   };
+  
+  const handleCancelFitting = async (fittingId) => {
+    if (!window.confirm('Apakah Anda yakin ingin membatalkan jadwal fitting ini?')) {
+      return;
+    }
 
-  // Error state
+    setCancelingId(fittingId);
+    try {
+      const response = await fetch(`/api/fitting/schedule/${fittingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'CANCELED' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal membatalkan fitting.');
+      }
+      
+      updateActivityStatus(fittingId, 'fitting', 'CANCELED');
+      toast.success('Jadwal fitting berhasil dibatalkan.');
+
+    } catch (err) {
+      console.error('Cancellation error:', err);
+      toast.error(err.message);
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -51,7 +84,6 @@ const CustomerActivityPage = () => {
     );
   }
 
-  // Loading state
   if (loading && activities.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -89,13 +121,11 @@ const CustomerActivityPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Aktivitas Saya</h1>
           <p className="text-gray-600">Riwayat rental dan fitting Anda</p>
         </div>
 
-        {/* Activities List */}
         {activities.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -105,7 +135,6 @@ const CustomerActivityPage = () => {
         ) : (
           <div className="space-y-4">
             {activities.map((activity) => {
-              // Determine status config based on activity type
               let statusConfig;
               
               if (activity.type === 'rental' && isValidRentalStatus(activity.status)) {
@@ -113,13 +142,14 @@ const CustomerActivityPage = () => {
               } else if (activity.type === 'fitting' && isValidFittingStatus(activity.status)) {
                 statusConfig = getFittingStatusConfig(activity.status as FittingStatus);
               } else {
-                // Fallback for unknown status
                 statusConfig = {
                   color: 'bg-gray-100 text-gray-800',
                   text: activity.status,
                 };
               }
-                
+              
+              const canCancelFitting = activity.type === 'fitting' && ['PENDING', 'CONFIRMED'].includes(activity.status);
+
               return (
                 <div key={`${activity.type}-${activity.id}`} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                   {/* Header with Date and Status */}
@@ -137,7 +167,6 @@ const CustomerActivityPage = () => {
                     </span>
                   </div>
 
-                  {/* Owner Name with Activity Icon */}
                   <div className="flex items-start gap-4 mb-3">
                     <div className="relative w-24 h-20 bg-primary-100 rounded-3xl flex items-end justify-center overflow-visible">
                       <Image 
@@ -173,7 +202,6 @@ const CustomerActivityPage = () => {
                     </div>
                   </div>
 
-                  {/* Bottom Section */}
                   <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-4">
                       {activity.totalPrice && (
@@ -186,13 +214,26 @@ const CustomerActivityPage = () => {
                       )}
                     </div>
                     
-                    <button
-                      onClick={() => handleViewDetail(activity)}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Lihat Detail
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {canCancelFitting && (
+                        <button
+                          onClick={() => handleCancelFitting(activity.id)}
+                          disabled={cancelingId === activity.id}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-wait"
+                        >
+                          <X className="w-4 h-4" />
+                          {cancelingId === activity.id ? 'Membatalkan...' : 'Batalkan'}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleViewDetail(activity)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Lihat Detail
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -200,7 +241,6 @@ const CustomerActivityPage = () => {
           </div>
         )}
 
-        {/* Load More Button */}
         {pagination.hasNextPage && (
           <div className="text-center mt-8">
             <button 
@@ -213,7 +253,6 @@ const CustomerActivityPage = () => {
           </div>
         )}
 
-        {/* Activity count info */}
         {activities.length > 0 && (
           <div className="text-center mt-4 text-sm text-gray-500">
             Menampilkan {activities.length} dari {pagination.totalActivities} aktivitas

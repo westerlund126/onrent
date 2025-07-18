@@ -126,21 +126,10 @@ export async function PATCH(
 
     const resolvedParams = await params;
     const scheduleId = parseInt(resolvedParams.id);
+    const updates = await request.json();
 
     const schedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
-      include: {
-        fittingSlot: {
-          include: {
-            owner: {
-              select: {
-                id: true,
-                isAutoConfirm: true,
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!schedule) {
@@ -153,15 +142,13 @@ export async function PATCH(
     const canUpdate =
       caller.role === 'ADMIN' ||
       schedule.userId === caller.id ||
-      (caller.role === 'OWNER' && schedule.fittingSlot.ownerId === caller.id);
+      (caller.role === 'OWNER' && schedule.ownerId === caller.id);
 
     if (!canUpdate) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-
-    const updates = await request.json();
-
-    if (updates.status) {
+    
+     if (updates.status) {
       const validStatuses = [
         'PENDING',
         'CONFIRMED',
@@ -188,7 +175,7 @@ export async function PATCH(
       }
     }
 
-    const updatedSchedule = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       if (updates.status === 'CANCELED' && schedule.status !== 'CANCELED') {
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
@@ -196,65 +183,76 @@ export async function PATCH(
         });
       }
 
-      return await tx.fittingSchedule.update({
+      await tx.fittingSchedule.update({
         where: { id: scheduleId },
         data: {
           ...(updates.status && { status: updates.status }),
           ...(updates.note !== undefined && { note: updates.note }),
           ...(updates.duration && { duration: updates.duration }),
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              email: true,
-              phone_numbers: true,
-            },
+      });
+    });
+
+    const fullUpdatedSchedule = await prisma.fittingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: { 
+        user: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+            phone_numbers: true,
           },
-          fittingSlot: {
-            include: {
-              owner: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  businessAddress: true,
-                  phone_numbers: true,
-                  email: true,
-                  imageUrl: true,
-                  isAutoConfirm: true, // Add owner's auto-confirm setting
-                },
+        },
+        fittingSlot: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                businessName: true,
+                businessAddress: true,
+                phone_numbers: true,
+                email: true,
+                imageUrl: true,
+                isAutoConfirm: true,
               },
             },
           },
-          FittingProduct: {
-            include: {
-              variantProduct: {
-                select: {
-                  id: true,
-                  size: true,
-                  color: true,
-                  sku: true,
-                  products: {
-                    select: {
-                      id: true,
-                      name: true,
-                      category: true,
-                      images: true,
-                    },
+        },
+        FittingProduct: {
+          include: {
+            variantProduct: {
+              select: {
+                id: true,
+                size: true,
+                color: true,
+                sku: true,
+                products: {
+                  select: {
+                    id: true,
+                    name: true,
+                    category: true,
+                    images: true,
                   },
                 },
               },
             },
           },
         },
-      });
+      },
     });
 
-    return NextResponse.json(updatedSchedule);
+    return NextResponse.json(fullUpdatedSchedule);
+
   } catch (error: any) {
     console.error('Error updating fitting schedule:', error);
+    if (error.code === 'P2028') {
+        return NextResponse.json(
+            { error: 'Database transaction failed, please try again.', details: error.message },
+            { status: 500 },
+        );
+    }
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },
