@@ -132,7 +132,7 @@ useEffect(() => {
         </div>
 
         <div className="md:hidden flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+          <h2 className="text-lg font-semibold text-gray-900"></h2>
           <button
             onClick={() => setIsFilterOpen(false)}
             className="p-1 hover:bg-gray-100 rounded-full"

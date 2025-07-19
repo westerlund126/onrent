@@ -162,30 +162,7 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
     setVariants(prev => prev.filter((_, i) => i !== index));
   };
 
-  const resetForm = () => {
-    if (product) {
-      setProductData({
-        name: product.name,
-        category: product.category,
-        description: product.description || '',
-        images: product.images || [], // Reset images
-      });
-
-      setVariants(
-        product.VariantProducts.map(variant => ({
-          id: variant.id,
-          size: variant.size,
-          color: variant.color,
-          price: variant.price.toString(),
-          bustlength: variant.bustlength?.toString() || '',
-          waistlength: variant.waistlength?.toString() || '',
-          length: variant.length?.toString() || '',
-          isAvailable: variant.isAvailable,
-          isRented: variant.isRented,
-        }))
-      );
-    }
-  };
+ 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -460,14 +437,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
               disabled={isSubmitting}
             >
               Batal
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={resetForm}
-              disabled={isSubmitting}
-            >
-              Reset Form
             </Button>
             <Button
               type="submit"
