@@ -15,7 +15,7 @@ function OneSignalWrapper() {
     return null;
   }
 
-  return <OneSignalInit userId={user?.id} />;
+  return <OneSignalInit />;
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
