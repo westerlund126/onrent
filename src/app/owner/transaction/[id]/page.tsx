@@ -47,7 +47,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useRentalStore } from 'stores/useRentalStore';
 
-// Type definitions can be moved to a central types file
 type TrackingEvent = {
   id: number;
   status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
@@ -89,7 +88,6 @@ const TransactionDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
 
-  // REMOVED: `initiateReturn` logic is not needed for the owner.
   const { confirmReturn, returnConfirmLoading } = useRentalStore();
 
   const fetchRental = useCallback(async (rentalId: string) => {
@@ -144,14 +142,11 @@ const TransactionDetailPage = () => {
     return tracking[0]?.status;
   }, [tracking]);
 
-  // CORRECTED: This page only cares about confirming the return.
-  // The button appears when the customer has marked the item as returned.
   const canConfirmReturn = useMemo(
     () => currentTrackingStatus === 'RETURNED',
     [currentTrackingStatus],
   );
 
-  // REMOVED: `handleInitiateReturn` is no longer needed.
   const handleConfirmReturn = async () => {
     if (!rental) return;
     try {
@@ -169,7 +164,6 @@ const TransactionDetailPage = () => {
     }
   };
 
-  // Helper functions
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -207,10 +201,9 @@ const TransactionDetailPage = () => {
       SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
     } as const;
     const config = statusConfig[status];
-    const Icon = config.icon;
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+        <config.icon className="h-3 w-3" />
         {config.label}
       </Badge>
     );
@@ -228,7 +221,6 @@ const TransactionDetailPage = () => {
         variant: 'secondary',
         icon: Clock,
       },
-      // IMPROVED: "RETURNED" status is now highlighted for the owner as an action item.
       RETURNED: {
         label: 'Dikembalikan Pelanggan',
         variant: 'destructive',
@@ -237,10 +229,9 @@ const TransactionDetailPage = () => {
       COMPLETED: { label: 'Selesai', variant: 'default', icon: CheckCircle },
     } as const;
     const config = statusConfig[status];
-    const Icon = config.icon;
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+        <config.icon className="h-3 w-3" />
         {config.label}
       </Badge>
     );
@@ -298,9 +289,7 @@ const TransactionDetailPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* REMOVED: All customer-facing buttons are gone. */}
-
-              {/* CORRECTED: The confirm button only appears when the owner needs to act. */}
+              {/* === ADDED THIS BLOCK === */}
               {canConfirmReturn && (
                 <Dialog
                   open={confirmReturnDialogOpen}
@@ -308,8 +297,8 @@ const TransactionDetailPage = () => {
                 >
                   <DialogTrigger asChild>
                     <Button className="flex animate-pulse items-center gap-2">
-                      <CheckCircle className="h-4 w-4" /> Konfirmasi
-                      Pengembalian
+                      <CheckCircle className="h-4 w-4" />
+                      Konfirmasi Pengembalian
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -333,7 +322,7 @@ const TransactionDetailPage = () => {
                       >
                         {returnConfirmLoading === rental.id ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{' '}
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                             Mengkonfirmasi...
                           </>
                         ) : (
@@ -347,6 +336,7 @@ const TransactionDetailPage = () => {
                   </DialogContent>
                 </Dialog>
               )}
+              {/* === END OF ADDED BLOCK === */}
 
               <Button
                 variant="outline"
@@ -359,7 +349,7 @@ const TransactionDetailPage = () => {
           </div>
         </div>
 
-        {/* The rest of the page layout is the same, as it provides useful info for the owner */}
+        {/* The rest of the page layout remains the same */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Column: Items & Summary */}
           <div className="space-y-6 lg:col-span-2">
@@ -478,7 +468,6 @@ const TransactionDetailPage = () => {
             </Card>
           </div>
         </div>
-
         {/* Timeline */}
         <Card className="mt-6">
           <CardHeader>
