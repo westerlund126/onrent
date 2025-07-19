@@ -47,6 +47,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useRentalStore } from 'stores/useRentalStore';
 
+// Type definitions can be moved to a central types file
 type TrackingEvent = {
   id: number;
   status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
@@ -261,7 +262,6 @@ const TransactionDetailPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
         <div className="mb-6">
           <div className="mb-4">
             <Button
@@ -296,8 +296,8 @@ const TransactionDetailPage = () => {
                 >
                   <DialogTrigger asChild>
                     <Button className="flex animate-pulse items-center gap-2">
-                      <CheckCircle className="h-4 w-4" /> Konfirmasi
-                      Pengembalian
+                      <CheckCircle className="h-4 w-4" />
+                      Konfirmasi Pengembalian
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -321,13 +321,13 @@ const TransactionDetailPage = () => {
                       >
                         {returnConfirmLoading === rental.id ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{' '}
                             Mengkonfirmasi...
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Ya, Konfirmasi
+                            <CheckCircle className="mr-2 h-4 w-4" /> Ya,
+                            Konfirmasi
                           </>
                         )}
                       </Button>
@@ -335,7 +335,6 @@ const TransactionDetailPage = () => {
                   </DialogContent>
                 </Dialog>
               )}
-
               <Button
                 variant="outline"
                 className="flex items-center gap-2"
@@ -346,10 +345,7 @@ const TransactionDetailPage = () => {
             </div>
           </div>
         </div>
-
-        {/* The rest of the page layout remains the same */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column: Items & Summary */}
           <div className="space-y-6 lg:col-span-2">
             <Card>
               <CardHeader>
@@ -419,7 +415,6 @@ const TransactionDetailPage = () => {
               </CardContent>
             </Card>
           </div>
-          {/* Right Column: Customer & Period */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -466,7 +461,6 @@ const TransactionDetailPage = () => {
             </Card>
           </div>
         </div>
-        {/* Timeline */}
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
