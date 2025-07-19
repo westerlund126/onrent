@@ -26,6 +26,8 @@ interface RentalState {
   statusUpdateLoading: number | null;
   editUpdateLoading: number | null;
   deleteLoading: boolean;
+  returnInitiateLoading: number | null; // New: For customer return action
+  returnConfirmLoading: number | null; // New: For owner confirmation action
   filters: RentalFilters;
 
   setRentals: (rentals: Rental[]) => void;
@@ -36,6 +38,8 @@ interface RentalState {
   setStatusUpdateLoading: (rentalId: number | null) => void;
   setEditUpdateLoading: (rentalId: number | null) => void;
   setDeleteLoading: (loading: boolean) => void;
+  setReturnInitiateLoading: (rentalId: number | null) => void; // New
+  setReturnConfirmLoading: (rentalId: number | null) => void; // New
   setFilters: (filters: RentalFilters) => void;
 
   loadRentals: () => Promise<void>;
@@ -48,6 +52,8 @@ interface RentalState {
     updateData: RentalUpdateData,
   ) => Promise<Rental>;
   deleteRental: (rentalId: number) => Promise<void>;
+  initiateReturn: (rentalId: number) => Promise<void>; // New: Customer return
+  confirmReturn: (rentalId: number) => Promise<void>; // New: Owner confirmation
   refreshData: () => Promise<void>;
 
   buildQueryParams: () => string;
@@ -63,6 +69,8 @@ export const useRentalStore = create<RentalState>((set, get) => ({
   statusUpdateLoading: null,
   editUpdateLoading: null,
   deleteLoading: false,
+  returnInitiateLoading: null, // New
+  returnConfirmLoading: null, // New
   filters: { page: 1, limit: 10 },
 
   setRentals: (rentals) => set({ rentals }),
@@ -73,6 +81,10 @@ export const useRentalStore = create<RentalState>((set, get) => ({
   setStatusUpdateLoading: (rentalId) => set({ statusUpdateLoading: rentalId }),
   setEditUpdateLoading: (rentalId) => set({ editUpdateLoading: rentalId }),
   setDeleteLoading: (loading) => set({ deleteLoading: loading }),
+  setReturnInitiateLoading: (rentalId) =>
+    set({ returnInitiateLoading: rentalId }), // New
+  setReturnConfirmLoading: (rentalId) =>
+    set({ returnConfirmLoading: rentalId }), // New
   setFilters: (newFilters) =>
     set((state) => {
       const merged = { ...state.filters, ...newFilters };
@@ -224,7 +236,7 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to update rental';
       console.error('Failed to update rental:', err);
-      throw err; 
+      throw err;
     } finally {
       setEditUpdateLoading(null);
     }
@@ -275,6 +287,100 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       alert(`${errorMessage}. Please try again.`);
     } finally {
       setDeleteLoading(false);
+    }
+  },
+
+  // NEW: Customer initiates return
+  initiateReturn: async (rentalId: number) => {
+    const { setReturnInitiateLoading, loadRentals } = get();
+
+    try {
+      setReturnInitiateLoading(rentalId);
+
+      const response = await fetch(`/api/rentals/${rentalId}/return`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData: ApiResponse = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate return');
+      }
+
+      const result: ApiResponse<Rental> = await response.json();
+
+      // Update the rental in state with new tracking status
+      set((state) => ({
+        rentals: state.rentals.map((rental) =>
+          rental.id === rentalId
+            ? {
+                ...rental,
+                Tracking: result.data?.Tracking || rental.Tracking,
+              }
+            : rental,
+        ),
+      }));
+
+      console.log('Return initiated successfully');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to initiate return';
+      console.error('Failed to initiate return:', err);
+      alert(`${errorMessage}. Please try again.`);
+
+      // Refresh data on error to ensure UI is in sync
+      await loadRentals();
+    } finally {
+      setReturnInitiateLoading(null);
+    }
+  },
+
+  // NEW: Owner confirms return
+  confirmReturn: async (rentalId: number) => {
+    const { setReturnConfirmLoading, loadRentals } = get();
+
+    try {
+      setReturnConfirmLoading(rentalId);
+
+      const response = await fetch(`/api/rentals/${rentalId}/confirm-return`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData: ApiResponse = await response.json();
+        throw new Error(errorData.error || 'Failed to confirm return');
+      }
+
+      const result: ApiResponse<Rental> = await response.json();
+
+      // Update the rental in state with completed status
+      set((state) => ({
+        rentals: state.rentals.map((rental) =>
+          rental.id === rentalId
+            ? {
+                ...rental,
+                status: result.data?.status || rental.status,
+                Tracking: result.data?.Tracking || rental.Tracking,
+              }
+            : rental,
+        ),
+      }));
+
+      console.log('Return confirmed successfully');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to confirm return';
+      console.error('Failed to confirm return:', err);
+      alert(`${errorMessage}. Please try again.`);
+
+      await loadRentals();
+    } finally {
+      setReturnConfirmLoading(null);
     }
   },
 

@@ -42,6 +42,7 @@ import {
   CheckCircle,
   X,
   Plus,
+  Loader2,
 } from 'lucide-react';
 import { RentalFormProps, SelectedProduct } from 'types/rental';
 
@@ -63,7 +64,6 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [open, setOpen] = useState(false);
   const [productSearching, setProductSearching] = useState(false);
   const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map());
-
   const [customerUsername, setCustomerUsername] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<{
     id: number;
@@ -179,7 +179,6 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       }
     };
 
-    // Debounce the search
     const timer = setTimeout(performSearch, 300);
 
     return () => {
@@ -189,9 +188,9 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   }, [search, selectedProducts, searchCache]);
 
   const handleCustomerSearch = async (
-    e: React.KeyboardEvent<HTMLInputElement>,
+    e?: React.KeyboardEvent<HTMLInputElement>,
   ) => {
-    if (e.key !== 'Enter') return;
+    if (e && e.key !== 'Enter') return;
 
     const username = customerUsername.trim();
     if (!username) return;
@@ -413,17 +412,35 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               Username Pelanggan *
             </label>
             <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Ketik username pelanggan dan tekan Enter..."
-                  value={customerUsername}
-                  onChange={(e) => setCustomerUsername(e.target.value)}
-                  onKeyDown={handleCustomerSearch}
-                  className="pr-10"
-                  disabled={isLoading}
-                />
-                <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Ketik username pelanggan..."
+                    value={customerUsername}
+                    onChange={(e) => setCustomerUsername(e.target.value)}
+                    onKeyDown={handleCustomerSearch}
+                    className="pr-10"
+                    disabled={isLoading}
+                  />
+                  <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleCustomerSearch()}
+                  disabled={
+                    customerSearching || isLoading || !customerUsername.trim()
+                  }
+                  className="px-4"
+                >
+                  {customerSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Cari</span>
+                </Button>
               </div>
 
               {customerSearching && (
@@ -535,6 +552,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
                   <CommandList>
                     {productSearching ? (
                       <div className="p-4 text-center text-sm text-gray-500">
+                        <Loader2 className="mx-auto mb-2 h-4 w-4 animate-spin" />
                         Mencari Produk...
                       </div>
                     ) : search.length > 0 && search.length < 2 ? (

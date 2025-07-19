@@ -17,14 +17,13 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
     const userType = searchParams.get('userType'); // 'owner' or 'admin'
 
-    // Get current user
     const currentUser = await prisma.user.findUnique({
       where: { clerkUserId: userId },
-      select: { 
-        id: true, 
+      select: {
+        id: true,
         role: true,
         username: true,
-        businessName: true 
+        businessName: true,
       },
     });
 
@@ -34,18 +33,51 @@ export async function GET(request: NextRequest) {
 
     let whereClause = {};
 
-    // Determine access level based on user role and userType parameter
     if (userType === 'admin' && currentUser.role === 'ADMIN') {
-      // Admin can see all rentals
       whereClause = {};
     } else if (userType === 'owner' || currentUser.role === 'OWNER') {
-      // Owner can only see their own rentals
       whereClause = {
         ownerId: currentUser.id,
       };
     } else {
-      return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Unauthorized access' },
+        { status: 403 },
+      );
     }
+
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      const overdueRentals = await tx.rental.findMany({
+        where: {
+          ...whereClause,
+          endDate: { lt: now },
+          Tracking: {
+            some: {
+              status: 'RENTAL_ONGOING',
+            },
+          },
+        },
+        include: {
+          Tracking: {
+            orderBy: { updatedAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      for (const rental of overdueRentals) {
+        const latestTracking = rental.Tracking[0];
+        if (latestTracking && latestTracking.status === 'RENTAL_ONGOING') {
+          await tx.tracking.create({
+            data: {
+              rentalId: rental.id,
+              status: 'RETURN_PENDING',
+            },
+          });
+        }
+      }
+    });
 
     const [rentals, totalCount] = await Promise.all([
       prisma.rental.findMany({

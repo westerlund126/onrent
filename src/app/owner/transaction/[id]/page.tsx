@@ -20,12 +20,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  FileText,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   Package,
   User,
   Phone,
   Mail,
-  MapPin,
   Calendar,
   Clock,
   CheckCircle,
@@ -34,44 +41,25 @@ import {
   RefreshCw,
   ArrowLeft,
   Download,
-  CreditCard,
+  PackageCheck,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useRentalStore } from 'stores/useRentalStore';
 
-/* ------------------------------------------------------------------ */
-/* Type helpers – adjust to your /types/* file if you already have it */
-/* ------------------------------------------------------------------ */
 type TrackingEvent = {
   id: number;
   status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
   updatedAt: string;
   description: string;
 };
-
 type VariantProduct = {
   id: number;
   sku: string;
-  size?: string | null;
-  color?: string | null;
   price: number;
-  bustlength?: number | null;
-  waistlength?: number | null;
-  length?: number | null;
-  products: {
-    id: number;
-    name: string;
-    description: string;
-    category: string;
-    images: string[];
-  };
+  products: { name: string; images: string[] };
 };
-
-type RentalItem = {
-  id: number;
-  variantProduct: VariantProduct;
-};
-
+type RentalItem = { id: number; variantProduct: VariantProduct };
 type RentalDetail = {
   id: number;
   rentalCode: string;
@@ -79,16 +67,13 @@ type RentalDetail = {
   startDate: string;
   endDate: string;
   additionalInfo?: string | null;
-  createdAt: string;
-  updatedAt: string;
   user: {
     id: number;
     first_name: string;
     last_name?: string | null;
     username: string;
-    email?: string | null; 
+    email?: string | null;
     phone_numbers?: string | null;
-    businessAddress?: string | null;
   };
   rentalItems: RentalItem[];
 };
@@ -101,7 +86,9 @@ const TransactionDetailPage = () => {
   const [rental, setRental] = useState<RentalDetail | null>(null);
   const [tracking, setTracking] = useState<TrackingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
 
+  const { confirmReturn, returnConfirmLoading } = useRentalStore();
 
   const fetchRental = useCallback(async (rentalId: string) => {
     const res = await fetch(`/api/rentals/${rentalId}/detail`);
@@ -117,38 +104,28 @@ const TransactionDetailPage = () => {
     return data as TrackingEvent[];
   }, []);
 
-  const fetchCustomerEmail = useCallback(async (userId: number) => {
-    const res = await fetch(`/api/customers/${userId}`);
-    if (!res.ok) return null; 
-    const { data } = await res.json();
-    return data?.email ?? null;
-  }, []);
+  const loadData = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const [rentalDetail, trackingList] = await Promise.all([
+        fetchRental(id),
+        fetchTracking(id),
+      ]);
+      setRental(rentalDetail);
+      setTracking(trackingList);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message ?? 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, fetchRental, fetchTracking]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [rentalDetail, trackingList] = await Promise.all([
-          fetchRental(id),
-          fetchTracking(id),
-        ]);
-
-        const email = await fetchCustomerEmail(rentalDetail.user.id);
-        if (email) rentalDetail.user.email = email;
-
-        setRental(rentalDetail);
-        setTracking(trackingList);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message ?? 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, fetchRental, fetchTracking, fetchCustomerEmail]);
-
+    loadData();
+  }, [loadData]);
 
   const subtotal = useMemo(
     () =>
@@ -158,16 +135,55 @@ const TransactionDetailPage = () => {
       ) ?? 0,
     [rental],
   );
+  const total = subtotal;
 
-  const tax = 0;
-  const shippingFee = 0;
-  const discount = 0;
-  const total = subtotal + tax + shippingFee - discount;
+  const currentTrackingStatus = useMemo(() => {
+    if (!tracking.length) return null;
+    return tracking[0]?.status;
+  }, [tracking]);
 
-  if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!rental) return <div className="p-6">Transaction not found</div>;
+  const canConfirmReturn = useMemo(
+    () => currentTrackingStatus === 'RETURNED',
+    [currentTrackingStatus],
+  );
 
+  const handleConfirmReturn = async () => {
+    if (!rental) return;
+    try {
+      await confirmReturn(rental.id);
+      setConfirmReturnDialogOpen(false);
+      alert('Return confirmed successfully!');
+      await loadData();
+    } catch (error) {
+      console.error('Failed to confirm return:', error);
+      alert(
+        `Confirmation Failed: ${
+          error instanceof Error ? error.message : 'Please try again.'
+        }`,
+      );
+    }
+  };
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  const formatDateTime = (dateString: string) =>
+    new Date(dateString).toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
 
   const getStatusBadge = (status: RentalDetail['status']) => {
     const statusConfig = {
@@ -184,16 +200,10 @@ const TransactionDetailPage = () => {
       },
       SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
     } as const;
-
-    const config = statusConfig[status] ?? {
-      label: status,
-      variant: 'secondary',
-      icon: AlertCircle,
-    };
-    const Icon = config.icon;
+    const config = statusConfig[status];
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+        <config.icon className="h-3 w-3" />
         {config.label}
       </Badge>
     );
@@ -212,200 +222,174 @@ const TransactionDetailPage = () => {
         icon: Clock,
       },
       RETURNED: {
-        label: 'Dikembalikan',
-        variant: 'default',
-        icon: CheckCircle,
+        label: 'Dikembalikan Pelanggan',
+        variant: 'destructive',
+        icon: PackageCheck,
       },
       COMPLETED: { label: 'Selesai', variant: 'default', icon: CheckCircle },
     } as const;
-
-    const config = statusConfig[status] ?? {
-      label: status,
-      variant: 'secondary',
-      icon: AlertCircle,
-    };
-    const Icon = config.icon;
+    const config = statusConfig[status];
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+        <config.icon className="h-3 w-3" />
         {config.label}
       </Badge>
     );
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-
-  const formatDateTime = (dateString: string) =>
-    new Date(dateString).toLocaleString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-
-  const dueDate = (() => {
+  const dueDate = useMemo(() => {
+    if (!rental) return null;
     const endDate = new Date(rental.endDate);
     const today = new Date();
     const diffDays = Math.ceil(
       (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
-    if (diffDays < 0) {
+    if (diffDays < 0)
       return {
         text: `Terlambat ${Math.abs(diffDays)} hari`,
         variant: 'destructive' as const,
       };
-    }
-    if (diffDays === 0) {
+    if (diffDays === 0)
       return { text: 'Jatuh tempo hari ini', variant: 'destructive' as const };
-    }
-    if (diffDays <= 3) {
-      return { text: `${diffDays} hari lagi`, variant: 'secondary' as const };
-    }
     return { text: `${diffDays} hari lagi`, variant: 'default' as const };
-  })();
+  }, [rental]);
+
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
+  if (!rental) return <div className="p-6">Transaction not found</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <div className="mb-4 flex items-center gap-4">
+          <div className="mb-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
               className="flex items-center gap-2"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Daftar Transaksi
+              <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Transaksi
             </Button>
           </div>
-
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Order #{rental.rentalCode}
               </h1>
-              <div className="mt-2 flex items-center gap-4">
+              <div className="mt-2 flex flex-wrap items-center gap-4">
                 <span className="text-gray-600">
                   Jatuh tempo: {formatDate(rental.endDate)}
                 </span>
-                <Badge variant={dueDate.variant}>{dueDate.text}</Badge>
+                {dueDate && (
+                  <Badge variant={dueDate.variant}>{dueDate.text}</Badge>
+                )}
                 {getStatusBadge(rental.status)}
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              {canConfirmReturn && (
+                <Dialog
+                  open={confirmReturnDialogOpen}
+                  onOpenChange={setConfirmReturnDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button className="flex animate-pulse items-center gap-2">
+                      <CheckCircle className="h-4 w-4" /> Konfirmasi
+                      Pengembalian
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Konfirmasi Penerimaan Produk</DialogTitle>
+                      <DialogDescription>
+                        Apakah Anda telah menerima produk yang dikembalikan
+                        pelanggan? Tindakan ini akan menyelesaikan transaksi.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setConfirmReturnDialogOpen(false)}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        onClick={handleConfirmReturn}
+                        disabled={returnConfirmLoading === rental.id}
+                      >
+                        {returnConfirmLoading === rental.id ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Mengkonfirmasi...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Ya, Konfirmasi
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
 
-            <div className="flex gap-2">
               <Button
                 variant="outline"
                 className="flex items-center gap-2"
                 disabled
               >
-                <Download className="h-4 w-4" />
-                Unduh Struk
-              </Button>
-              <Button className="flex items-center gap-2" disabled>
-                <FileText className="h-4 w-4" />
-                Lihat Struk
+                <Download className="h-4 w-4" /> Unduh Struk
               </Button>
             </div>
           </div>
         </div>
 
-        {/* ===== top grid (left: items, right: customer) ===== */}
+        {/* The rest of the page layout remains the same */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left – items & summary */}
+          {/* Left Column: Items & Summary */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Items table */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
+                  <Package />
                   Detail Produk Sewa
                 </CardTitle>
-                <CardDescription>
-                  Daftar produk yang disewa dalam transaksi ini
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Produk</TableHead>
-                      <TableHead className="text-center">Kuantitas</TableHead>
                       <TableHead className="text-right">Harga</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rental.rentalItems.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <div className="flex gap-3">
-                            <div className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-100">
-                              <Image
-                                src={
-                                  item.variantProduct.products.images[0] ??
-                                  '/placeholder.svg'
-                                }
-                                width={120}
-                                height={120}
-                                alt={item.variantProduct.products.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">
+                          <div className="flex items-center gap-3">
+                            <Image
+                              src={
+                                item.variantProduct.products.images[0] ??
+                                '/placeholder.svg'
+                              }
+                              width={64}
+                              height={64}
+                              alt={item.variantProduct.products.name}
+                              className="h-16 w-16 rounded-lg border object-cover"
+                            />
+                            <div>
+                              <h4 className="font-medium">
                                 {item.variantProduct.products.name}
                               </h4>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  SKU: {item.variantProduct.sku}
-                                </Badge>
-                                {item.variantProduct.size && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Ukuran: {item.variantProduct.size}
-                                  </Badge>
-                                )}
-                                {item.variantProduct.color && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Warna: {item.variantProduct.color}
-                                  </Badge>
-                                )}
+                              <div className="text-xs text-gray-500">
+                                SKU: {item.variantProduct.sku}
                               </div>
-
-                              {(item.variantProduct.bustlength ||
-                                item.variantProduct.waistlength ||
-                                item.variantProduct.length) && (
-                                <div className="mt-1 text-xs text-gray-500">
-                                  Ukuran:
-                                  {item.variantProduct.bustlength &&
-                                    ` Dada ${item.variantProduct.bustlength}cm`}
-                                  {item.variantProduct.waistlength &&
-                                    ` Pinggang ${item.variantProduct.waistlength}cm`}
-                                  {item.variantProduct.length &&
-                                    ` Panjang ${item.variantProduct.length}cm`}
-                                </div>
-                              )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">1</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(item.variantProduct.price)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(item.variantProduct.price)}
@@ -416,113 +400,56 @@ const TransactionDetailPage = () => {
                 </Table>
               </CardContent>
             </Card>
-
-            {/* Summary */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Ringkasan Transaksi
-                </CardTitle>
+                <CardTitle>Ringkasan Transaksi</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span>Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Diskon</span>
-                      <span className="text-green-600">
-                        -{formatCurrency(discount)}
-                      </span>
-                    </div>
-                  )}
-                  {tax > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Pajak</span>
-                      <span>{formatCurrency(tax)}</span>
-                    </div>
-                  )}
-                  {shippingFee > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Ongkos Kirim</span>
-                      <span>{formatCurrency(shippingFee)}</span>
-                    </div>
-                  )}
                   <Separator />
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
-
-                {rental.additionalInfo && (
-                  <div className="mt-6 rounded-lg bg-gray-50 p-4">
-                    <h4 className="mb-2 font-medium text-gray-900">
-                      Catatan Tambahan
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {rental.additionalInfo}
-                    </p>
+              </CardContent>
+            </Card>
+          </div>
+          {/* Right Column: Customer & Period */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User />
+                  Informasi Pelanggan
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <h4 className="font-medium">
+                  {rental.user.first_name} {rental.user.last_name ?? ''}
+                </h4>
+                {rental.user.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    {rental.user.email}
+                  </div>
+                )}
+                {rental.user.phone_numbers && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    {rental.user.phone_numbers}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right – customer & period */}
-          <div className="space-y-6">
-            {/* Customer */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Informasi Pelanggan
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900">
-                    {rental.user.first_name} {rental.user.last_name ?? ''}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    @{rental.user.username}
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {rental.user.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{rental.user.email}</span>
-                    </div>
-                  )}
-                  {rental.user.phone_numbers && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">
-                        {rental.user.phone_numbers}
-                      </span>
-                    </div>
-                  )}
-                  {rental.user.businessAddress && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 text-gray-400" />
-                      <span className="text-sm">
-                        {rental.user.businessAddress}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Period */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                  <Calendar />
                   Periode Sewa
                 </CardTitle>
               </CardHeader>
@@ -535,32 +462,17 @@ const TransactionDetailPage = () => {
                   <span className="text-sm text-gray-600">Tanggal Selesai</span>
                   <p className="font-medium">{formatDate(rental.endDate)}</p>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">Durasi</span>
-                  <p className="font-medium">
-                    {Math.ceil(
-                      (new Date(rental.endDate).getTime() -
-                        new Date(rental.startDate).getTime()) /
-                        (1000 * 60 * 60 * 24),
-                    )}{' '}
-                    hari
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
         {/* Timeline */}
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+              <Clock />
               Riwayat Transaksi
             </CardTitle>
-            <CardDescription>
-              Timeline status dan aktivitas transaksi
-            </CardDescription>
           </CardHeader>
           <CardContent>
             {!tracking.length ? (
@@ -576,10 +488,9 @@ const TransactionDetailPage = () => {
                         }`}
                       />
                       {index < tracking.length - 1 && (
-                        <div className="h-12 w-px bg-gray-200" />
+                        <div className="h-full w-px bg-gray-200" />
                       )}
                     </div>
-
                     <div className="flex-1 pb-6">
                       <div className="mb-2 flex items-center gap-3">
                         {getTrackingStatusBadge(event.status)}
