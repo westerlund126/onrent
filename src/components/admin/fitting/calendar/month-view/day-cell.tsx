@@ -19,25 +19,8 @@ const MAX_VISIBLE_EVENTS = 3;
 
 export function DayCell({ cell, schedule, schedulePositions }: IProps) {
   const { day, currentMonth, date } = cell;
-  if (date.getDate() === 28) {
-    console.log('June 28th DayCell data:', {
-      cellDate: date,
-      cellDateString: date.toDateString(),
-      scheduleLength: schedule.length,
-      scheduleForThisDay: schedule.filter((s) => {
-        const scheduleDate = new Date(s.startTime);
-        return scheduleDate.toDateString() === date.toDateString();
-      }),
-      schedulePositions,
-      hasPositionForSchedule1: schedulePositions[1],
-    });
-  }
 
   const cellSchedule = useMemo(() => getMonthCellSchedule(date, schedule, schedulePositions), [date, schedule, schedulePositions]);
-  
-  if (date.getDate() === 26) {
-    console.log('June 28th cellSchedule result:', cellSchedule);
-  }
 
   const isSunday = date.getDay() === 0;
 
@@ -58,22 +41,6 @@ export function DayCell({ cell, schedule, schedulePositions }: IProps) {
           {[0, 1, 2].map(position => {
             const schedule = cellSchedule.find(e => e.position === position);
             const scheduleKey = schedule ? `schedule-${schedule.id}-${position}` : `empty-${position}`;
-
-            if (date.getDate() === 28) {
-              console.log(
-                `June 28th position ${position} - FULL OBJECT:`,
-                schedule,
-              );
-              console.log(`June 28th position ${position} - PROPERTIES:`, {
-                id: schedule?.id,
-                title: schedule?.title,
-                color: schedule?.color,
-                startTime: schedule?.startTime,
-                hasTitle: schedule && 'title' in schedule,
-                hasColor: schedule && 'color' in schedule,
-                allKeys: schedule ? Object.keys(schedule) : null,
-              });
-            }
 
             return (
               <div key={scheduleKey} className="lg:flex-1">

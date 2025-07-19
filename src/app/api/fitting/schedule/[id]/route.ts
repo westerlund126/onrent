@@ -36,6 +36,7 @@ export async function GET(
             id: true,
             first_name: true,
             last_name: true,
+            username: true,
             email: true,
             phone_numbers: true,
           },
@@ -195,12 +196,13 @@ export async function PATCH(
 
     const fullUpdatedSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: scheduleId },
-      include: { 
+      include: {
         user: {
           select: {
             id: true,
             first_name: true,
             last_name: true,
+            username: true,
             email: true,
             phone_numbers: true,
           },

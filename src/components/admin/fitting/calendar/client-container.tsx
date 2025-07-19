@@ -121,7 +121,6 @@ export function ClientContainer({ view }: IProps) {
         {view === 'week' && (
           <CalendarWeekView />
         )}
-        {view === 'year' && <CalendarYearView allSchedule={filteredSchedule} />}
       </DndProviderWrapper>
     </div>
   );
