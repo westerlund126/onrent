@@ -1,7 +1,7 @@
-// app/api/rentals/[id]/return/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { OneSignalService } from 'lib/onesignal'; // 1. Import OneSignalService
 
 export async function POST(
   request: NextRequest,
@@ -32,6 +32,7 @@ export async function POST(
       );
     }
 
+    // Find the rental to validate ownership and status
     const rental = await prisma.rental.findFirst({
       where: {
         id: rentalId,
@@ -61,7 +62,6 @@ export async function POST(
       );
     }
 
-    // Check if rental has already been returned or completed
     if (
       latestTracking.status === 'RETURNED' ||
       latestTracking.status === 'COMPLETED'
@@ -72,7 +72,6 @@ export async function POST(
       );
     }
 
-    // Check if rental can be returned (must be RENTAL_ONGOING or RETURN_PENDING)
     if (
       latestTracking.status !== 'RENTAL_ONGOING' &&
       latestTracking.status !== 'RETURN_PENDING'
@@ -94,58 +93,67 @@ export async function POST(
         },
       });
 
+      // Refetch the rental with all necessary data for the notification
       return await tx.rental.findFirst({
         where: { id: rentalId },
         include: {
-          user: {
+          user: { // The customer
             select: {
-              id: true,
-              username: true,
               first_name: true,
               last_name: true,
             },
           },
-          owner: {
+          owner: { // The owner
             select: {
-              id: true,
-              username: true,
-              businessName: true,
-              phone_numbers: true,
+              clerkUserId: true, // 2. Get owner's Clerk ID for notification
             },
           },
           rentalItems: {
             include: {
               variantProduct: {
                 select: {
-                  id: true,
-                  sku: true,
-                  size: true,
-                  color: true,
-                  price: true,
                   products: {
                     select: {
-                      id: true,
                       name: true,
-                      category: true,
                     },
                   },
                 },
               },
             },
           },
-          Tracking: {
-            orderBy: { updatedAt: 'desc' },
-            take: 1,
-          },
         },
       });
     });
+
+    if (!updatedRental) {
+        throw new Error("Failed to update and retrieve rental details.");
+    }
+
+    // 3. Send the notification to the owner
+    if (updatedRental.owner.clerkUserId) {
+      try {
+        const oneSignalService = new OneSignalService();
+        const customerName = `${updatedRental.user.first_name} ${updatedRental.user.last_name || ''}`.trim();
+        const productNames = updatedRental.rentalItems.map(item => item.variantProduct.products.name);
+        
+        await oneSignalService.notifyOwnerReturnRequest({
+          ownerExternalId: updatedRental.owner.clerkUserId,
+          customerName: customerName,
+          rentalCode: updatedRental.rentalCode,
+          productNames: productNames,
+          rentalId: updatedRental.id,
+        });
+      } catch (notificationError) {
+        // Log the error but don't fail the API request
+        console.error("[Notification] Failed to send return request notification:", notificationError);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message:
         'Return initiated successfully. Please wait for owner confirmation.',
-      data: updatedRental,
+      data: updatedRental, // You might want to return a cleaner object
     });
   } catch (error: any) {
     console.error('Customer return error:', error);
