@@ -20,6 +20,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   FileText,
   Package,
   User,
@@ -35,12 +44,14 @@ import {
   ArrowLeft,
   Download,
   CreditCard,
+  PackageCheck,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useRentalStore } from 'stores/useRentalStore';
 
 /* ------------------------------------------------------------------ */
-/* Type helpers – adjust to your /types/* file if you already have it */
+/* Type Definitions (You can move these to a central file)       */
 /* ------------------------------------------------------------------ */
 type TrackingEvent = {
   id: number;
@@ -86,7 +97,7 @@ type RentalDetail = {
     first_name: string;
     last_name?: string | null;
     username: string;
-    email?: string | null; 
+    email?: string | null;
     phone_numbers?: string | null;
     businessAddress?: string | null;
   };
@@ -101,7 +112,9 @@ const TransactionDetailPage = () => {
   const [rental, setRental] = useState<RentalDetail | null>(null);
   const [tracking, setTracking] = useState<TrackingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
 
+  const { confirmReturn, returnConfirmLoading } = useRentalStore();
 
   const fetchRental = useCallback(async (rentalId: string) => {
     const res = await fetch(`/api/rentals/${rentalId}/detail`);
@@ -117,38 +130,28 @@ const TransactionDetailPage = () => {
     return data as TrackingEvent[];
   }, []);
 
-  const fetchCustomerEmail = useCallback(async (userId: number) => {
-    const res = await fetch(`/api/customers/${userId}`);
-    if (!res.ok) return null; 
-    const { data } = await res.json();
-    return data?.email ?? null;
-  }, []);
+  // Main data fetching effect
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [rentalDetail, trackingList] = await Promise.all([
+        fetchRental(id),
+        fetchTracking(id),
+      ]);
+      setRental(rentalDetail);
+      setTracking(trackingList);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message ?? 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, fetchRental, fetchTracking]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [rentalDetail, trackingList] = await Promise.all([
-          fetchRental(id),
-          fetchTracking(id),
-        ]);
-
-        const email = await fetchCustomerEmail(rentalDetail.user.id);
-        if (email) rentalDetail.user.email = email;
-
-        setRental(rentalDetail);
-        setTracking(trackingList);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message ?? 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, fetchRental, fetchTracking, fetchCustomerEmail]);
-
+    loadData();
+  }, [loadData]);
 
   const subtotal = useMemo(
     () =>
@@ -159,80 +162,37 @@ const TransactionDetailPage = () => {
     [rental],
   );
 
-  const tax = 0;
-  const shippingFee = 0;
-  const discount = 0;
-  const total = subtotal + tax + shippingFee - discount;
+  const total = subtotal; 
 
-  if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!rental) return <div className="p-6">Transaction not found</div>;
+  const currentTrackingStatus = useMemo(() => {
+    if (!tracking.length) return null;
+    return tracking[0]?.status;
+  }, [tracking]);
 
+  const canConfirmReturn = useMemo(
+    () => currentTrackingStatus === 'RETURNED',
+    [currentTrackingStatus],
+  );
 
-  const getStatusBadge = (status: RentalDetail['status']) => {
-    const statusConfig = {
-      BELUM_LUNAS: {
-        label: 'Belum Lunas',
-        variant: 'destructive',
-        icon: XCircle,
-      },
-      LUNAS: { label: 'Lunas', variant: 'secondary', icon: CheckCircle },
-      TERLAMBAT: {
-        label: 'Terlambat',
-        variant: 'secondary',
-        icon: AlertCircle,
-      },
-      SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
-    } as const;
-
-    const config = statusConfig[status] ?? {
-      label: status,
-      variant: 'secondary',
-      icon: AlertCircle,
-    };
-    const Icon = config.icon;
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
-    );
+  // Action Handler for confirming return
+  const handleConfirmReturn = async () => {
+    if (!rental) return;
+    try {
+      await confirmReturn(rental.id);
+      setConfirmReturnDialogOpen(false);
+      alert('Return confirmed successfully!');
+      await loadData(); // Refresh all data to show final state
+    } catch (error) {
+      console.error('Failed to confirm return:', error);
+      alert(
+        `Confirmation Failed: ${
+          error instanceof Error ? error.message : 'Please try again.'
+        }`,
+      );
+    }
   };
 
-  const getTrackingStatusBadge = (status: TrackingEvent['status']) => {
-    const statusConfig = {
-      RENTAL_ONGOING: {
-        label: 'Sedang Berlangsung',
-        variant: 'default',
-        icon: RefreshCw,
-      },
-      RETURN_PENDING: {
-        label: 'Menunggu Pengembalian',
-        variant: 'secondary',
-        icon: Clock,
-      },
-      RETURNED: {
-        label: 'Dikembalikan',
-        variant: 'default',
-        icon: CheckCircle,
-      },
-      COMPLETED: { label: 'Selesai', variant: 'default', icon: CheckCircle },
-    } as const;
-
-    const config = statusConfig[status] ?? {
-      label: status,
-      variant: 'secondary',
-      icon: AlertCircle,
-    };
-    const Icon = config.icon;
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
-    );
-  };
-
+  // Helper Functions
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -256,26 +216,82 @@ const TransactionDetailPage = () => {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  const dueDate = (() => {
+  const getStatusBadge = (status: RentalDetail['status']) => {
+    const statusConfig = {
+      BELUM_LUNAS: {
+        label: 'Belum Lunas',
+        variant: 'destructive',
+        icon: XCircle,
+      },
+      LUNAS: { label: 'Lunas', variant: 'secondary', icon: CheckCircle },
+      TERLAMBAT: {
+        label: 'Terlambat',
+        variant: 'secondary',
+        icon: AlertCircle,
+      },
+      SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
+    } as const;
+    const config = statusConfig[status];
+    const Icon = config.icon;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getTrackingStatusBadge = (status: TrackingEvent['status']) => {
+    const statusConfig = {
+      RENTAL_ONGOING: {
+        label: 'Sedang Berlangsung',
+        variant: 'default',
+        icon: RefreshCw,
+      },
+      RETURN_PENDING: {
+        label: 'Menunggu Pengembalian',
+        variant: 'secondary',
+        icon: Clock,
+      },
+      RETURNED: {
+        label: 'Dikembalikan Pelanggan',
+        variant: 'default',
+        icon: PackageCheck,
+      },
+      COMPLETED: { label: 'Selesai', variant: 'default', icon: CheckCircle },
+    } as const;
+    const config = statusConfig[status];
+    const Icon = config.icon;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const dueDate = useMemo(() => {
+    if (!rental) return null;
     const endDate = new Date(rental.endDate);
     const today = new Date();
     const diffDays = Math.ceil(
       (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
-    if (diffDays < 0) {
+    if (diffDays < 0)
       return {
         text: `Terlambat ${Math.abs(diffDays)} hari`,
         variant: 'destructive' as const,
       };
-    }
-    if (diffDays === 0) {
+    if (diffDays === 0)
       return { text: 'Jatuh tempo hari ini', variant: 'destructive' as const };
-    }
-    if (diffDays <= 3) {
+    if (diffDays <= 3)
       return { text: `${diffDays} hari lagi`, variant: 'secondary' as const };
-    }
     return { text: `${diffDays} hari lagi`, variant: 'default' as const };
-  })();
+  }, [rental]);
+
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
+  if (!rental) return <div className="p-6">Transaction not found</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -299,16 +315,65 @@ const TransactionDetailPage = () => {
               <h1 className="text-3xl font-bold text-gray-900">
                 Order #{rental.rentalCode}
               </h1>
-              <div className="mt-2 flex items-center gap-4">
+              <div className="mt-2 flex flex-wrap items-center gap-4">
                 <span className="text-gray-600">
                   Jatuh tempo: {formatDate(rental.endDate)}
                 </span>
-                <Badge variant={dueDate.variant}>{dueDate.text}</Badge>
+                {dueDate && (
+                  <Badge variant={dueDate.variant}>{dueDate.text}</Badge>
+                )}
                 {getStatusBadge(rental.status)}
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {/* Confirm Return Button */}
+              {canConfirmReturn && (
+                <Dialog
+                  open={confirmReturnDialogOpen}
+                  onOpenChange={setConfirmReturnDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Konfirmasi Pengembalian
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Konfirmasi Penerimaan Produk</DialogTitle>
+                      <DialogDescription>
+                        Apakah Anda telah menerima produk yang dikembalikan oleh
+                        pelanggan? Tindakan ini akan menyelesaikan transaksi.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setConfirmReturnDialogOpen(false)}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        onClick={handleConfirmReturn}
+                        disabled={returnConfirmLoading === rental.id}
+                      >
+                        {returnConfirmLoading === rental.id ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Mengkonfirmasi...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Ya, Konfirmasi
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
               <Button
                 variant="outline"
                 className="flex items-center gap-2"
@@ -317,37 +382,27 @@ const TransactionDetailPage = () => {
                 <Download className="h-4 w-4" />
                 Unduh Struk
               </Button>
-              <Button className="flex items-center gap-2" disabled>
-                <FileText className="h-4 w-4" />
-                Lihat Struk
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* ===== top grid (left: items, right: customer) ===== */}
+        {/* Main Grid Layout */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left – items & summary */}
+          {/* Left Column: Items & Summary */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Items table */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
                   Detail Produk Sewa
                 </CardTitle>
-                <CardDescription>
-                  Daftar produk yang disewa dalam transaksi ini
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Produk</TableHead>
-                      <TableHead className="text-center">Kuantitas</TableHead>
                       <TableHead className="text-right">Harga</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -361,51 +416,21 @@ const TransactionDetailPage = () => {
                                   item.variantProduct.products.images[0] ??
                                   '/placeholder.svg'
                                 }
-                                width={120}
-                                height={120}
+                                width={64}
+                                height={64}
                                 alt={item.variantProduct.products.name}
                                 className="h-full w-full object-cover"
                               />
                             </div>
-                            <div className="flex-1">
+                            <div>
                               <h4 className="font-medium text-gray-900">
                                 {item.variantProduct.products.name}
                               </h4>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  SKU: {item.variantProduct.sku}
-                                </Badge>
-                                {item.variantProduct.size && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Ukuran: {item.variantProduct.size}
-                                  </Badge>
-                                )}
-                                {item.variantProduct.color && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Warna: {item.variantProduct.color}
-                                  </Badge>
-                                )}
+                              <div className="text-xs text-gray-500">
+                                SKU: {item.variantProduct.sku}
                               </div>
-
-                              {(item.variantProduct.bustlength ||
-                                item.variantProduct.waistlength ||
-                                item.variantProduct.length) && (
-                                <div className="mt-1 text-xs text-gray-500">
-                                  Ukuran:
-                                  {item.variantProduct.bustlength &&
-                                    ` Dada ${item.variantProduct.bustlength}cm`}
-                                  {item.variantProduct.waistlength &&
-                                    ` Pinggang ${item.variantProduct.waistlength}cm`}
-                                  {item.variantProduct.length &&
-                                    ` Panjang ${item.variantProduct.length}cm`}
-                                </div>
-                              )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">1</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(item.variantProduct.price)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(item.variantProduct.price)}
@@ -417,47 +442,22 @@ const TransactionDetailPage = () => {
               </CardContent>
             </Card>
 
-            {/* Summary */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Ringkasan Transaksi
-                </CardTitle>
+                <CardTitle>Ringkasan Transaksi</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span>Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Diskon</span>
-                      <span className="text-green-600">
-                        -{formatCurrency(discount)}
-                      </span>
-                    </div>
-                  )}
-                  {tax > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Pajak</span>
-                      <span>{formatCurrency(tax)}</span>
-                    </div>
-                  )}
-                  {shippingFee > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Ongkos Kirim</span>
-                      <span>{formatCurrency(shippingFee)}</span>
-                    </div>
-                  )}
                   <Separator />
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
-
                 {rental.additionalInfo && (
                   <div className="mt-6 rounded-lg bg-gray-50 p-4">
                     <h4 className="mb-2 font-medium text-gray-900">
@@ -472,13 +472,12 @@ const TransactionDetailPage = () => {
             </Card>
           </div>
 
-          {/* Right – customer & period */}
+          {/* Right Column: Customer & Period */}
           <div className="space-y-6">
-            {/* Customer */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
+                  <User />
                   Informasi Pelanggan
                 </CardTitle>
               </CardHeader>
@@ -506,23 +505,14 @@ const TransactionDetailPage = () => {
                       </span>
                     </div>
                   )}
-                  {rental.user.businessAddress && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 text-gray-400" />
-                      <span className="text-sm">
-                        {rental.user.businessAddress}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Period */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                  <Calendar />
                   Periode Sewa
                 </CardTitle>
               </CardHeader>
@@ -535,17 +525,6 @@ const TransactionDetailPage = () => {
                   <span className="text-sm text-gray-600">Tanggal Selesai</span>
                   <p className="font-medium">{formatDate(rental.endDate)}</p>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">Durasi</span>
-                  <p className="font-medium">
-                    {Math.ceil(
-                      (new Date(rental.endDate).getTime() -
-                        new Date(rental.startDate).getTime()) /
-                        (1000 * 60 * 60 * 24),
-                    )}{' '}
-                    hari
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -555,7 +534,7 @@ const TransactionDetailPage = () => {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+              <Clock />
               Riwayat Transaksi
             </CardTitle>
             <CardDescription>
@@ -576,10 +555,9 @@ const TransactionDetailPage = () => {
                         }`}
                       />
                       {index < tracking.length - 1 && (
-                        <div className="h-12 w-px bg-gray-200" />
+                        <div className="h-full w-px bg-gray-200" />
                       )}
                     </div>
-
                     <div className="flex-1 pb-6">
                       <div className="mb-2 flex items-center gap-3">
                         {getTrackingStatusBadge(event.status)}

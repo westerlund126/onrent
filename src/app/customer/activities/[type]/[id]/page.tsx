@@ -215,18 +215,15 @@ const CustomerActivityDetailPage = () => {
   const canInitiateReturn = useMemo(() => {
     if (!isRental || !activity) return false;
 
-    // Customer can initiate return if status is RENTAL_ONGOING or RETURN_PENDING
     return (
       currentTrackingStatus === 'RENTAL_ONGOING' ||
       currentTrackingStatus === 'RETURN_PENDING'
     );
   }, [isRental, activity, currentTrackingStatus]);
 
-  // Determine if owner can confirm return
   const canConfirmReturn = useMemo(() => {
     if (!isRental || !activity) return false;
 
-    // Owner can confirm return if customer has already initiated return
     return currentTrackingStatus === 'RETURNED';
   }, [isRental, activity, currentTrackingStatus]);
 
@@ -503,6 +500,69 @@ const CustomerActivityDetailPage = () => {
                               <>
                                 <Undo2 className="mr-2 h-4 w-4" />
                                 Ya, Kembalikan
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+
+                  {/* NEW: Show a status badge after the customer has returned the product */}
+                  {currentTrackingStatus === 'RETURNED' && (
+                    <Badge
+                      variant="outline"
+                      className="pointer-events-none flex items-center gap-2 border-green-600 bg-green-50 px-3 py-2 text-sm text-green-700"
+                    >
+                      <PackageCheck className="h-4 w-4" />
+                      Produk Telah Dikembalikan
+                    </Badge>
+                  )}
+
+                  {/* This button for the owner remains unchanged */}
+                  {canConfirmReturn && (
+                    <Dialog
+                      open={confirmReturnDialogOpen}
+                      onOpenChange={setConfirmReturnDialogOpen}
+                    >
+                      <DialogTrigger asChild>
+                        <Button className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Konfirmasi Pengembalian
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            Konfirmasi Penerimaan Produk
+                          </DialogTitle>
+                          <DialogDescription>
+                            Apakah Anda telah menerima produk yang dikembalikan
+                            oleh customer? Tindakan ini akan menyelesaikan
+                            transaksi rental dan membuat produk tersedia
+                            kembali.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setConfirmReturnDialogOpen(false)}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            onClick={handleConfirmReturn}
+                            disabled={returnConfirmLoading === parseInt(id)}
+                          >
+                            {returnConfirmLoading === parseInt(id) ? (
+                              <>
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                Mengkonfirmasi...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Ya, Konfirmasi
                               </>
                             )}
                           </Button>
