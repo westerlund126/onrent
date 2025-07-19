@@ -199,11 +199,9 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Block Time Period</DialogTitle>
+          <DialogTitle>Periode Blokir Jadwal</DialogTitle>
           <DialogDescription>
-            Create a blocked time period when you are not available for
-            fittings. This will prevent customers from booking appointments
-            during this time.
+            Blokir periode waktu tertentu pada kalender Anda untuk menghindari penjadwalan acara pada waktu tersebut.
           </DialogDescription>
         </DialogHeader>
 
@@ -218,7 +216,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
               name="description"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel htmlFor="description">Description</FormLabel>
+                  <FormLabel htmlFor="description">Deskripsi</FormLabel>
                   <FormControl>
                     <Input
                       id="description"
@@ -233,7 +231,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
             />
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Date</label>
+              <label className="text-sm font-medium">Tanggal</label>
               <SingleDatePicker
                 value={selectedDate}
                 onSelect={handleDateSelect}
@@ -247,7 +245,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
               name="startTime"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel>Start Time</FormLabel>
+                  <FormLabel>Waktu Mulai</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value}
@@ -281,7 +279,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
               name="endTime"
               render={({ field, fieldState }) => (
                 <FormItem>
-                  <FormLabel>End Time</FormLabel>
+                  <FormLabel>Waktu Berakhir</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value}
@@ -311,7 +309,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="size-3.5 rounded-full bg-gray-700" />
-              Blocked periods will appear in gray on your calendar
+              Jadwal yang diblokir akan ditampilkan dengan warna abu-abu pada kalender Anda.
             </div>
           </form>
         </Form>
@@ -329,7 +327,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
             disabled={isLoading || !form.formState.isValid}
             className="min-w-[120px]"
           >
-            {isLoading ? 'Creating...' : 'Block Time'}
+            {isLoading ? 'Menyimpan...' : 'Blokir Jadwal'}
           </Button>
         </DialogFooter>
       </DialogContent>

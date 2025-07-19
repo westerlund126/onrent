@@ -64,25 +64,13 @@ export function CalendarHeader({ view, schedule }: IProps) {
                 <Grid2x2 strokeWidth={1.8} />
               </Link>
             </Button>
-
-            <Button
-              asChild
-              aria-label="View by agenda"
-              size="icon"
-              variant={view === 'agenda' ? 'default' : 'outline'}
-              className="-ml-px rounded-l-none [&_svg]:size-5"
-            >
-              <Link href="/owner/fitting/schedule/agenda-view">
-                <CalendarRange strokeWidth={1.8} />
-              </Link>
-            </Button>
           </div>
         </div>
 
         <AddEventDialog>
           <Button className="w-full sm:w-auto">
             <Plus />
-            Add Event
+            Blokir Jadwal
           </Button>
         </AddEventDialog>
       </div>
