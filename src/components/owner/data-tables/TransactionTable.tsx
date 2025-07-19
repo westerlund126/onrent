@@ -1,589 +1,471 @@
-'use client';
-
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// components/TransactionTable.tsx
+import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  FileText,
-  Package,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  RefreshCw,
-  ArrowLeft,
-  Download,
-  CreditCard,
-  PackageCheck,
-} from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+  MdKeyboardArrowDown,
+  MdEdit,
+  MdDelete,
+  MdVisibility,
+  MdRefresh,
+  MdMoreVert,
+} from 'react-icons/md';
+import Card from 'components/card';
+import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { useRentalStore } from 'stores/useRentalStore';
+import EditRentalForm from 'components/form/owner/EditRentalForm';
+import { DeleteConfirmation, RentalFilters, RentalStatus } from 'types/rental';
+import {
+  getStatusBadgeConfig,
+  formatDate,
+  formatCurrency,
+  getCustomerName,
+  getCustomerContact,
+  isDeletionDisabled,
+  isValidStatus,
+} from 'utils/rental';
+import { sumBy } from 'lodash';
+import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { TransactionTableProps } from 'types/rental';
 
-/* ------------------------------------------------------------------ */
-/* Type Definitions (You can move these to a central file)       */
-/* ------------------------------------------------------------------ */
-type TrackingEvent = {
-  id: number;
-  status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';
-  updatedAt: string;
-  description: string;
+const getTotalRentalPrice = (rental: any) =>
+  sumBy(rental?.rentalItems ?? [], (ri: any) => ri.variantProduct?.price ?? 0);
+
+const getRentalItemsDisplay = (rental: any) => {
+  if (!rental.rentalItems || rental.rentalItems.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const items = rental.rentalItems.map((item: any) => {
+    const product = item.variantProduct?.products;
+    const variant = item.variantProduct;
+    if (product && variant) {
+      return `${product.name} (${variant.size}, ${variant.color})`;
+    }
+    return 'Item tidak diketahui';
+  });
+
+  if (items.length === 1) {
+    return items[0];
+  } else if (items.length <= 3) {
+    return items.join(', ');
+  } else {
+    return `${items.slice(0, 2).join(', ')} +${items.length - 2} lainnya`;
+  }
 };
 
-type VariantProduct = {
-  id: number;
-  sku: string;
-  size?: string | null;
-  color?: string | null;
-  price: number;
-  bustlength?: number | null;
-  waistlength?: number | null;
-  length?: number | null;
-  products: {
-    id: number;
-    name: string;
-    description: string;
-    category: string;
-    images: string[];
-  };
+// Status color configurations
+const getStatusConfig = (status: RentalStatus) => {
+  switch (status) {
+    case 'BELUM_LUNAS':
+      return { color: 'text-orange-600', bgColor: 'bg-orange-50' };
+    case 'LUNAS':
+      return { color: 'text-blue-600', bgColor: 'bg-blue-50' };
+    case 'TERLAMBAT':
+      return { color: 'text-red-600', bgColor: 'bg-red-50' };
+    case 'SELESAI':
+      return { color: 'text-green-600', bgColor: 'bg-green-50' };
+    default:
+      return { color: 'text-gray-600', bgColor: 'bg-gray-50' };
+  }
 };
 
-type RentalItem = {
-  id: number;
-  variantProduct: VariantProduct;
-};
+const TransactionTable: React.FC<TransactionTableProps> = ({
+  filters = {},
+  onViewDetails,
+  onEdit,
+}) => {
+  const {
+    rentals,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    totalItems,
+    statusUpdateLoading,
+    deleteLoading,
 
-type RentalDetail = {
-  id: number;
-  rentalCode: string;
-  status: 'BELUM_LUNAS' | 'LUNAS' | 'TERLAMBAT' | 'SELESAI';
-  startDate: string;
-  endDate: string;
-  additionalInfo?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  user: {
-    id: number;
-    first_name: string;
-    last_name?: string | null;
-    username: string;
-    email?: string | null;
-    phone_numbers?: string | null;
-    businessAddress?: string | null;
-  };
-  rentalItems: RentalItem[];
-};
+    setCurrentPage,
+    setFilters,
+    loadRentals,
+    updateRentalStatus,
+    deleteRental,
+    refreshData,
+  } = useRentalStore();
 
-const TransactionDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedRentalId, setSelectedRentalId] = useState<number | null>(null);
+
   const router = useRouter();
 
-  // Component State
-  const [loading, setLoading] = useState(true);
-  const [rental, setRental] = useState<RentalDetail | null>(null);
-  const [tracking, setTracking] = useState<TrackingEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
+  const handleEditSuccess = () => {
+    loadRentals();
+    setIsEditDialogOpen(false);
+  };
 
-  // Zustand Store for actions
-  const { confirmReturn, returnConfirmLoading } = useRentalStore();
+  const handleEdit = (rentalId: number) => {
+    setSelectedRentalId(rentalId);
+    setIsEditDialogOpen(true);
+    if (onEdit) onEdit(rentalId);
+  };
 
-  // Data Fetching Callbacks
-  const fetchRental = useCallback(async (rentalId: string) => {
-    const res = await fetch(`/api/rentals/${rentalId}/detail`);
-    if (!res.ok) throw new Error('Failed to load rental detail');
-    const { data } = await res.json();
-    return data as RentalDetail;
-  }, []);
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState<DeleteConfirmation>({
+      isOpen: false,
+      rentalId: null,
+      rentalCode: null,
+    });
 
-  const fetchTracking = useCallback(async (rentalId: string) => {
-    const res = await fetch(`/api/rentals/${rentalId}/tracking`);
-    if (!res.ok) throw new Error('Failed to load tracking');
-    const { data } = await res.json();
-    return data as TrackingEvent[];
-  }, []);
-
-  // Main data fetching effect
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [rentalDetail, trackingList] = await Promise.all([
-        fetchRental(id),
-        fetchTracking(id),
-      ]);
-      setRental(rentalDetail);
-      setTracking(trackingList);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message ?? 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, fetchRental, fetchTracking]);
+  const itemsPerPage = filters.limit || 10;
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const storeFilters = useRentalStore.getState().filters;
+    const areFiltersEqual =
+      JSON.stringify(storeFilters) === JSON.stringify(filters);
+    if (!areFiltersEqual) {
+      setFilters(filters);
+    }
+  }, [filters, setFilters]);
 
-  // Memoized calculations
-  const subtotal = useMemo(
-    () =>
-      rental?.rentalItems.reduce(
-        (sum, item) => sum + item.variantProduct.price,
-        0,
-      ) ?? 0,
-    [rental],
-  );
+  useEffect(() => {
+    loadRentals();
+  }, [loadRentals]);
 
-  const total = subtotal; // Assuming no tax/shipping/discount for now
+  const handleStatusChange = async (rentalId: number, newStatus: string) => {
+    if (!isValidStatus(newStatus)) {
+      console.error('Invalid status:', newStatus);
+      return;
+    }
+    await updateRentalStatus(rentalId, newStatus);
+  };
 
-  // Get the most recent tracking status to determine UI state
-  const currentTrackingStatus = useMemo(() => {
-    if (!tracking.length) return null;
-    return tracking[0]?.status;
-  }, [tracking]);
+  const openDeleteConfirmation = (rentalId: number, rentalCode: string) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      rentalId,
+      rentalCode,
+    });
+  };
 
-  // Determine if the owner can confirm the return
-  const canConfirmReturn = useMemo(
-    () => currentTrackingStatus === 'RETURNED',
-    [currentTrackingStatus],
-  );
+  const handleDeleteRental = async () => {
+    if (!deleteConfirmation.rentalId) return;
+    await deleteRental(deleteConfirmation.rentalId);
+    cancelDelete();
+  };
 
-  // Action Handler for confirming return
-  const handleConfirmReturn = async () => {
-    if (!rental) return;
-    try {
-      await confirmReturn(rental.id);
-      setConfirmReturnDialogOpen(false);
-      alert('Return confirmed successfully!');
-      await loadData(); // Refresh all data to show final state
-    } catch (error) {
-      console.error('Failed to confirm return:', error);
-      alert(
-        `Confirmation Failed: ${
-          error instanceof Error ? error.message : 'Please try again.'
-        }`,
-      );
+  const cancelDelete = () => {
+    setDeleteConfirmation({
+      isOpen: false,
+      rentalId: null,
+      rentalCode: null,
+    });
+  };
+
+  const handleViewDetails = (rentalId: number) => {
+    if (onViewDetails) {
+      onViewDetails(rentalId);
+    } else {
+      router.push(`/owner/transaction/${rentalId}`);
     }
   };
 
-  // Helper Functions
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+  const renderActionDropdown = (rental: any) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MdMoreVert className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => handleViewDetails(rental.id)}
+          className="cursor-pointer"
+        >
+          <MdVisibility className="mr-2 h-4 w-4" />
+          Lihat Detail
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleEdit(rental.id)}
+          className="cursor-pointer"
+        >
+          <MdEdit className="mr-2 h-4 w-4" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => openDeleteConfirmation(rental.id, rental.rentalCode)}
+          disabled={isDeletionDisabled(rental.status)}
+          className={`cursor-pointer ${
+            isDeletionDisabled(rental.status)
+              ? 'cursor-not-allowed text-gray-400'
+              : 'text-red-600 focus:text-red-600'
+          }`}
+        >
+          <MdDelete className="mr-2 h-4 w-4" />
+          Hapus
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
-  const formatDateTime = (dateString: string) =>
-    new Date(dateString).toLocaleString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-
-  const getStatusBadge = (status: RentalDetail['status']) => {
-    const statusConfig = {
-      BELUM_LUNAS: {
-        label: 'Belum Lunas',
-        variant: 'destructive',
-        icon: XCircle,
-      },
-      LUNAS: { label: 'Lunas', variant: 'secondary', icon: CheckCircle },
-      TERLAMBAT: {
-        label: 'Terlambat',
-        variant: 'secondary',
-        icon: AlertCircle,
-      },
-      SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
-    } as const;
-    const config = statusConfig[status];
-    const Icon = config.icon;
+  if (loading) {
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
+      <Card extra="w-full pb-10 p-4 h-full">
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+            <p className="text-lg font-medium text-gray-600">
+              Loading transaksi...
+            </p>
+          </div>
+        </div>
+      </Card>
     );
-  };
+  }
 
-  const getTrackingStatusBadge = (status: TrackingEvent['status']) => {
-    const statusConfig = {
-      RENTAL_ONGOING: {
-        label: 'Sedang Berlangsung',
-        variant: 'default',
-        icon: RefreshCw,
-      },
-      RETURN_PENDING: {
-        label: 'Menunggu Pengembalian',
-        variant: 'secondary',
-        icon: Clock,
-      },
-      RETURNED: {
-        label: 'Dikembalikan Pelanggan',
-        variant: 'default',
-        icon: PackageCheck,
-      },
-      COMPLETED: { label: 'Selesai', variant: 'default', icon: CheckCircle },
-    } as const;
-    const config = statusConfig[status];
-    const Icon = config.icon;
+  if (error) {
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
+      <Card extra="w-full pb-10 p-4 h-full">
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <p className="mb-4 text-lg font-medium text-red-500">
+              Error: {error}
+            </p>
+            <button
+              onClick={refreshData}
+              className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </Card>
     );
-  };
-
-  const dueDate = useMemo(() => {
-    if (!rental) return null;
-    const endDate = new Date(rental.endDate);
-    const today = new Date();
-    const diffDays = Math.ceil(
-      (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    if (diffDays < 0)
-      return {
-        text: `Terlambat ${Math.abs(diffDays)} hari`,
-        variant: 'destructive' as const,
-      };
-    if (diffDays === 0)
-      return { text: 'Jatuh tempo hari ini', variant: 'destructive' as const };
-    if (diffDays <= 3)
-      return { text: `${diffDays} hari lagi`, variant: 'secondary' as const };
-    return { text: `${diffDays} hari lagi`, variant: 'default' as const };
-  }, [rental]);
-
-  if (loading) return <div className="p-6">Loading…</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
-  if (!rental) return <div className="p-6">Transaction not found</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="mb-4 flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Daftar Transaksi
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Order #{rental.rentalCode}
-              </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-4">
-                <span className="text-gray-600">
-                  Jatuh tempo: {formatDate(rental.endDate)}
-                </span>
-                {dueDate && (
-                  <Badge variant={dueDate.variant}>{dueDate.text}</Badge>
-                )}
-                {getStatusBadge(rental.status)}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Confirm Return Button */}
-              {canConfirmReturn && (
-                <Dialog
-                  open={confirmReturnDialogOpen}
-                  onOpenChange={setConfirmReturnDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      Konfirmasi Pengembalian
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Konfirmasi Penerimaan Produk</DialogTitle>
-                      <DialogDescription>
-                        Apakah Anda telah menerima produk yang dikembalikan oleh
-                        pelanggan? Tindakan ini akan menyelesaikan transaksi.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setConfirmReturnDialogOpen(false)}
-                      >
-                        Batal
-                      </Button>
-                      <Button
-                        onClick={handleConfirmReturn}
-                        disabled={returnConfirmLoading === rental.id}
-                      >
-                        {returnConfirmLoading === rental.id ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Mengkonfirmasi...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Ya, Konfirmasi
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled
-              >
-                <Download className="h-4 w-4" />
-                Unduh Struk
-              </Button>
-            </div>
-          </div>
+    <Card extra="w-full h-full">
+      <header className="relative flex items-center justify-between px-4 pt-4">
+        <div className="text-xl font-bold text-navy-700 dark:text-white">
+          Daftar Transaksi
         </div>
+        <Button
+          onClick={refreshData}
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          title="Refresh Table"
+        >
+          <MdRefresh className="h-4 w-4" />
+        </Button>
+      </header>
 
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column: Items & Summary */}
-          <div className="space-y-6 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Detail Produk Sewa
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produk</TableHead>
-                      <TableHead className="text-right">Harga</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rental.rentalItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="flex gap-3">
-                            <div className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-100">
-                              <Image
-                                src={
-                                  item.variantProduct.products.images[0] ??
-                                  '/placeholder.svg'
-                                }
-                                width={64}
-                                height={64}
-                                alt={item.variantProduct.products.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-gray-900">
-                                {item.variantProduct.products.name}
-                              </h4>
-                              <div className="text-xs text-gray-500">
-                                SKU: {item.variantProduct.sku}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(item.variantProduct.price)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Ringkasan Transaksi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span>{formatCurrency(total)}</span>
-                  </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Nama Pelanggan
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                <div className="flex items-center">
+                  Kontak
+                  <MdKeyboardArrowDown className="ml-1" />
                 </div>
-                {rental.additionalInfo && (
-                  <div className="mt-6 rounded-lg bg-gray-50 p-4">
-                    <h4 className="mb-2 font-medium text-gray-900">
-                      Catatan Tambahan
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {rental.additionalInfo}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column: Customer & Period */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User />
-                  Informasi Pelanggan
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900">
-                    {rental.user.first_name} {rental.user.last_name ?? ''}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    @{rental.user.username}
-                  </p>
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Item Rental
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                <div className="flex items-center">
+                  Total
+                  <MdKeyboardArrowDown className="ml-1" />
                 </div>
-                <div className="space-y-3">
-                  {rental.user.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{rental.user.email}</span>
-                    </div>
-                  )}
-                  {rental.user.phone_numbers && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">
-                        {rental.user.phone_numbers}
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Tanggal Selesai
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                <div className="flex items-center">
+                  Status
+                  <MdKeyboardArrowDown className="ml-1" />
+                </div>
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rentals.map((rental) => {
+              const statusConfig = getStatusConfig(rental.status);
+              return (
+                <tr
+                  key={rental.id}
+                  className="border-b border-gray-100 transition-colors hover:bg-gray-50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-secondary-500">
+                        {getCustomerName(rental.user)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {rental.rentalCode}
                       </span>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar />
-                  Periode Sewa
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600">Tanggal Mulai</span>
-                  <p className="font-medium">{formatDate(rental.startDate)}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Tanggal Selesai</span>
-                  <p className="font-medium">{formatDate(rental.endDate)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Timeline */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock />
-              Riwayat Transaksi
-            </CardTitle>
-            <CardDescription>
-              Timeline status dan aktivitas transaksi
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!tracking.length ? (
-              <p className="text-sm text-gray-500">Belum ada aktivitas.</p>
-            ) : (
-              <div className="space-y-6">
-                {tracking.map((event, index) => (
-                  <div key={event.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={`h-3 w-3 rounded-full ${
-                          index === 0 ? 'bg-blue-500' : 'bg-gray-300'
-                        }`}
-                      />
-                      {index < tracking.length - 1 && (
-                        <div className="h-full w-px bg-gray-200" />
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {getCustomerContact(rental.user)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="max-w-xs text-sm text-gray-700">
+                      <span
+                        className="block truncate"
+                        title={getRentalItemsDisplay(rental)}
+                      >
+                        {getRentalItemsDisplay(rental)}
+                      </span>
+                      {rental.rentalItems && rental.rentalItems.length > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {rental.rentalItems.length} item
+                          {rental.rentalItems.length > 1 ? 's' : ''}
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1 pb-6">
-                      <div className="mb-2 flex items-center gap-3">
-                        {getTrackingStatusBadge(event.status)}
-                        <span className="text-sm text-gray-500">
-                          {formatDateTime(event.updatedAt)}
-                        </span>
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {formatCurrency(getTotalRentalPrice(rental))}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-secondary-500">
+                    {formatDate(rental.endDate)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Select
+                      value={rental.status}
+                      onValueChange={(value) => {
+                        if (value !== rental.status) {
+                          handleStatusChange(rental.id, value);
+                        }
+                      }}
+                      disabled={statusUpdateLoading === rental.id}
+                    >
+                      <SelectTrigger
+                        className={`h-8 w-32 text-xs font-medium ${statusConfig.color} ${statusConfig.bgColor} border-0`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          value="BELUM_LUNAS"
+                          className="text-orange-600"
+                        >
+                          Belum Lunas
+                        </SelectItem>
+                        <SelectItem value="LUNAS" className="text-blue-600">
+                          Lunas
+                        </SelectItem>
+                        <SelectItem value="TERLAMBAT" className="text-red-600">
+                          Terlambat
+                        </SelectItem>
+                        <SelectItem value="SELESAI" className="text-green-600">
+                          Selesai
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {statusUpdateLoading === rental.id && (
+                      <div className="mt-1 text-xs text-blue-600">
+                        Memperbarui...
                       </div>
-                      <p className="text-sm text-gray-700">
-                        {event.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{renderActionDropdown(rental)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {rentals.length === 0 && (
+          <div className="py-12 text-center">
+            <div className="mx-auto mb-4 h-12 w-12 text-gray-400">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-500">Tidak ada transaksi ditemukan</p>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Edit dialog */}
+      <EditRentalForm
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedRentalId(null);
+        }}
+        rentalId={selectedRentalId}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+          <div className="text-sm text-gray-700">
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} –{' '}
+            {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems}{' '}
+            transaksi
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Sebelumnya
+            </button>
+            <span className="text-sm text-gray-700">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="rounded-md border border-gray-300 px-3 py-1 text-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirmation.isOpen && (
+        <ConfirmationPopup
+          message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}
+          onConfirm={handleDeleteRental}
+          onCancel={cancelDelete}
+        />
+      )}
+    </Card>
   );
 };
 
-export default TransactionDetailPage;
+export default TransactionTable;
