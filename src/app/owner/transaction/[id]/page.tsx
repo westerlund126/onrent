@@ -45,6 +45,7 @@ import {
   Download,
   CreditCard,
   PackageCheck,
+  Undo2,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -114,9 +115,16 @@ const TransactionDetailPage = () => {
   const [tracking, setTracking] = useState<TrackingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
+  const [initiateReturnDialogOpen, setInitiateReturnDialogOpen] =
+    useState(false);
 
   // Zustand Store for actions
-  const { confirmReturn, returnConfirmLoading } = useRentalStore();
+  const {
+    confirmReturn,
+    initiateReturn,
+    returnConfirmLoading,
+    returnInitiateLoading,
+  } = useRentalStore();
 
   // Data Fetching Callbacks
   const fetchRental = useCallback(async (rentalId: string) => {
@@ -165,19 +173,53 @@ const TransactionDetailPage = () => {
     [rental],
   );
 
-  const total = subtotal; 
+  const total = subtotal;
 
   const currentTrackingStatus = useMemo(() => {
     if (!tracking.length) return null;
     return tracking[0]?.status;
   }, [tracking]);
 
+  // Updated logic for button states
+  const canInitiateReturn = useMemo(
+    () => currentTrackingStatus === 'RENTAL_ONGOING',
+    [currentTrackingStatus],
+  );
+
   const canConfirmReturn = useMemo(
     () => currentTrackingStatus === 'RETURNED',
     [currentTrackingStatus],
   );
 
-  // Action Handler for confirming return
+  const isReturnPending = useMemo(
+    () => currentTrackingStatus === 'RETURN_PENDING',
+    [currentTrackingStatus],
+  );
+
+  const isCompleted = useMemo(
+    () => currentTrackingStatus === 'COMPLETED',
+    [currentTrackingStatus],
+  );
+
+  // Action Handler for initiating return (customer action)
+  const handleInitiateReturn = async () => {
+    if (!rental) return;
+    try {
+      await initiateReturn(rental.id);
+      setInitiateReturnDialogOpen(false);
+      alert('Return request submitted successfully!');
+      await loadData(); // Refresh all data
+    } catch (error) {
+      console.error('Failed to initiate return:', error);
+      alert(
+        `Return Request Failed: ${
+          error instanceof Error ? error.message : 'Please try again.'
+        }`,
+      );
+    }
+  };
+
+  // Action Handler for confirming return (owner action)
   const handleConfirmReturn = async () => {
     if (!rental) return;
     try {
@@ -252,7 +294,7 @@ const TransactionDetailPage = () => {
         icon: RefreshCw,
       },
       RETURN_PENDING: {
-        label: 'Menunggu Pengembalian',
+        label: 'Menunggu Konfirmasi Pemilik',
         variant: 'secondary',
         icon: Clock,
       },
@@ -330,7 +372,72 @@ const TransactionDetailPage = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Confirm Return Button */}
+              {/* Customer Return Initiation Button */}
+              {canInitiateReturn && (
+                <Dialog
+                  open={initiateReturnDialogOpen}
+                  onOpenChange={setInitiateReturnDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      className="flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      Kembalikan Produk
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Kembalikan Produk</DialogTitle>
+                      <DialogDescription>
+                        Apakah Anda yakin ingin mengembalikan produk ini?
+                        Setelah dikonfirmasi, pemilik akan diberitahu untuk
+                        menerima pengembalian produk.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setInitiateReturnDialogOpen(false)}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        onClick={handleInitiateReturn}
+                        disabled={returnInitiateLoading === rental.id}
+                      >
+                        {returnInitiateLoading === rental.id ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Memproses...
+                          </>
+                        ) : (
+                          <>
+                            <Undo2 className="mr-2 h-4 w-4" />
+                            Ya, Kembalikan
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+
+              {/* Status Display for Return Pending */}
+              {isReturnPending && (
+                <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    Produk Sudah Dikembalikan
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    Menunggu Konfirmasi
+                  </Badge>
+                </div>
+              )}
+
+              {/* Owner Confirm Return Button */}
               {canConfirmReturn && (
                 <Dialog
                   open={confirmReturnDialogOpen}
@@ -377,6 +484,17 @@ const TransactionDetailPage = () => {
                   </DialogContent>
                 </Dialog>
               )}
+
+              {/* Completed Status Display */}
+              {isCompleted && (
+                <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    Transaksi Selesai
+                  </span>
+                </div>
+              )}
+
               <Button
                 variant="outline"
                 className="flex items-center gap-2"
