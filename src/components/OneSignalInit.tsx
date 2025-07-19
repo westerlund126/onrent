@@ -94,30 +94,21 @@ export default function OneSignalInit() {
     }
 
     try {
-      const currentExternalId = await window.OneSignal.getExternalUserId();
-      const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
-
       if (isSignedIn && userId) {
-        // User is signed in
-        if (currentExternalId && currentExternalId !== userId) {
-          console.log(
-            '[OneSignal] Detected user switch. Logging out previous user:',
-            currentExternalId,
-          );
-          await logoutUser();
-        }
-
-        const freshExternalId = await window.OneSignal.getExternalUserId();
-        if (freshExternalId !== userId && isSubscribed) {
-          console.log('[OneSignal] Setting new external user ID:', userId);
-          await setExternalUserId(userId);
+        // User is signed in, set their external ID.
+        // OneSignal handles user switching automatically.
+        const currentExternalId = await window.OneSignal.getExternalUserId();
+        if (currentExternalId !== userId) {
+            console.log('[OneSignal] Setting new external user ID:', userId);
+            await setExternalUserId(userId);
+        } else {
+            console.log('[OneSignal] External user ID is already set correctly.');
         }
       } else {
-        // User is not signed in, logout from OneSignal
+        // User is not signed in, check if there's an ID to log out.
+        const currentExternalId = await window.OneSignal.getExternalUserId();
         if (currentExternalId) {
-          console.log(
-            '[OneSignal] User signed out, logging out from OneSignal',
-          );
+          console.log('[OneSignal] User signed out, logging out from OneSignal');
           await logoutUser();
         }
       }
