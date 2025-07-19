@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 declare global {
   interface Window {
@@ -10,7 +11,8 @@ declare global {
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
-export default function OneSignalInit({ userId }: { userId?: string }) {
+export default function OneSignalInit() {
+  const { userId, isSignedIn } = useAuth();
   const initializedRef = useRef(false);
   const userIdRef = useRef(userId);
 
@@ -32,12 +34,12 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
         allowLocalhostAsSecureOrigin: true,
         autoResubscribe: true,
         autoRegister: false,
-        debug: true,
+        debug: process.env.NODE_ENV === 'development',
         promptOptions: {
           slidedown: {
             enabled: true,
             actionMessage:
-              'Kami ingin mengirimkan notifikasi tentang pembaruan penyewaan Anda.',
+              'Kami ingin mengirimkan notifikasi tentang pembaruan rental dan fitting Anda.',
             acceptButtonText: 'Izinkan',
             cancelButtonText: 'Tidak, Terima Kasih',
           },
@@ -49,6 +51,7 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       console.log('[OneSignal] Initialization successful!');
       window.OneSignalInitialized = true;
 
+      // Set up subscription change listener
       window.OneSignal.on(
         'subscriptionChange',
         function (isSubscribed: boolean) {
@@ -94,7 +97,8 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
       const currentExternalId = await window.OneSignal.getExternalUserId();
       const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
 
-      if (userId) {
+      if (isSignedIn && userId) {
+        // User is signed in
         if (currentExternalId && currentExternalId !== userId) {
           console.log(
             '[OneSignal] Detected user switch. Logging out previous user:',
@@ -109,9 +113,10 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
           await setExternalUserId(userId);
         }
       } else {
+        // User is not signed in, logout from OneSignal
         if (currentExternalId) {
           console.log(
-            '[OneSignal] No user ID, logging out current OneSignal user',
+            '[OneSignal] User signed out, logging out from OneSignal',
           );
           await logoutUser();
         }
@@ -124,6 +129,12 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
   const showNotificationPrompt = async () => {
     if (!window.OneSignal || !window.OneSignalInitialized) {
       console.warn('[OneSignal] SDK not available for prompt');
+      return;
+    }
+
+    // Only show prompt if user is signed in
+    if (!isSignedIn || !userId) {
+      console.log('[OneSignal] User not signed in, skipping prompt');
       return;
     }
 
@@ -220,16 +231,24 @@ export default function OneSignalInit({ userId }: { userId?: string }) {
     setupOneSignal();
   }, []);
 
+  // Handle user sign in/out and prompt for notifications
   useEffect(() => {
-    const triggerAfterLogin = async () => {
-      if (!window.OneSignalInitialized || !userId) return;
+    const handleUserChange = async () => {
+      if (!window.OneSignalInitialized) return;
 
       await manageUserIdentity();
-      await showNotificationPrompt(); 
+      
+      // Show notification prompt when user signs in
+      if (isSignedIn && userId) {
+        // Small delay to ensure user identity is set
+        setTimeout(() => {
+          showNotificationPrompt();
+        }, 1000);
+      }
     };
 
-    triggerAfterLogin();
-  }, [userId]);
+    handleUserChange();
+  }, [isSignedIn, userId]);
 
   return null;
 }
