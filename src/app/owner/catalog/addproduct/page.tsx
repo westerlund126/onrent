@@ -1,6 +1,5 @@
 "use client";
 import Card from "components/card";
-import CardMenu from "components/card/CardMenu";
 import AddProductForm from "components/form/owner/AddProductForm";
 
 export default function AddProductPage() {
@@ -10,9 +9,7 @@ export default function AddProductPage() {
           <div className="text-xl font-bold text-navy-700 dark:text-white">
             Tambah Produk
           </div>
-          
-          <CardMenu />
-        </header>      
+                  </header>      
         <p className="text-gray-600 px-4 mb-4">
           Isi form di bawah ini untuk menambahkan produk baru ke katalog Anda.
         </p>

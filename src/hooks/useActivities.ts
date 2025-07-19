@@ -1,5 +1,13 @@
 // hooks/useActivities.js
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+
+interface FittingCancelConfirmation {
+  isOpen: boolean;
+  fittingId: number | null;
+  ownerName: string;
+  isCanceling: boolean; 
+}
 
 export const useActivities = (page = 1, limit = 10) => {
   const [activities, setActivities] = useState([]);
@@ -11,6 +19,13 @@ export const useActivities = (page = 1, limit = 10) => {
     totalActivities: 0,
     hasNextPage: false,
     hasPrevPage: false
+  });
+
+const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<FittingCancelConfirmation>({
+    isOpen: false,
+    fittingId: null,
+    ownerName: '',
+    isCanceling: false,
   });
 
   const fetchActivities = async (currentPage = page) => {
@@ -50,6 +65,62 @@ export const useActivities = (page = 1, limit = 10) => {
     fetchActivities(1);
   };
 
+  const updateActivityStatus = (activityId, type, newStatus) => {
+    setActivities(currentActivities =>
+      currentActivities.map(activity =>
+        (activity.id === activityId && activity.type === type)
+          ? { ...activity, status: newStatus }
+          : activity
+      )
+    );
+  };
+
+  const openFittingCancelConfirmation = (fittingId: number, ownerName: string) => {
+    setFittingCancelConfirmation({
+      isOpen: true,
+      fittingId,
+      ownerName,
+      isCanceling: false,
+    });
+  };
+
+   const cancelFittingCancellation = () => {
+    setFittingCancelConfirmation({
+      isOpen: false,
+      fittingId: null,
+      ownerName: '',
+      isCanceling: false,
+    });
+  };
+  
+  const handleConfirmCancelFitting = async () => {
+    if (!fittingCancelConfirmation.fittingId) return;
+
+    setFittingCancelConfirmation(prev => ({ ...prev, isCanceling: true }));
+
+    try {
+      const response = await fetch(`/api/fitting/schedule/${fittingCancelConfirmation.fittingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELED' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal membatalkan fitting.');
+      }
+
+      updateActivityStatus(fittingCancelConfirmation.fittingId, 'fitting', 'CANCELED');
+      toast.success('Jadwal fitting berhasil dibatalkan.');
+      cancelFittingCancellation(); 
+    } catch (err: any) {
+      console.error('Cancellation error:', err);
+      toast.error(err.message);
+      setFittingCancelConfirmation(prev => ({ ...prev, isCanceling: false }));
+    }
+  };
+
+
   return {
     activities,
     loading,
@@ -57,7 +128,12 @@ export const useActivities = (page = 1, limit = 10) => {
     pagination,
     loadMore,
     refresh,
-    fetchActivities
+    fetchActivities,
+    updateActivityStatus,
+    fittingCancelConfirmation,
+    openFittingCancelConfirmation,
+    cancelFittingCancellation,
+    handleConfirmCancelFitting,
   };
 };
 

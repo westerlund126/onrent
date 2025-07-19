@@ -121,7 +121,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
     return slotsForDate
       .map((slot) => {
-        const dateTime = slot.dateTime ? new Date(`${slot.dateTime}Z`) : new Date()
+        const dateTime = slot.dateTime ? new Date(slot.dateTime) : new Date();
         const label = format(dateTime, 'HH:mm');
 
         return {

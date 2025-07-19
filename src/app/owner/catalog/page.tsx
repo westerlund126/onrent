@@ -92,14 +92,6 @@ const Tables = () => {
 
       <div className="mt-5 grid h-full grid-cols-1 gap-5 md:grid-cols-1">
         <CatalogTable />
-        {/* <CldUploadButton uploadPreset="onrent3636"/>
-  <CldImage
-  width="960"
-  height="600"
-  src="cld-sample-3"
-  sizes="100vw"
-  alt="Description of my image"
-/> */}
       </div>
     </div>
   );

@@ -155,7 +155,29 @@ const getDateFromString = (dateString: string): Date | undefined => {
 const availableDateStrings = useMemo(() => {
   return availableDates.map(date => date.value);
 }, [availableDates]);
-
+const parseSlot = (slot: any): any => {
+	try {
+	  const isBooked = !!slot.fittingSchedule;
+	  console.log(
+		`🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
+	  );
+	  let dateTime: Date;
+	  if (typeof slot.dateTime === 'string') {
+		const cleanDateString = slot.dateTime.replace('Z', '');
+		dateTime = new Date(cleanDateString);
+	  } else {
+		dateTime = new Date(slot.dateTime);
+	  }
+	  return { ...slot, dateTime, isBooked };
+	} catch (error) {
+	  console.error('Failed to parse slot date:', slot.dateTime, error);
+	  return {
+		...slot,
+		dateTime: new Date(),
+		isBooked: !!slot.fittingSchedule,
+	  };
+	}
+};
 const availableTimes = useMemo(() => {
   const selectedDateString = formData.selectedDate;
   console.log(`🔄 3. Finding available times for date: "${selectedDateString}"`);
@@ -166,10 +188,11 @@ const availableTimes = useMemo(() => {
   
   return dateData.slots
   .map((slot) => {
-    const zonedDate = toZonedTime(slot.dateTime, timeZone);
-    const timeString = format(zonedDate, 'HH:mm', { timeZone });
+	const parsedSlot = parseSlot(slot);
+	const dateTime = parsedSlot.dateTime ? new Date(parsedSlot.dateTime) : new Date();
+    const timeString = format(dateTime, 'HH:mm');
 
-    const label = format(zonedDate, 'HH:mm zzz', { timeZone });
+    const label = format(dateTime, 'HH:mm');
 
     return {
       value: timeString,
