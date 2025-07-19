@@ -309,66 +309,57 @@ const CustomerActivityDetailPage = () => {
             <div className="flex gap-2">
               {isRental && (
                 <>
-                  {/* CORRECTED: Shows "Kembalikan Produk" button only when appropriate */}
-                  {canInitiateReturn && (
-                    <Dialog
-                      open={returnDialogOpen}
-                      onOpenChange={setReturnDialogOpen}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <Undo2 className="h-4 w-4" /> Kembalikan Produk
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Konfirmasi Pengembalian</DialogTitle>
-                          <DialogDescription>
-                            Apakah Anda yakin ingin mengembalikan produk rental
-                            ini? Owner akan diberitahu dan diminta untuk
-                            mengkonfirmasi pengembalian.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
+                  {currentTrackingStatus === 'RENTAL_ONGOING' &&
+                    canInitiateReturn && (
+                      <Dialog
+                        open={returnDialogOpen}
+                        onOpenChange={setReturnDialogOpen}
+                      >
+                        <DialogTrigger asChild>
                           <Button
                             variant="outline"
-                            onClick={() => setReturnDialogOpen(false)}
+                            className="flex items-center gap-2"
                           >
-                            Batal
+                            <Undo2 className="h-4 w-4" /> Kembalikan Produk
                           </Button>
-                          <Button
-                            onClick={handleInitiateReturn}
-                            disabled={returnInitiateLoading === parseInt(id)}
-                          >
-                            {returnInitiateLoading === parseInt(id) ? (
-                              <>
-                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{' '}
-                                Mengirim...
-                              </>
-                            ) : (
-                              <>
-                                <Undo2 className="mr-2 h-4 w-4" /> Ya,
-                                Kembalikan
-                              </>
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Konfirmasi Pengembalian</DialogTitle>
+                            <DialogDescription>
+                              Apakah Anda yakin ingin mengembalikan produk
+                              rental ini? Owner akan diberitahu dan diminta
+                              untuk mengkonfirmasi pengembalian.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setReturnDialogOpen(false)}
+                            >
+                              Batal
+                            </Button>
+                            <Button
+                              onClick={handleInitiateReturn}
+                              disabled={returnInitiateLoading === parseInt(id)}
+                            >
+                              {returnInitiateLoading === parseInt(id) ? (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{' '}
+                                  Mengirim...
+                                </>
+                              ) : (
+                                <>
+                                  <Undo2 className="mr-2 h-4 w-4" /> Ya,
+                                  Kembalikan
+                                </>
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
 
-                  {/* IMPROVED: Shows a clear status badge after the return is initiated */}
-                  {currentTrackingStatus === 'RETURN_PENDING' && (
-                    <Badge
-                      variant="outline"
-                      className="pointer-events-none flex items-center gap-2 border-yellow-600 bg-yellow-50 px-3 py-2 text-sm text-yellow-700"
-                    >
-                      <Clock className="h-4 w-4" /> Menunggu Konfirmasi Owner
-                    </Badge>
-                  )}
                   {(currentTrackingStatus === 'RETURNED' ||
                     currentTrackingStatus === 'COMPLETED') && (
                     <Badge
@@ -379,8 +370,6 @@ const CustomerActivityDetailPage = () => {
                       Dikembalikan
                     </Badge>
                   )}
-
-                  {/* REMOVED: "Confirm Return" button and dialog are gone */}
                 </>
               )}
             </div>

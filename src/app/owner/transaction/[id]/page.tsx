@@ -289,7 +289,6 @@ const TransactionDetailPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* === ADDED THIS BLOCK === */}
               {canConfirmReturn && (
                 <Dialog
                   open={confirmReturnDialogOpen}
@@ -297,8 +296,8 @@ const TransactionDetailPage = () => {
                 >
                   <DialogTrigger asChild>
                     <Button className="flex animate-pulse items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      Konfirmasi Pengembalian
+                      <CheckCircle className="h-4 w-4" /> Konfirmasi
+                      Pengembalian
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -327,8 +326,8 @@ const TransactionDetailPage = () => {
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="mr-2 h-4 w-4" /> Ya,
-                            Konfirmasi
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Ya, Konfirmasi
                           </>
                         )}
                       </Button>
@@ -336,7 +335,6 @@ const TransactionDetailPage = () => {
                   </DialogContent>
                 </Dialog>
               )}
-              {/* === END OF ADDED BLOCK === */}
 
               <Button
                 variant="outline"
