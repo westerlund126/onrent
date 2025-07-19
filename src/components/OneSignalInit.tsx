@@ -37,7 +37,7 @@ export default function OneSignalInit() {
         debug: process.env.NODE_ENV === 'development',
         promptOptions: {
           slidedown: {
-            enabled: false,
+            enabled: true,
             actionMessage:
               'Kami ingin mengirimkan notifikasi tentang pembaruan rental dan fitting Anda.',
             acceptButtonText: 'Izinkan',
