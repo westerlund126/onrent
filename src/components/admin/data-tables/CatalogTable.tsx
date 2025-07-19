@@ -20,7 +20,6 @@ import { useAdminCatalogStore } from 'stores/useAdminCatalogStore';
 import { Product } from 'types/product';
 
 const AdminCatalogTable = () => {
-  // Zustand store state and actions
   const {
     products,
     loading,
@@ -117,13 +116,11 @@ const AdminCatalogTable = () => {
                 </tr>
               ) : (
                 products.map((product) => {
-                  // Calculate total variants and available variants for the main row
                   const totalVariants = product.VariantProducts.length;
                   const availableVariants = product.VariantProducts.filter(
                     v => v.isAvailable && !v.isRented
                   ).length;
                   
-                  // Get price range
                   const prices = product.VariantProducts
                     .map(v => v.price)
                     .filter(price => typeof price === 'number' && !isNaN(price));

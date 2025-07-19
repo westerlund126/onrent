@@ -38,7 +38,6 @@ export const AdminProductDetails = ({ product }: ProductDetailsProps) => {
           )}
         </div>
 
-        {/* Product Description */}
         <div className="col-span-1">
           <div className="mb-6">
             <h3 className="font-medium text-gray-800 mb-2">Deskripsi</h3>
@@ -47,7 +46,6 @@ export const AdminProductDetails = ({ product }: ProductDetailsProps) => {
         </div>
       </div>
       
-      {/* Size and Color Summary */}
       <div className="grid grid-cols-2 gap-4 mt-6">
         <div className="bg-white p-4 rounded-md">
           <h3 className="font-medium text-gray-800 mb-2">Ukuran</h3>
@@ -67,7 +65,6 @@ export const AdminProductDetails = ({ product }: ProductDetailsProps) => {
         </div>
       </div>
       
-      {/* Variants Section - Card Layout */}
       <div className="mt-4">
         <h3 className="font-medium text-gray-800 mb-3">Variants</h3>
         <div className="grid grid-cols-1 gap-3">
