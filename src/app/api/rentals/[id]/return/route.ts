@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/onesignal';
 
 export async function POST(
   request: NextRequest,
@@ -23,12 +22,7 @@ export async function POST(
 
     const customer = await prisma.user.findUnique({
       where: { clerkUserId: userId },
-      select: { 
-        id: true,
-        first_name: true,
-        last_name: true,
-        username: true,
-      },
+      select: { id: true },
     });
 
     if (!customer) {
@@ -44,30 +38,6 @@ export async function POST(
         userId: customer.id,
       },
       include: {
-        owner: {
-          select: {
-            id: true,
-            clerkUserId: true,
-            businessName: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
-        rentalItems: {
-          include: {
-            variantProduct: {
-              select: {
-                id: true,
-                sku: true,
-                products: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
         Tracking: {
           orderBy: { updatedAt: 'desc' },
           take: 1,
@@ -102,8 +72,11 @@ export async function POST(
       );
     }
 
-    // Check if rental can be returned (must be RENTAL_ONGOING)
-    if (latestTracking.status !== 'RENTAL_ONGOING') {
+    // Check if rental can be returned (must be RENTAL_ONGOING or RETURN_PENDING)
+    if (
+      latestTracking.status !== 'RENTAL_ONGOING' &&
+      latestTracking.status !== 'RETURN_PENDING'
+    ) {
       return NextResponse.json(
         {
           error:
@@ -113,12 +86,11 @@ export async function POST(
       );
     }
 
-    // Update rental status and create tracking
     const updatedRental = await prisma.$transaction(async (tx) => {
       await tx.tracking.create({
         data: {
           rentalId: rentalId,
-          status: 'RETURN_PENDING',
+          status: 'RETURNED',
         },
       });
 
@@ -136,11 +108,8 @@ export async function POST(
           owner: {
             select: {
               id: true,
-              clerkUserId: true,
               username: true,
               businessName: true,
-              first_name: true,
-              last_name: true,
               phone_numbers: true,
             },
           },
@@ -171,31 +140,6 @@ export async function POST(
         },
       });
     });
-
-    // Send notification to owner
-    try {
-      if (rental.owner?.clerkUserId) {
-        const oneSignalService = new OneSignalService();
-        
-        const customerName = `${customer.first_name} ${customer.last_name || ''}`.trim();
-        const productNames = rental.rentalItems.map(
-          item => item.variantProduct.products.name
-        );
-
-        await oneSignalService.notifyOwnerReturnRequest({
-          ownerExternalId: rental.owner.clerkUserId,
-          customerName,
-          rentalCode: rental.rentalCode,
-          productNames,
-          rentalId: rental.id,
-        });
-
-        console.log(`[OneSignal] Return notification sent to owner ${rental.owner.clerkUserId}`);
-      }
-    } catch (notificationError) {
-      // Log notification error but don't fail the request
-      console.error('[OneSignal] Failed to send notification:', notificationError);
-    }
 
     return NextResponse.json({
       success: true,
