@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/OneSignal';
+import { OneSignalService } from 'lib/onesignal';
 
 export async function POST(
   request: NextRequest,
