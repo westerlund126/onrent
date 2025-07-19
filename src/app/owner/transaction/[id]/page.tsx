@@ -108,14 +108,17 @@ const TransactionDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
+  // Component State
   const [loading, setLoading] = useState(true);
   const [rental, setRental] = useState<RentalDetail | null>(null);
   const [tracking, setTracking] = useState<TrackingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmReturnDialogOpen, setConfirmReturnDialogOpen] = useState(false);
 
+  // Zustand Store for actions
   const { confirmReturn, returnConfirmLoading } = useRentalStore();
 
+  // Data Fetching Callbacks
   const fetchRental = useCallback(async (rentalId: string) => {
     const res = await fetch(`/api/rentals/${rentalId}/detail`);
     if (!res.ok) throw new Error('Failed to load rental detail');
