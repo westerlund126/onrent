@@ -1,21 +1,31 @@
 'use client';
-import MiniCalendar from 'components/calendar/MiniCalendar';
+
+import { useEffect, useState } from 'react';
 import { IoArrowBack } from 'react-icons/io5';
 import { MdInventory, MdFactCheck } from 'react-icons/md';
 
+// Component Imports
+import MiniCalendar from 'components/calendar/MiniCalendar';
 import Widget from 'components/widget/Widget';
-import CheckTable from 'components/admin/default/CheckTable';
-import ComplexTable from 'components/admin/default/ComplexTable';
 import DailyTraffic from 'components/admin/default/DailyTraffic';
+import CheckTable from 'components/admin/default/CheckTable';
+import ComplexTable, {
+  RowObj,
+  statusMap,
+} from 'components/admin/default/ComplexTable'; 
+
 import tableDataCheck from 'variables/data-tables/tableDataCheck';
-import tableDataComplex from 'variables/data-tables/tableDataComplex';
-import { useEffect, useState } from 'react';
 
 const Dashboard = () => {
-  const [productStats, setProductStats] = useState({
-    totalStock: 0,
+  const [productStats, setProductStats] = useState({ totalStock: 0 });
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  const [rentalData, setRentalData] = useState<RowObj[]>([]);
+  const [rentalStats, setRentalStats] = useState({
+    activeRentals: 0,
+    pendingReturns: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [rentalsLoading, setRentalsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProductStats = async () => {
@@ -27,8 +37,7 @@ const Dashboard = () => {
         const products = await response.json();
 
         let totalStock = 0;
-
-        products.forEach((product) => {
+        products.forEach((product: any) => {
           if (
             product.VariantProducts &&
             Array.isArray(product.VariantProducts)
@@ -37,17 +46,66 @@ const Dashboard = () => {
           }
         });
 
-        setProductStats({
-          totalStock,
-        });
+        setProductStats({ totalStock });
       } catch (err) {
         console.error('Failed to fetch product stats:', err);
       } finally {
-        setLoading(false);
+        setProductsLoading(false);
       }
     };
 
     fetchProductStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchRentalData = async () => {
+      try {
+        const response = await fetch('/api/rentals?userType=owner');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+
+        if (result.success) {
+          const allRentals = result.data;
+
+          let activeRentals = 0;
+          let pendingReturns = 0;
+
+          allRentals.forEach((rental: any) => {
+            const latestStatus = rental.Tracking[0]?.status;
+            if (latestStatus === 'RENTAL_ONGOING') {
+              activeRentals++;
+            } else if (latestStatus === 'RETURN_PENDING') {
+              pendingReturns++;
+            }
+          });
+
+          setRentalStats({ activeRentals, pendingReturns });
+
+          const formattedData: RowObj[] = allRentals
+            .slice(0, 4)
+            .map((rental: any) => {
+              const latestTracking = rental.Tracking[0];
+              const statusInfo =
+                statusMap[latestTracking?.status] || statusMap.RENTAL_ONGOING;
+              return {
+                nama: `${rental.user.first_name} ${rental.user.last_name}`,
+                status: statusInfo.text,
+                tanggal: new Date(rental.startDate).toLocaleDateString('id-ID'),
+                progres: statusInfo.progress,
+              };
+            });
+          setRentalData(formattedData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch rental data:', error);
+      } finally {
+        setRentalsLoading(false);
+      }
+    };
+
+    fetchRentalData();
   }, []);
 
   return (
@@ -58,17 +116,23 @@ const Dashboard = () => {
             <Widget
               icon={<MdInventory className="h-7 w-7" />}
               title={'Total Stok'}
-              subtitle={loading ? 'Loading...' : `${productStats.totalStock}`}
+              subtitle={
+                productsLoading ? 'Loading...' : `${productStats.totalStock}`
+              }
             />
             <Widget
               icon={<MdFactCheck className="h-7 w-7" />}
               title={'Sewa Aktif'}
-              subtitle={'50'}
+              subtitle={
+                rentalsLoading ? 'Loading...' : `${rentalStats.activeRentals}`
+              }
             />
             <Widget
               icon={<IoArrowBack className="h-7 w-7" />}
               title={'Pengembalian'}
-              subtitle={'80'}
+              subtitle={
+                rentalsLoading ? 'Loading...' : `${rentalStats.pendingReturns}`
+              }
             />
           </div>
 
@@ -80,7 +144,8 @@ const Dashboard = () => {
 
           {/* Activity Table Section */}
           <div>
-            <ComplexTable tableData={tableDataComplex} />
+            {/* Pass the fetched and formatted rental data to the table */}
+            <ComplexTable tableData={rentalData} />
           </div>
         </div>
 
