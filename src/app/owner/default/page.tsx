@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react';
 import { IoArrowBack } from 'react-icons/io5';
 import { MdInventory, MdFactCheck } from 'react-icons/md';
-
-// Component Imports
 import MiniCalendar from 'components/calendar/MiniCalendar';
 import Widget from 'components/widget/Widget';
 import DailyTraffic from 'components/admin/default/DailyTraffic';
 import CheckTable from 'components/admin/default/CheckTable';
 import ComplexTable, {
   RowObj,
-  statusMap,
-} from 'components/admin/default/ComplexTable'; 
+  rentalStatusMap,
+  trackingProgressMap,
+} from 'components/admin/default/ComplexTable';
 
 import tableDataCheck from 'variables/data-tables/tableDataCheck';
 
@@ -29,6 +28,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchProductStats = async () => {
+      setProductsLoading(true);
       try {
         const response = await fetch('/api/products/owner');
         if (!response.ok) {
@@ -59,6 +59,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchRentalData = async () => {
+      setRentalsLoading(true);
       try {
         const response = await fetch('/api/rentals?userType=owner');
         if (!response.ok) {
@@ -73,10 +74,10 @@ const Dashboard = () => {
           let pendingReturns = 0;
 
           allRentals.forEach((rental: any) => {
-            const latestStatus = rental.Tracking[0]?.status;
-            if (latestStatus === 'RENTAL_ONGOING') {
+            const latestTrackingStatus = rental.Tracking[0]?.status;
+            if (latestTrackingStatus === 'RENTAL_ONGOING') {
               activeRentals++;
-            } else if (latestStatus === 'RETURN_PENDING') {
+            } else if (latestTrackingStatus === 'RETURN_PENDING') {
               pendingReturns++;
             }
           });
@@ -84,16 +85,21 @@ const Dashboard = () => {
           setRentalStats({ activeRentals, pendingReturns });
 
           const formattedData: RowObj[] = allRentals
-            .slice(0, 4)
+            .slice(0, 4) 
             .map((rental: any) => {
+              const statusInfo = rentalStatusMap[rental.status] || {
+                text: 'Unknown',
+              };
+
               const latestTracking = rental.Tracking[0];
-              const statusInfo =
-                statusMap[latestTracking?.status] || statusMap.RENTAL_ONGOING;
+              const progressValue =
+                trackingProgressMap[latestTracking?.status] || 0;
+
               return {
                 nama: `${rental.user.first_name} ${rental.user.last_name}`,
                 status: statusInfo.text,
                 tanggal: new Date(rental.startDate).toLocaleDateString('id-ID'),
-                progres: statusInfo.progress,
+                progres: progressValue,
               };
             });
           setRentalData(formattedData);
@@ -144,7 +150,6 @@ const Dashboard = () => {
 
           {/* Activity Table Section */}
           <div>
-            {/* Pass the fetched and formatted rental data to the table */}
             <ComplexTable tableData={rentalData} />
           </div>
         </div>

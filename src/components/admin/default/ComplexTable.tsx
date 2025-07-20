@@ -12,7 +12,6 @@ import {
 } from '@tanstack/react-table';
 import { FaCircle } from 'react-icons/fa';
 
-
 export type RowObj = {
   nama: string;
   status: string;
@@ -20,21 +19,26 @@ export type RowObj = {
   progres: number;
 };
 
-
-export const statusMap: {
-  [key: string]: { text: string; progress: number; color: string };
+export const rentalStatusMap: {
+  [key: string]: { text: string; color: string };
 } = {
-  RENTAL_ONGOING: { text: 'Aktif', progress: 50, color: 'green-500' },
-  RETURN_PENDING: { text: 'Menunggu', progress: 75, color: 'amber-500' },
-  RETURNED: { text: 'Selesai', progress: 100, color: 'blue-500' },
-  COMPLETED: { text: 'Selesai', progress: 100, color: 'blue-500' },
+  BELUM_LUNAS: { text: 'Belum Lunas', color: 'red-500' },
+  LUNAS: { text: 'Lunas', color: 'green-500' },
+  TERLAMBAT: { text: 'Terlambat', color: 'amber-500' },
+  SELESAI: { text: 'Selesai', color: 'blue-500' },
+};
+
+
+export const trackingProgressMap: { [key: string]: number } = {
+  RENTAL_ONGOING: 25,
+  RETURN_PENDING: 50,
+  RETURNED: 75,
+  COMPLETED: 100,
 };
 
 const columnHelper = createColumnHelper<RowObj>();
 
-/**
- * @param {RowObj[]} tableData 
- */
+
 export default function ComplexTable(props: { tableData: RowObj[] }) {
   const { tableData } = props;
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -59,15 +63,15 @@ export default function ComplexTable(props: { tableData: RowObj[] }) {
         </p>
       ),
       cell: (info) => {
-        const status = info.getValue();
+        const statusText = info.getValue();
         const statusInfo =
-          Object.values(statusMap).find((s) => s.text === status) ||
+          Object.values(rentalStatusMap).find((s) => s.text === statusText) ||
           ({ color: 'gray-500' } as { color: string });
         return (
           <div className="flex items-center">
             <FaCircle className={`text-${statusInfo.color} me-1`} />
             <p className="text-sm font-bold text-navy-700 dark:text-white">
-              {status}
+              {statusText}
             </p>
           </div>
         );
