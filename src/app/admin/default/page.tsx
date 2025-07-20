@@ -41,7 +41,7 @@ const Dashboard = () => {
 
           {/* Activity Table Section */}
           <div>
-            <ComplexTable tableData={tableDataComplex} />
+            {/* <ComplexTable tableData={tableDataComplex} /> */}
           </div>
         </div>
 
