@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useDisclosure } from 'hooks/use-disclosure';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -35,8 +34,6 @@ import { SingleDatePicker } from 'components/date-time-range-picker/single-date-
 import { useScheduleStore } from 'stores';
 import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
 import { useMemo, useEffect, useState } from 'react';
-import {id} from 'date-fns/locale';
-import {parse}  from 'date-fns';
 import { toZonedTime, format} from 'date-fns-tz';
 
 

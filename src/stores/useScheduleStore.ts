@@ -27,7 +27,7 @@ interface ScheduleState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   fetchWeeklySlots: () => Promise<void>;
-  fetchScheduleBlocks: () => Promise<void>;
+  fetchScheduleBlocks: (dateFrom: string, dateTo: string) => Promise<void>;
   fetchFittingSlots: (weekStart: Date) => Promise<void>;
   fetchAllAvailableSlots: () => Promise<void>;
   getAvailableSlots: () => IFittingSlot[];
@@ -89,18 +89,27 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       },
 
-      fetchScheduleBlocks: async () => {
+      fetchScheduleBlocks: async (dateFrom, dateTo) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await fetch('/api/fitting/schedule-blocks', {
+          const url = new URL(
+            '/api/fitting/schedule-blocks',
+            window.location.origin,
+          );
+          url.searchParams.append('startDate', dateFrom);
+          url.searchParams.append('endDate', dateTo);
+
+          const response = await fetch(url.toString(), {
             cache: 'no-store',
           });
+
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(
               errorData.error || 'Failed to fetch schedule blocks',
             );
           }
+
           const data: { scheduleBlocks: IScheduleBlock[] } =
             await response.json();
           set({ scheduleBlocks: data.scheduleBlocks || [], isLoading: false });
@@ -112,6 +121,7 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       },
 
+      
       fetchFittingSlots: async (weekStart: Date) => {
         console.log('🔍 fetchFittingSlots called with weekStart:', weekStart);
         set({ isFittingSlotsLoading: true, error: null });
@@ -126,7 +136,6 @@ export const useScheduleStore = create<ScheduleState>()(
 
           const url = `/api/fitting/slots?dateFrom=${dateFromISO}&dateTo=${dateToISO}`;
 
-          // Added { cache: 'no-store' } to prevent showing stale data
           const response = await fetch(url, { cache: 'no-store' });
 
           if (!response.ok) {
