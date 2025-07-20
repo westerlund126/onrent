@@ -299,6 +299,7 @@ export async function GET(request: NextRequest) {
             owner: {
               select: {
                 id: true,
+                clerkUserId: true,
                 businessName: true,
                 businessAddress: true,
                 phone_numbers: true,

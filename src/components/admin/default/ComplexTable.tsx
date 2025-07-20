@@ -1,9 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import CardMenu from "components/card/CardMenu";
 import Card from "components/card";
 import Progress from "components/progress";
-import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
-
 import {
   createColumnHelper,
   flexRender,
@@ -14,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { FaCircle } from "react-icons/fa";
 
+// Defines the structure of a single row in the table
 type RowObj = {
   nama: string;
   status: string;
@@ -21,13 +20,54 @@ type RowObj = {
   progres: number;
 };
 
+// Maps rental tracking status to a human-readable format and progress value
+const statusMap: {
+  [key: string]: { text: string; progress: number; color: string };
+} = {
+  RENTAL_ONGOING: { text: "Aktif", progress: 25, color: "green-500" },
+  RETURN_PENDING: { text: "Menunggu", progress: 50, color: "amber-500" },
+  RETURNED: { text: "Selesai", progress: 75, color: "blue-500" },
+  COMPLETED: { text: "Selesai", progress: 100, color: "blue-500" },
+};
+
 const columnHelper = createColumnHelper<RowObj>();
 
-// const columns = columnsDataCheck;
-export default function ComplexTable(props: { tableData: any }) {
-  const { tableData } = props;
+export default function ComplexTable() {
+  const [tableData, setTableData] = useState<RowObj[]>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  let defaultData = tableData;
+
+  // Fetches rental data from the API when the component mounts
+  useEffect(() => {
+    const fetchRentals = async () => {
+      try {
+        const response = await fetch("/api/rentals?userType=owner&page=1&limit=4");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.success) {
+          // Transforms API data into the format expected by the table
+          const formattedData = result.data.map((rental: any) => {
+            const latestTracking = rental.Tracking[0];
+            const statusInfo =
+              statusMap[latestTracking?.status] || statusMap.RENTAL_ONGOING;
+            return {
+              nama: `${rental.user.first_name} ${rental.user.last_name}`,
+              status: statusInfo.text,
+              tanggal: new Date(rental.startDate).toLocaleDateString("id-ID"),
+              progres: statusInfo.progress,
+            };
+          });
+          setTableData(formattedData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch rental data:", error);
+      }
+    };
+    fetchRentals();
+  }, []);
+
+  // Defines the columns for the table
   const columns = [
     columnHelper.accessor("nama", {
       id: "nama",
@@ -47,25 +87,27 @@ export default function ComplexTable(props: { tableData: any }) {
           STATUS
         </p>
       ),
-      cell: (info) => (
-        <div className="flex items-center">
-          {info.getValue() === "Aktif" ? (
-            <FaCircle className="text-green-500 me-1 dark:text-green-300" />
-          ) : info.getValue() === "Selesai" ? (
-            <FaCircle className="text-blue-500 me-1 dark:text-red-300" />
-          ) : info.getValue() === "Error" ? (
-            <FaCircle className="text-amber-500 me-1 dark:text-amber-300" />
-          ) : null}
-          <p className="text-sm font-bold text-navy-700 dark:text-white">
-            {info.getValue()}
-          </p>
-        </div>
-      ),
+      cell: (info) => {
+        const status = info.getValue();
+        const statusInfo =
+          Object.values(statusMap).find((s) => s.text === status) ||
+          statusMap.RENTAL_ONGOING;
+        return (
+          <div className="flex items-center">
+            <FaCircle className={`text-${statusInfo.color} me-1`} />
+            <p className="text-sm font-bold text-navy-700 dark:text-white">
+              {status}
+            </p>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor("tanggal", {
       id: "tanggal",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">TANGGAL</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">
+          TANGGAL
+        </p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -86,10 +128,10 @@ export default function ComplexTable(props: { tableData: any }) {
         </div>
       ),
     }),
-  ]; // eslint-disable-next-line
-  const [data, setData] = React.useState(() => [...defaultData]);
+  ];
+
   const table = useReactTable({
-    data,
+    data: tableData,
     columns,
     state: {
       sorting,
@@ -99,6 +141,7 @@ export default function ComplexTable(props: { tableData: any }) {
     getSortedRowModel: getSortedRowModel(),
     debugTable: true,
   });
+
   return (
     <Card extra={"w-full h-full px-6 pb-6 sm:overflow-x-auto"}>
       <div className="relative flex items-center justify-between pt-4">
