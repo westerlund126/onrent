@@ -108,7 +108,6 @@ export async function GET(request: NextRequest) {
 
     let whereClause: any = {};
 
-    // Role-based filtering
     if (caller.role === 'OWNER') {
       whereClause.ownerId = caller.id;
     } else if (ownerId) {

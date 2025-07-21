@@ -115,7 +115,6 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     return singleDay;
   }, [fittingSchedules, fittingSlots]);
 
-  // Convert schedule blocks to calendar events format
   const processedScheduleBlocks = useMemo(() => {
     if (!Array.isArray(scheduleBlocks)) {
       return [];
@@ -127,14 +126,13 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
         startTime: new Date(block.startTime),
         endTime: new Date(block.endTime),
         title: block.description || 'Blocked Time',
-        color: 'gray', // Use gray color for blocked times
+        color: 'gray', 
         type: 'block',
         originalData: block,
       }),
     );
   }, [scheduleBlocks]);
 
-  // Combine all events: fittings + blocks
   const allSchedule = useMemo(() => {
     const fittingEvents: ICalendarEvent[] = [
       ...processedSingleDaySchedule,

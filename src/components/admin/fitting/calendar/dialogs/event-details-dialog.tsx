@@ -4,10 +4,10 @@ import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
-  schedule: IFittingSchedule;
+  schedule: ICalendarEvent;
   children: React.ReactNode;
 }
 

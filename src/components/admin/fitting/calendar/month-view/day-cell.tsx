@@ -7,11 +7,11 @@ import { MonthEventBadge } from 'components/admin/fitting/calendar/month-view/mo
 import { cn } from "@/lib/utils";
 import { getMonthCellSchedule } from "utils/helpers";
 
-import type { ICalendarCell, IFittingSchedule } from 'types/fitting';
+import type { ICalendarCell, ICalendarEvent, IFittingSchedule } from 'types/fitting';
 
 interface IProps {
   cell: ICalendarCell;
-  schedule: IFittingSchedule[];
+  schedule: ICalendarEvent[];
   schedulePositions: Record<string, number>;
 }
 
