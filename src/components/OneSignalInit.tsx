@@ -173,7 +173,7 @@ export default function OneSignalInit() {
 
       console.log('[OneSignal] Loading SDK script...');
       const script = document.createElement('script');
-      script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js';
+      script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
       script.async = true;
       script.id = 'oneSignalSDK';
       script.crossOrigin = 'anonymous';
