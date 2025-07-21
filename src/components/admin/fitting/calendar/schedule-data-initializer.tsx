@@ -21,7 +21,7 @@ export function ScheduleInitializer() {
           fetchFittingSlots(startDateString, endDateString),
 
           fetchWeeklySlots(),
-          fetchScheduleBlocks(),
+          fetchScheduleBlocks(startDateString, endDateString),
         ]);
       } catch (error) {
         console.error('Failed to load schedule data:', error);
