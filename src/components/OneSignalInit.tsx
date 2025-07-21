@@ -68,16 +68,18 @@ export default function OneSignalInit() {
       // Wait a bit more for OneSignal to be fully ready
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Set up subscription change listener - check if method exists first
-      if (typeof window.OneSignal.on === 'function') {
-        window.OneSignal.on('subscriptionChange', function (isSubscribed: boolean) {
-          console.log('[OneSignal] Subscription changed:', isSubscribed);
-          if (isSubscribed && userIdRef.current) {
-            setExternalUserId(userIdRef.current);
-          }
-        });
-      } else {
-        console.warn('[OneSignal] .on method not available, skipping event listener');
+      // Set up subscription change listener using the new v16 API
+      try {
+        if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
+          window.OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
+            console.log('[OneSignal] Subscription changed:', event.current.optedIn);
+            if (event.current.optedIn && userIdRef.current) {
+              setExternalUserId(userIdRef.current);
+            }
+          });
+        }
+      } catch (listenerError) {
+        console.warn('[OneSignal] Could not set up subscription listener:', listenerError);
       }
 
       return true;
@@ -89,11 +91,16 @@ export default function OneSignalInit() {
 
   const setExternalUserId = async (userId: string) => {
     try {
-      if (typeof window.OneSignal.setExternalUserId === 'function') {
-        await window.OneSignal.setExternalUserId(userId);
+      // v16 API uses User.addAlias instead of setExternalUserId
+      if (window.OneSignal.User && typeof window.OneSignal.User.addAlias === 'function') {
+        await window.OneSignal.User.addAlias('external_id', userId);
         console.log('[OneSignal] External user ID set:', userId);
+      } else if (window.OneSignal.login && typeof window.OneSignal.login === 'function') {
+        // Alternative method in v16
+        await window.OneSignal.login(userId);
+        console.log('[OneSignal] User logged in with ID:', userId);
       } else {
-        console.error('[OneSignal] setExternalUserId not available');
+        console.error('[OneSignal] No user identification method available');
       }
     } catch (error) {
       console.error('[OneSignal] Failed to set external user ID:', error);
@@ -102,9 +109,12 @@ export default function OneSignalInit() {
 
   const logoutUser = async () => {
     try {
-      if (typeof window.OneSignal.logout === 'function') {
+      if (window.OneSignal.logout && typeof window.OneSignal.logout === 'function') {
         await window.OneSignal.logout();
         console.log('[OneSignal] Logged out external user');
+      } else if (window.OneSignal.User && typeof window.OneSignal.User.removeAlias === 'function') {
+        await window.OneSignal.User.removeAlias('external_id');
+        console.log('[OneSignal] Removed external user alias');
       } else {
         console.error('[OneSignal] logout not available');
       }
@@ -122,27 +132,12 @@ export default function OneSignalInit() {
     try {
       if (isSignedIn && userId) {
         // User is signed in, set their external ID
-        if (typeof window.OneSignal.getExternalUserId === 'function') {
-          const currentExternalId = await window.OneSignal.getExternalUserId();
-          if (currentExternalId !== userId) {
-            console.log('[OneSignal] Setting new external user ID:', userId);
-            await setExternalUserId(userId);
-          } else {
-            console.log('[OneSignal] External user ID is already set correctly.');
-          }
-        } else {
-          // Fallback - just try to set it
-          await setExternalUserId(userId);
-        }
+        console.log('[OneSignal] Setting external user ID:', userId);
+        await setExternalUserId(userId);
       } else {
-        // User is not signed in, check if there's an ID to log out
-        if (typeof window.OneSignal.getExternalUserId === 'function') {
-          const currentExternalId = await window.OneSignal.getExternalUserId();
-          if (currentExternalId) {
-            console.log('[OneSignal] User signed out, logging out from OneSignal');
-            await logoutUser();
-          }
-        }
+        // User is not signed in, log them out
+        console.log('[OneSignal] User signed out, logging out from OneSignal');
+        await logoutUser();
       }
     } catch (error) {
       console.error('[OneSignal] User identity management failed:', error);
@@ -164,26 +159,37 @@ export default function OneSignalInit() {
     try {
       let isSubscribed = false;
       
-      if (typeof window.OneSignal.isPushNotificationsEnabled === 'function') {
-        isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
-      } else if (typeof window.OneSignal.getNotificationPermission === 'function') {
-        const permission = await window.OneSignal.getNotificationPermission();
-        isSubscribed = permission === 'granted';
+      // Check subscription status using v16 API
+      if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
+        try {
+          const pushSubscription = window.OneSignal.User.PushSubscription;
+          if (pushSubscription.optedIn !== undefined) {
+            isSubscribed = pushSubscription.optedIn;
+          } else if (typeof pushSubscription.getOptedIn === 'function') {
+            isSubscribed = await pushSubscription.getOptedIn();
+          }
+        } catch (subError) {
+          console.warn('[OneSignal] Could not check subscription status:', subError);
+        }
       }
       
       console.log('[OneSignal] Subscription status:', isSubscribed ? 'Subscribed' : 'Not subscribed');
 
       if (!isSubscribed) {
         try {
-          if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
-            await window.OneSignal.showSlidedownPrompt();
+          // Try different prompt methods available in v16
+          if (window.OneSignal.Slidedown && typeof window.OneSignal.Slidedown.promptPush === 'function') {
+            await window.OneSignal.Slidedown.promptPush();
             console.log('[OneSignal] Slidedown prompt shown');
+          } else if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
+            await window.OneSignal.showSlidedownPrompt();
+            console.log('[OneSignal] Legacy slidedown prompt shown');
           } else if (typeof window.OneSignal.showNativePrompt === 'function') {
             await window.OneSignal.showNativePrompt();
             console.log('[OneSignal] Native prompt shown');
-          } else if (typeof window.OneSignal.registerForPushNotifications === 'function') {
-            await window.OneSignal.registerForPushNotifications();
-            console.log('[OneSignal] Direct registration attempted');
+          } else if (window.OneSignal.User && window.OneSignal.User.PushSubscription && typeof window.OneSignal.User.PushSubscription.optIn === 'function') {
+            await window.OneSignal.User.PushSubscription.optIn();
+            console.log('[OneSignal] Direct opt-in attempted');
           } else {
             console.error('[OneSignal] No prompt methods available');
           }
