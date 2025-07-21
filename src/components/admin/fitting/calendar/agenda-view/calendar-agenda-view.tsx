@@ -3,7 +3,7 @@ import { CalendarX2 } from "lucide-react";
 import { parseISO, format, endOfDay, startOfDay, isSameMonth } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AgendaDayGroup } from 'components/admin/fitting/calendar/agenda-view/agenda-day-group';
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 import { useFittingStore } from "stores";
 
 interface IProps {
@@ -13,33 +13,45 @@ interface IProps {
 export function CalendarAgendaView({ singleDaySchedule }: IProps) {
   const { selectedDate } = useFittingStore();
 
+  const calendarEvents = useMemo((): ICalendarEvent[] => {
+    return singleDaySchedule.map((schedule) => ({
+      id: schedule.id,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      title: schedule.title,
+      color: schedule.color,
+      type: 'fitting' as const,
+      originalData: schedule,
+    }));
+  }, [singleDaySchedule]);
+
   const scheduleByDay = useMemo(() => {
     const allDates = new Map<
       string,
-      { date: Date; schedule: IFittingSchedule[] }
+      { date: Date; schedule: ICalendarEvent[] }
     >();
 
-    singleDaySchedule.forEach((schedule) => {
-      const scheduleDate = schedule.startTime;
-      if (!isSameMonth(scheduleDate, selectedDate)) return;
+    calendarEvents.forEach((event) => {
+      const eventDate = event.startTime;
+      if (!isSameMonth(eventDate, selectedDate)) return;
 
-      const dateKey = format(scheduleDate, 'yyyy-MM-dd');
+      const dateKey = format(eventDate, 'yyyy-MM-dd');
 
       if (!allDates.has(dateKey)) {
         allDates.set(dateKey, {
-          date: startOfDay(scheduleDate),
+          date: startOfDay(eventDate),
           schedule: [],
         });
       }
 
-      allDates.get(dateKey)?.schedule.push(schedule);
+      allDates.get(dateKey)?.schedule.push(event);
     });
 
     return Array.from(allDates.values()).sort(
       (a, b) => a.date.getTime() - b.date.getTime(),
     );
-  }, [singleDaySchedule, selectedDate]);
-
+  }, [calendarEvents, selectedDate]);
+  
   const hasAnySchedule =
     singleDaySchedule.length > 0 ;
 
