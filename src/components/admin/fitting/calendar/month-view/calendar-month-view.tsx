@@ -12,7 +12,7 @@ import type {
   ICalendarEvent,
 } from 'types/fitting';
 import { useFittingStore } from 'stores';
-import { useScheduleStore } from 'stores/useScheduleStore'; // Add this import
+import { useScheduleStore } from 'stores/useScheduleStore'; 
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 interface IProps {

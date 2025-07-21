@@ -222,16 +222,13 @@ export default function OneSignalInit() {
     setupOneSignal();
   }, []);
 
-  // Handle user sign in/out and prompt for notifications
   useEffect(() => {
     const handleUserChange = async () => {
       if (!window.OneSignalInitialized) return;
 
       await manageUserIdentity();
       
-      // Show notification prompt when user signs in
       if (isSignedIn && userId) {
-        // Small delay to ensure user identity is set
         setTimeout(() => {
           showNotificationPrompt();
         }, 1000);

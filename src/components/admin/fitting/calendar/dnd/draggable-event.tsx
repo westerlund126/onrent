@@ -5,14 +5,14 @@ import { useDrag } from "react-dnd";
 
 import { cn } from "@/lib/utils";
 
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 
 export const ItemTypes = {
   EVENT: "event",
 };
 
 interface DraggableEventProps {
-  schedule: IFittingSchedule;
+  schedule: ICalendarEvent;
   children: React.ReactNode;
 }
 

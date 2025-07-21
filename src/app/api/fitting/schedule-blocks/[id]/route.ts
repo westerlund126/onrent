@@ -83,7 +83,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Authorization check - only owners can view their own blocks
     if (caller.role === 'OWNER' && scheduleBlock.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'Forbidden - Access denied' },
