@@ -1,4 +1,4 @@
-// app/api/schedule-blocks/route.ts
+// app/api/fitting/schedule-blocks/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
@@ -108,7 +108,6 @@ export async function GET(request: NextRequest) {
 
     let whereClause: any = {};
 
-    // Role-based filtering
     if (caller.role === 'OWNER') {
       whereClause.ownerId = caller.id;
     } else if (ownerId) {

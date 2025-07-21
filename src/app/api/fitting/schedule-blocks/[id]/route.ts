@@ -1,4 +1,4 @@
-// app/api/schedule-blocks/[id]/route.ts
+// app/api/fitting/schedule-blocks/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
@@ -83,7 +83,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Authorization check - only owners can view their own blocks
     if (caller.role === 'OWNER' && scheduleBlock.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'Forbidden - Access denied' },
@@ -142,7 +141,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Authorization check - only owners can update their own blocks
     if (caller.role === 'OWNER' && existingBlock.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'Forbidden - Access denied' },
@@ -236,7 +234,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Authorization check - only owners can delete their own blocks
     if (caller.role === 'OWNER' && existingBlock.ownerId !== caller.id) {
       return NextResponse.json(
         { error: 'Forbidden - Access denied' },

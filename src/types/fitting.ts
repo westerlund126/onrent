@@ -17,6 +17,16 @@ export interface IEventInput {
   userId: string; 
 }
 
+export interface ICalendarEvent {
+  id: string | number;
+  startTime: Date;
+  endTime: Date;
+  title: string;
+  color: TEventColor;
+  type: 'fitting' | 'block'; 
+  originalData: IFittingSchedule | IScheduleBlock;
+}
+
 export interface ICalendarCell {
   day: number;
   currentMonth: boolean;

@@ -36,6 +36,7 @@ import type {
   IUser,
   DayOfWeek, 
   IWeeklySlot,
+  ICalendarEvent,
 } from 'types/fitting';
 
 // ================ Header helper functions ================ //
@@ -294,7 +295,7 @@ export function getCalendarCells(selectedDate: Date): ICalendarCell[] {
 
 export function calculateMonthSchedulePositions(
   // multiDaySchedule: IFittingSchedule[],
-  singleDaySchedule: IFittingSchedule[],
+  singleDaySchedule: ICalendarEvent[],
   selectedDate: Date,
 ) {
   const monthStart = startOfMonth(selectedDate);
@@ -373,7 +374,7 @@ export function calculateMonthSchedulePositions(
 
 export function getMonthCellSchedule(
   date: Date,
-  schedule: IFittingSchedule[],
+  schedule: ICalendarEvent[],
   schedulePositions: Record<string, number>,
 ) {
   const scheduleForDate = schedule.filter((schedule) => {

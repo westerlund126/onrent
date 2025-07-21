@@ -6,7 +6,7 @@ import { useSettingsStore } from 'stores';
 
 import { cn } from '@/lib/utils';
 
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from 'class-variance-authority';
 
 const eventBadgeVariants = cva(
@@ -62,7 +62,7 @@ interface IProps
     VariantProps<typeof eventBadgeVariants>,
     'color' | 'multiDayPosition'
   > {
-  schedule: IFittingSchedule;
+  schedule: ICalendarEvent;
   cellDate: Date;
   scheduleCurrentDay?: number;
   scheduleTotalDays?: number;

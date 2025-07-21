@@ -6,8 +6,13 @@ import {
   calculateMonthSchedulePositions,
   getStatusColor,
 } from 'utils/helpers';
-import type { IFittingSchedule } from 'types/fitting';
+import type {
+  IFittingSchedule,
+  IScheduleBlock,
+  ICalendarEvent,
+} from 'types/fitting';
 import { useFittingStore } from 'stores';
+import { useScheduleStore } from 'stores/useScheduleStore'; 
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 interface IProps {
@@ -17,6 +22,9 @@ const WEEK_DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export function CalendarMonthView({ singleDaySchedule }: IProps) {
   const { selectedDate } = useFittingStore();
+
+  // Add schedule store
+  const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
 
   const {
     fittingSchedules,
@@ -36,8 +44,16 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
     fetchFittingSchedules(dateFrom, dateTo);
     fetchFittingSlots(dateFrom, dateTo);
+    // Add schedule blocks fetching
+    fetchScheduleBlocks(dateFrom, dateTo);
     console.log('Fetching data from:', dateFrom, 'to:', dateTo);
-  }, [monthStart, monthEnd, fetchFittingSchedules, fetchFittingSlots]);
+  }, [
+    monthStart,
+    monthEnd,
+    fetchFittingSchedules,
+    fetchFittingSlots,
+    fetchScheduleBlocks,
+  ]);
 
   const processedSingleDaySchedule = useMemo(() => {
     return singleDaySchedule.map((schedule) => ({
@@ -53,17 +69,17 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
   const processedSchedule = useMemo(() => {
     const schedule: IFittingSchedule[] = [];
-  
+
     if (!Array.isArray(fittingSchedules) || !Array.isArray(fittingSlots)) {
       return [];
     }
-  
+
     fittingSchedules.forEach((fittingSchedule) => {
       const slot = fittingSlots.find(
         (s) => s.id === fittingSchedule.fittingSlotId,
       );
-  
-      if (slot)  {
+
+      if (slot) {
         const startDateTime = new Date(slot.dateTime);
         const endDateTime = new Date(
           startDateTime.getTime() + fittingSchedule.duration * 60000,
@@ -99,11 +115,40 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     return singleDay;
   }, [fittingSchedules, fittingSlots]);
 
-  const allSchedule = useMemo(
-    () => [...processedSingleDaySchedule, ...processedSchedule],
-    [processedSingleDaySchedule, processedSchedule],
-  );
- ;
+  const processedScheduleBlocks = useMemo(() => {
+    if (!Array.isArray(scheduleBlocks)) {
+      return [];
+    }
+
+    return scheduleBlocks.map(
+      (block): ICalendarEvent => ({
+        id: `block-${block.id}`,
+        startTime: new Date(block.startTime),
+        endTime: new Date(block.endTime),
+        title: block.description || 'Blocked Time',
+        color: 'gray', 
+        type: 'block',
+        originalData: block,
+      }),
+    );
+  }, [scheduleBlocks]);
+
+  const allSchedule = useMemo(() => {
+    const fittingEvents: ICalendarEvent[] = [
+      ...processedSingleDaySchedule,
+      ...processedSchedule,
+    ].map((schedule) => ({
+      id: schedule.id,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      title: schedule.title,
+      color: schedule.color,
+      type: 'fitting' as const,
+      originalData: schedule,
+    }));
+
+    return [...fittingEvents, ...processedScheduleBlocks];
+  }, [processedSingleDaySchedule, processedSchedule, processedScheduleBlocks]);
 
   const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
 
