@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
+import { OneSignalService } from 'lib/onesignal'; // Adjust path as needed
 
 const prisma = new PrismaClient();
 
@@ -60,7 +61,8 @@ export async function POST(request: NextRequest) {
         owner: {
           select: {
             id: true,
-            isAutoConfirm: true, // Now from User model
+            clerkUserId: true, // Need this for OneSignal
+            isAutoConfirm: true,
           }
         }
       }
@@ -84,10 +86,13 @@ export async function POST(request: NextRequest) {
     if (variantIdsNumeric.length > 0) {
       existingVariants = await prisma.variantProducts.findMany({
         where: { id: { in: variantIdsNumeric } },
-        select: { 
-          id: true,
+        include: { 
           products: {
-            select: { ownerId: true }
+            select: { 
+              id: true,
+              name: true,
+              ownerId: true 
+            }
           }
         },
       });
@@ -131,7 +136,7 @@ export async function POST(request: NextRequest) {
           fittingSlotId: parseInt(fittingSlotId),
           duration,
           note,
-          status: initialStatus, // Use owner-level setting
+          status: initialStatus,
         },
       });
 
@@ -177,6 +182,7 @@ export async function POST(request: NextRequest) {
             owner: {
               select: {
                 id: true,
+                clerkUserId: true,
                 businessName: true,
                 businessAddress: true,
                 phone_numbers: true,
@@ -207,6 +213,45 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Send OneSignal notification to owner
+    if (completeSchedule) {
+      try {
+        const oneSignal = new OneSignalService();
+        const customerName = `${completeSchedule.user.first_name || ''} ${completeSchedule.user.last_name || ''}`.trim() || completeSchedule.user.username || 'Customer';
+        const productNames = completeSchedule.FittingProduct.map(fp => fp.variantProduct.products.name);
+        const fittingDate = completeSchedule.fittingSlot.dateTime.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        if (initialStatus === 'CONFIRMED') {
+          // If auto-confirmed, send acceptance notification to customer
+          await oneSignal.notifyCustomerFittingAccepted({
+            customerExternalId: userId, // Using Clerk userId as external ID
+            ownerName: completeSchedule.fittingSlot.owner.businessName || 'Owner',
+            fittingId: completeSchedule.id,
+            fittingDate,
+          });
+        } else {
+          // Send new fitting notification to owner
+          await oneSignal.notifyOwnerNewFitting({
+            ownerExternalId: completeSchedule.fittingSlot.owner.clerkUserId,
+            customerName,
+            fittingId: completeSchedule.id,
+            fittingDate,
+            productNames,
+          });
+        }
+      } catch (notificationError) {
+        console.error('Failed to send OneSignal notification:', notificationError);
+        // Don't fail the whole request if notification fails
+      }
+    }
 
     return NextResponse.json({
       message: initialStatus === 'CONFIRMED'
