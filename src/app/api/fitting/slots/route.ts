@@ -177,10 +177,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const slotDateTime = new Date(dateTime);
+
     const existingSlot = await prisma.fittingSlot.findFirst({
       where: {
         ownerId: caller.id,
-        dateTime: new Date(dateTime),
+        dateTime: slotDateTime,
       },
     });
 
@@ -191,10 +193,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const FITTING_DURATION_MS = 60 * 60 * 1000; 
+    const slotStartTime = slotDateTime;
+    const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
+
+    const conflictingBlocks = await prisma.scheduleBlock.findMany({
+      where: {
+        ownerId: caller.id,
+        AND: [
+          { startTime: { lt: slotEndTime } },
+          { endTime: { gt: slotStartTime } },
+        ],
+      },
+    });
+
+    if (conflictingBlocks.length > 0) {
+      const blockDetails = conflictingBlocks
+        .map(
+          (block) =>
+            `${block.startTime.toLocaleString()} - ${block.endTime.toLocaleString()}: ${
+              block.description
+            }`,
+        )
+        .join(', ');
+
+      return NextResponse.json(
+        {
+          error: 'Cannot create slot - conflicts with schedule block(s)',
+          details: `Conflicting blocks: ${blockDetails}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Create the slot if no conflicts
     const slot = await prisma.fittingSlot.create({
       data: {
         ownerId: caller.id,
-        dateTime: new Date(dateTime),
+        dateTime: slotDateTime,
       },
       include: {
         owner: {

@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { cva } from 'class-variance-authority';
 import { Clock, Text, User, Check, X } from 'lucide-react';
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
-import type { IFittingSchedule, TEventColor } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule, TEventColor } from 'types/fitting';
 import type { VariantProps } from 'class-variance-authority';
 import { useSettingsStore, useFittingStore } from 'stores';
 import { useUser } from '@clerk/nextjs';
@@ -48,7 +48,7 @@ const agendaEventCardVariants = cva(
 );
 
 interface IProps {
-  schedule: IFittingSchedule;
+  schedule: ICalendarEvent;
   scheduleCurrentDay?: number;
   scheduleTotalDays?: number;
 }
@@ -66,9 +66,15 @@ export function AgendaEventCard({
   } = useFittingStore();
   const { user } = useUser();
 
+  if (schedule.type !== 'fitting') {
+    return null; 
+  }
+
+  const fittingSchedule = schedule.originalData as IFittingSchedule;
+
   const showActionButtons =
-    schedule.status === 'PENDING' &&
-    user?.id === schedule.fittingSlot.owner.clerkUserId;
+    fittingSchedule.status === 'PENDING' &&
+    user?.id === fittingSchedule.fittingSlot.owner.clerkUserId;
 
   const startDate = schedule.startTime;
   const endDate = schedule.endTime;
@@ -81,14 +87,14 @@ export function AgendaEventCard({
     COMPLETED: 'purple',
   };
 
-  const eventColor = colorMap[schedule.status] || schedule.color || 'gray';
+  const eventColor = colorMap[fittingSchedule.status] || schedule.color || 'gray';
 
   const color = (
     badgeVariant === 'dot' ? `${eventColor}-dot` : eventColor
   ) as VariantProps<typeof agendaEventCardVariants>['color'];
 
   const agendaEventCardClasses = agendaEventCardVariants({ color });
-  const isLoading = scheduleLoadingStates[schedule.id] || false;
+  const isLoading = scheduleLoadingStates[fittingSchedule.id] || false;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -98,8 +104,8 @@ export function AgendaEventCard({
     }
   };
 
-  const handleApprove = () => confirmFittingSchedule(schedule.id);
-  const handleReject = () => rejectFittingSchedule(schedule.id);
+  const handleApprove = () => confirmFittingSchedule(fittingSchedule.id);
+  const handleReject = () => rejectFittingSchedule(fittingSchedule.id);
 
   return (
     <div
@@ -128,7 +134,7 @@ export function AgendaEventCard({
           </div>
           <div className="flex items-center gap-1">
             <User className="size-3 shrink-0" />
-            <p className="text-xs text-foreground">{schedule.user.username}</p>
+            <p className="text-xs text-foreground">{fittingSchedule.user.username}</p>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="size-3 shrink-0" />
@@ -136,28 +142,28 @@ export function AgendaEventCard({
               {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
             </p>
           </div>
-          {schedule.note && (
+          {fittingSchedule.note && (
             <div className="flex items-center gap-1">
               <Text className="size-3 shrink-0" />
-              <p className="text-xs text-foreground">{schedule.note}</p>
+              <p className="text-xs text-foreground">{fittingSchedule.note}</p>
             </div>
           )}
 
           <div className="flex items-center gap-1">
             <div
               className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
-                schedule.status === 'CONFIRMED'
+                fittingSchedule.status === 'CONFIRMED'
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : schedule.status === 'REJECTED'
+                  : fittingSchedule.status === 'REJECTED'
                   ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                  : schedule.status === 'CANCELED'
+                  : fittingSchedule.status === 'CANCELED'
                   ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                   : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
               }`}
             >
-              {schedule.status === 'CONFIRMED' && <Check className="size-3" />}
-              {schedule.status === 'REJECTED' && <X className="size-3" />}
-              {schedule.status}
+              {fittingSchedule.status === 'CONFIRMED' && <Check className="size-3" />}
+              {fittingSchedule.status === 'REJECTED' && <X className="size-3" />}
+              {fittingSchedule.status}
             </div>
           </div>
         </div>

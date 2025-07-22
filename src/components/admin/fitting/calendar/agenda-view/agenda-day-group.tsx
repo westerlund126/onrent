@@ -1,12 +1,13 @@
+// src/components/admin/fitting/calendar/agenda-view/agenda-day-group.tsx
 import { differenceInDays, format, parseISO, startOfDay } from "date-fns";
 
 import { AgendaEventCard } from "components/admin/fitting/calendar/agenda-view/agenda-event-card";
 
-import type { IFittingSchedule } from "types/fitting";
+import type { ICalendarEvent, IFittingSchedule } from "types/fitting";
 
 interface IProps {
   date: Date;
-  schedule: IFittingSchedule[];
+  schedule: ICalendarEvent[];
 }
 
 export function AgendaDayGroup({ date, schedule }: IProps) {

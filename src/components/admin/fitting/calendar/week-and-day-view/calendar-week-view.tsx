@@ -21,7 +21,7 @@ import {
   isWorkingHour,
   getStatusColor,
 } from 'utils/helpers';
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 import { useEffect, useMemo } from 'react';
 
 export function CalendarWeekView() {
@@ -42,7 +42,7 @@ export function CalendarWeekView() {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const processedSchedules = useMemo(() => {
-    return fittingSchedules.map((schedule) => {
+    return fittingSchedules.map((schedule): ICalendarEvent => {
       const firstName = schedule.user?.first_name || '';
       const lastName = schedule.user?.last_name || '';
       const customerName =
@@ -52,6 +52,8 @@ export function CalendarWeekView() {
         ...schedule,
         title: customerName,
         color: getStatusColor(schedule.status),
+        type: 'fitting', 
+        originalData: schedule,
       };
     });
   }, [fittingSchedules]);

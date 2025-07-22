@@ -14,8 +14,9 @@ import {
   isWorkingHour,
   getCurrentSchedule,
   getStatusColor,
+  transformFittingScheduleToCalendarEvent,
 } from 'utils/helpers';
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 import { useMemo } from 'react';
 
 interface IProps {
@@ -28,7 +29,7 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
   const workingHours = useWorkingHoursStore((state) => state.workingHours);
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  
+
   const earliestScheduleHour = 0;
   const latestScheduleHour = 23;
 
@@ -36,24 +37,41 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
     return singleDaySchedule.map((schedule) => {
       const firstName = schedule.user?.first_name || '';
       const lastName = schedule.user?.last_name || '';
-      const customerName = `${firstName} ${lastName}`.trim() || 'Unknown Customer';
+      const customerName =
+        `${firstName} ${lastName}`.trim() || 'Unknown Customer';
 
-      return {
+      const updatedSchedule: IFittingSchedule = {
         ...schedule,
         title: customerName,
         color: getStatusColor(schedule.status),
       };
+
+      return transformFittingScheduleToCalendarEvent(updatedSchedule);
     });
   }, [singleDaySchedule]);
 
-  const currentSchedule = getCurrentSchedule(processedDaySchedule);
+   const calendarEvents = useMemo(() => {
+    return singleDaySchedule.map((schedule) => {
+      const firstName = schedule.user?.first_name || '';
+      const lastName = schedule.user?.last_name || '';
+      const customerName = `${firstName} ${lastName}`.trim() || 'Unknown Customer';
 
-  const daySchedule = processedDaySchedule.filter((schedule) => {
-    const scheduleDate = schedule.startTime;
+      return transformFittingScheduleToCalendarEvent({
+        ...schedule,
+        title: customerName,
+        color: getStatusColor(schedule.status),
+      });
+    });
+  }, [singleDaySchedule]);
+
+  const currentSchedule = getCurrentSchedule(calendarEvents);
+
+  const daySchedule = calendarEvents.filter((event) => {
+    const eventDate = event.startTime;
     return (
-      scheduleDate.getDate() === selectedDate.getDate() &&
-      scheduleDate.getMonth() === selectedDate.getMonth() &&
-      scheduleDate.getFullYear() === selectedDate.getFullYear()
+      eventDate.getDate() === selectedDate.getDate() &&
+      eventDate.getMonth() === selectedDate.getMonth() &&
+      eventDate.getFullYear() === selectedDate.getFullYear()
     );
   });
 
@@ -119,9 +137,9 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
                 })}
 
                 {groupedSchedule.map((group, groupIndex) =>
-                  group.map((schedule) => {
+                  group.map((calendarEvent) => {
                     let style = getScheduleBlockStyle(
-                      schedule,
+                      calendarEvent,
                       selectedDate,
                       groupIndex,
                       groupedSchedule.length,
@@ -130,15 +148,15 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
                     const hasOverlap = groupedSchedule.some(
                       (otherGroup, otherIndex) =>
                         otherIndex !== groupIndex &&
-                        otherGroup.some((otherSchedule) =>
+                        otherGroup.some((otherCalendarEvent) =>
                           areIntervalsOverlapping(
                             {
-                              start: schedule.startTime,
-                              end: schedule.endTime,
+                              start: calendarEvent.startTime,
+                              end: calendarEvent.endTime,
                             },
                             {
-                              start: otherSchedule.startTime,
-                              end: otherSchedule.endTime,
+                              start: otherCalendarEvent.startTime,
+                              end: otherCalendarEvent.endTime,
                             },
                           ),
                         ),
@@ -149,11 +167,11 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
 
                     return (
                       <div
-                        key={schedule.id}
+                        key={calendarEvent.id}
                         className="absolute p-1"
                         style={style}
                       >
-                        <EventBlock schedule={schedule} />
+                        <EventBlock schedule={calendarEvent} />
                       </div>
                     );
                   }),
@@ -199,16 +217,22 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
             <ScrollArea className="h-[422px] px-4" type="always">
               <div className="space-y-6 pb-4">
                 {currentSchedule.map((schedule) => {
+                  // Type assertion since we know originalData is IFittingSchedule for 'fitting' type
+                  const originalSchedule =
+                    schedule.originalData as IFittingSchedule;
+
                   return (
                     <div key={schedule.id} className="space-y-1.5">
                       <p className="line-clamp-2 text-sm font-semibold">
                         {schedule.title}
                       </p>
 
-                      {schedule.user && (
+                      {originalSchedule.user && (
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <User className="size-3.5" />
-                          <span className="text-sm">{schedule.user.first_name}</span>
+                          <span className="text-sm">
+                            {originalSchedule.user.first_name}
+                          </span>
                         </div>
                       )}
 

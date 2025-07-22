@@ -44,7 +44,6 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
     fetchFittingSchedules(dateFrom, dateTo);
     fetchFittingSlots(dateFrom, dateTo);
-    // Add schedule blocks fetching
     fetchScheduleBlocks(dateFrom, dateTo);
     console.log('Fetching data from:', dateFrom, 'to:', dateTo);
   }, [

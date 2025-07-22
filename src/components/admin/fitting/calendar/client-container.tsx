@@ -7,7 +7,6 @@ import {
 } from 'stores';
 import { DndProviderWrapper } from './dnd/dnd-provider';
 import { CalendarHeader } from './header/calendar-header';
-import { CalendarYearView } from './year-view/calendar-year-view';
 import { CalendarMonthView } from './month-view/calendar-month-view';
 import { CalendarDayView } from './week-and-day-view/calendar-day-view';
 import { CalendarWeekView } from './week-and-day-view/calendar-week-view';
