@@ -71,12 +71,19 @@ export default function OneSignalInit() {
       // Set up subscription change listener using the new v16 API
       try {
         if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
-          window.OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
-            console.log('[OneSignal] Subscription changed:', event.current.optedIn);
-            if (event.current.optedIn && userIdRef.current) {
-              setExternalUserId(userIdRef.current);
-            }
-          });
+          // Since the API uses properties, we might need to poll or use a different approach
+          // Let's try the traditional event approach first, but with fallback
+          if (typeof window.OneSignal.on === 'function') {
+            window.OneSignal.on('subscriptionChange', function (isSubscribed: boolean) {
+              console.log('[OneSignal] Subscription changed:', isSubscribed);
+              if (isSubscribed && userIdRef.current) {
+                setExternalUserId(userIdRef.current);
+              }
+            });
+          } else {
+            console.log('[OneSignal] Using property-based subscription monitoring');
+            // Since v16 uses properties, we'll monitor changes in the user management function
+          }
         }
       } catch (listenerError) {
         console.warn('[OneSignal] Could not set up subscription listener:', listenerError);
@@ -159,18 +166,11 @@ export default function OneSignalInit() {
     try {
       let isSubscribed = false;
       
-      // Check subscription status using v16 API
+      // Check subscription status using v16 API properties
       if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
-        try {
-          const pushSubscription = window.OneSignal.User.PushSubscription;
-          if (pushSubscription.optedIn !== undefined) {
-            isSubscribed = pushSubscription.optedIn;
-          } else if (typeof pushSubscription.getOptedIn === 'function') {
-            isSubscribed = await pushSubscription.getOptedIn();
-          }
-        } catch (subError) {
-          console.warn('[OneSignal] Could not check subscription status:', subError);
-        }
+        const pushSubscription = window.OneSignal.User.PushSubscription;
+        // Access the actual property values
+        isSubscribed = pushSubscription._optedIn || false;
       }
       
       console.log('[OneSignal] Subscription status:', isSubscribed ? 'Subscribed' : 'Not subscribed');
@@ -187,11 +187,13 @@ export default function OneSignalInit() {
           } else if (typeof window.OneSignal.showNativePrompt === 'function') {
             await window.OneSignal.showNativePrompt();
             console.log('[OneSignal] Native prompt shown');
-          } else if (window.OneSignal.User && window.OneSignal.User.PushSubscription && typeof window.OneSignal.User.PushSubscription.optIn === 'function') {
-            await window.OneSignal.User.PushSubscription.optIn();
-            console.log('[OneSignal] Direct opt-in attempted');
           } else {
             console.error('[OneSignal] No prompt methods available');
+            // Log available methods for debugging
+            console.log('[OneSignal] Available methods:', Object.keys(window.OneSignal));
+            if (window.OneSignal.Slidedown) {
+              console.log('[OneSignal] Slidedown methods:', Object.keys(window.OneSignal.Slidedown));
+            }
           }
         } catch (promptError) {
           console.error('[OneSignal] All prompt methods failed:', promptError);
@@ -276,13 +278,16 @@ export default function OneSignalInit() {
     setupOneSignal();
   }, []);
 
+  // Handle user sign in/out and prompt for notifications
   useEffect(() => {
     const handleUserChange = async () => {
       if (!window.OneSignalInitialized) return;
 
       await manageUserIdentity();
       
+      // Show notification prompt when user signs in
       if (isSignedIn && userId) {
+        // Longer delay to ensure everything is ready
         setTimeout(() => {
           showNotificationPrompt();
         }, 2000);
