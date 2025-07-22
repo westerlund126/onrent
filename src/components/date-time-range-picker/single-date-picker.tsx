@@ -75,7 +75,7 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
   const isDateDisabled = React.useCallback(
     (date: Date) => {
       if (availableDates.length === 0) {
-        return true; // Disable all dates if no available dates
+        return true; 
       }
 
       const dateString = dateToString(date);

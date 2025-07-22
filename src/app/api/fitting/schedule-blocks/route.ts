@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
       whereClause.ownerId = parseInt(ownerId);
     }
 
-    // Date filtering
     if (startDate && endDate) {
       whereClause.AND = [
         {

@@ -131,9 +131,6 @@ export async function GET(request: NextRequest) {
       return !isBlocked;
     });
 
-    console.log(
-      `Found ${slots.length} slots, returning ${filteredSlots.length} after filtering.`,
-    );
     return NextResponse.json(filteredSlots);
   } catch (error: any) {
     console.error('Error fetching fitting slots:', error);
@@ -179,6 +176,15 @@ export async function POST(request: NextRequest) {
 
     const slotDateTime = new Date(dateTime);
 
+    // DEBUG: Log the slot time
+    console.log('🔍 Creating slot for:', {
+      originalDateTime: dateTime,
+      parsedDateTime: slotDateTime.toISOString(),
+      localString: slotDateTime.toLocaleString(),
+      ownerId: caller.id,
+    });
+
+    // Check if slot already exists
     const existingSlot = await prisma.fittingSlot.findFirst({
       where: {
         ownerId: caller.id,
@@ -193,10 +199,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const FITTING_DURATION_MS = 60 * 60 * 1000; 
+    // Check against schedule blocks with debugging
+    const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
     const slotStartTime = slotDateTime;
     const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
+    // DEBUG: First get ALL schedule blocks for this owner
+    const allBlocks = await prisma.scheduleBlock.findMany({
+      where: {
+        ownerId: caller.id,
+      },
+    });
+
+    console.log(
+      '🔍 All schedule blocks for owner:',
+      allBlocks.map((block) => ({
+        id: block.id,
+        description: block.description,
+        startTime: block.startTime.toISOString(),
+        endTime: block.endTime.toISOString(),
+        startTimeLocal: block.startTime.toLocaleString(),
+        endTimeLocal: block.endTime.toLocaleString(),
+      })),
+    );
+
+    console.log('🔍 Slot time range:', {
+      slotStart: slotStartTime.toISOString(),
+      slotEnd: slotEndTime.toISOString(),
+      slotStartLocal: slotStartTime.toLocaleString(),
+      slotEndLocal: slotEndTime.toLocaleString(),
+    });
+
+    // Now check for conflicts with detailed logging
     const conflictingBlocks = await prisma.scheduleBlock.findMany({
       where: {
         ownerId: caller.id,
@@ -206,6 +240,20 @@ export async function POST(request: NextRequest) {
         ],
       },
     });
+
+    console.log(
+      '🔍 Conflicting blocks found:',
+      conflictingBlocks.map((block) => ({
+        id: block.id,
+        description: block.description,
+        startTime: block.startTime.toISOString(),
+        endTime: block.endTime.toISOString(),
+        conflicts: {
+          blockStartBeforeSlotEnd: block.startTime < slotEndTime,
+          blockEndAfterSlotStart: block.endTime > slotStartTime,
+        },
+      })),
+    );
 
     if (conflictingBlocks.length > 0) {
       const blockDetails = conflictingBlocks
@@ -217,16 +265,23 @@ export async function POST(request: NextRequest) {
         )
         .join(', ');
 
+      console.log('❌ Rejecting slot creation due to conflicts');
+
       return NextResponse.json(
         {
           error: 'Cannot create slot - conflicts with schedule block(s)',
           details: `Conflicting blocks: ${blockDetails}`,
+          debug: {
+            slotTime: slotStartTime.toLocaleString(),
+            conflictingBlocks: conflictingBlocks.length,
+          },
         },
         { status: 400 },
       );
     }
 
-    // Create the slot if no conflicts
+    console.log('✅ No conflicts found, creating slot');
+
     const slot = await prisma.fittingSlot.create({
       data: {
         ownerId: caller.id,
