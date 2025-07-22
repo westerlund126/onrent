@@ -1,17 +1,20 @@
-// calendar-month-view.tsx
+// calendar-week-view.tsx
+
 import {
   startOfWeek,
   addDays,
   format,
-  isSameDay,
   areIntervalsOverlapping,
   endOfWeek,
   startOfDay,
   endOfDay,
 } from 'date-fns';
+import { useMemo, useEffect } from 'react';
+import { XCircle, Clock } from 'lucide-react'; 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFittingStore } from 'stores';
 import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
+import { useScheduleStore } from 'stores/useScheduleStore'; 
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
 import { CalendarTimeline } from 'components/admin/fitting/calendar/week-and-day-view/calendar-time-line';
 import { cn } from '@/lib/utils';
@@ -20,58 +23,75 @@ import {
   getScheduleBlockStyle,
   isWorkingHour,
   getStatusColor,
+  transformFittingScheduleToCalendarEvent,
 } from 'utils/helpers';
-import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
-import { useEffect, useMemo } from 'react';
+import type { ICalendarEvent } from 'types/fitting';
 
 export function CalendarWeekView() {
   const selectedDate = useFittingStore((state) => state.selectedDate);
-  const workingHours = useWorkingHoursStore((state) => state.workingHours);
+  const fittingSchedules = useFittingStore((state) => state.fittingSchedules);
   const fetchFittingSchedules = useFittingStore(
     (state) => state.fetchFittingSchedules,
   );
-  const fittingSchedules = useFittingStore((state) => state.fittingSchedules);
+  const workingHours = useWorkingHoursStore((state) => state.workingHours);
+
+  const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const earliestScheduleHour = 0;
   const latestScheduleHour = 23;
 
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
-  weekEnd.setHours(23, 59, 59, 999);
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekDays = useMemo(() => {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  }, [selectedDate]);
 
-  const processedSchedules = useMemo(() => {
-    return fittingSchedules.map((schedule): ICalendarEvent => {
+  useEffect(() => {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
+
+    const from = format(weekStart, 'yyyy-MM-dd');
+    const to = format(weekEnd, 'yyyy-MM-dd');
+
+    fetchFittingSchedules(from, to);
+    fetchScheduleBlocks(from, to);
+  }, [selectedDate, fetchFittingSchedules, fetchScheduleBlocks]);
+
+  const fittingEvents = useMemo(() => {
+    return fittingSchedules.map((schedule) => {
       const firstName = schedule.user?.first_name || '';
       const lastName = schedule.user?.last_name || '';
       const customerName =
         `${firstName} ${lastName}`.trim() || 'Unknown Customer';
 
-      return {
+      return transformFittingScheduleToCalendarEvent({
         ...schedule,
         title: customerName,
         color: getStatusColor(schedule.status),
-        type: 'fitting', 
-        originalData: schedule,
-      };
+      });
     });
   }, [fittingSchedules]);
 
-  const weekSchedules = processedSchedules.filter(
-    (schedule) =>
-      schedule.startTime >= weekStart && schedule.startTime <= weekEnd,
-  );
+  const blockEvents = useMemo(() => {
+    if (!Array.isArray(scheduleBlocks)) return [];
 
-  useEffect(() => {
-    const weekStart = startOfWeek(selectedDate);
-    const weekEnd = endOfWeek(selectedDate);
-
-    fetchFittingSchedules(
-      format(weekStart, 'yyyy-MM-dd'),
-      format(weekEnd, 'yyyy-MM-dd'),
+    return scheduleBlocks.map(
+      (block): ICalendarEvent => ({
+        id: `block-${block.id}`,
+        startTime: new Date(block.startTime),
+        endTime: new Date(block.endTime),
+        title: block.description || 'Blocked Off',
+        color: 'gray',
+        type: 'block',
+        originalData: block,
+      }),
     );
-  }, [selectedDate, fetchFittingSchedules]);
+  }, [scheduleBlocks]);
+
+  // 6. Combine all events into a single array for the week
+  const allWeekEvents = useMemo(() => {
+    return [...fittingEvents, ...blockEvents];
+  }, [fittingEvents, blockEvents]);
 
   return (
     <>
@@ -122,17 +142,17 @@ export function CalendarWeekView() {
             <div className="relative flex-1 border-l">
               <div className="grid grid-cols-7 divide-x">
                 {weekDays.map((day, dayIndex) => {
-                  const daySchedule = weekSchedules.filter((schedule) => {
-                    const scheduleStart = new Date(schedule.startTime);
-                    const scheduleEnd = new Date(schedule.endTime);
+                  // Filter all events for the current day of the week
+                  const daySchedule = allWeekEvents.filter((event) => {
+                    const eventStart = event.startTime;
                     const dayStart = startOfDay(day);
                     const dayEnd = endOfDay(day);
-
                     return areIntervalsOverlapping(
-                      { start: scheduleStart, end: scheduleEnd },
+                      { start: eventStart, end: event.endTime },
                       { start: dayStart, end: dayEnd },
                     );
                   });
+
                   const groupedSchedule = groupSchedule(daySchedule);
 
                   return (
@@ -143,7 +163,6 @@ export function CalendarWeekView() {
                           hour,
                           workingHours,
                         );
-
                         return (
                           <div
                             key={hour}
@@ -160,10 +179,11 @@ export function CalendarWeekView() {
                         );
                       })}
 
+                      {/* 7. Render events with conditional logic */}
                       {groupedSchedule.map((group, groupIndex) =>
-                        group.map((schedule) => {
+                        group.map((event) => {
                           let style = getScheduleBlockStyle(
-                            schedule,
+                            event,
                             day,
                             groupIndex,
                             groupedSchedule.length,
@@ -172,18 +192,19 @@ export function CalendarWeekView() {
                               to: latestScheduleHour,
                             },
                           );
+
                           const hasOverlap = groupedSchedule.some(
                             (otherGroup, otherIndex) =>
                               otherIndex !== groupIndex &&
-                              otherGroup.some((otherSchedule) =>
+                              otherGroup.some((otherEvent) =>
                                 areIntervalsOverlapping(
                                   {
-                                    start: schedule.startTime,
-                                    end: schedule.endTime,
+                                    start: event.startTime,
+                                    end: event.endTime,
                                   },
                                   {
-                                    start: otherSchedule.startTime,
-                                    end: otherSchedule.endTime,
+                                    start: otherEvent.startTime,
+                                    end: otherEvent.endTime,
                                   },
                                 ),
                               ),
@@ -194,11 +215,26 @@ export function CalendarWeekView() {
 
                           return (
                             <div
-                              key={schedule.id}
+                              key={event.id}
                               className="absolute p-1"
                               style={style}
                             >
-                              <EventBlock schedule={schedule} />
+                              {event.type === 'fitting' ? (
+                                <EventBlock schedule={event} />
+                              ) : (
+                                <div className="flex h-full items-start gap-2 rounded-lg bg-muted p-2 text-muted-foreground">
+                                  <XCircle className="mt-0.5 size-4 flex-shrink-0" />
+                                  <div className="flex flex-col">
+                                    <p className="font-semibold">
+                                      {event.title}
+                                    </p>
+                                    <p className="text-xs">
+                                      {format(event.startTime, 'HH:mm')} -{' '}
+                                      {format(event.endTime, 'HH:mm')}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         }),

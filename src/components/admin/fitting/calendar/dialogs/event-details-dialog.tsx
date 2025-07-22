@@ -1,10 +1,36 @@
-"use client";
+'use client';
 
-import { format, parseISO } from "date-fns";
-import { Calendar, Clock, Text, User } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { Calendar, Clock, Text, User, Trash2 } from 'lucide-react';
+import { useScheduleStore } from 'stores/useScheduleStore';
 
-import type { ICalendarEvent, IFittingSchedule, IScheduleBlock } from 'types/fitting';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+import type {
+  ICalendarEvent,
+  IFittingSchedule,
+  IScheduleBlock,
+} from 'types/fitting';
 
 interface IProps {
   schedule: ICalendarEvent;
@@ -12,69 +38,128 @@ interface IProps {
 }
 
 export function EventDetailsDialog({ schedule, children }: IProps) {
-  const startDate = schedule.startTime;
-  const endDate = schedule.endTime;
-  const isFittingEvent =
-    schedule.type === 'fitting' && 'user' in schedule.originalData;
+  // State to control the dialog's visibility
+  const [isOpen, setIsOpen] = useState(false);
 
+  // Get the remove function and loading state from the store
+  const { removeScheduleBlock, isLoading } = useScheduleStore();
+
+  // Determine the event type for conditional rendering
+  const isFittingEvent = schedule.type === 'fitting';
+  const isBlockEvent = schedule.type === 'block';
+
+  // Safely cast the original data based on the event type
   const fittingData = isFittingEvent
     ? (schedule.originalData as IFittingSchedule)
     : null;
+  const blockData = isBlockEvent
+    ? (schedule.originalData as IScheduleBlock)
+    : null;
+
+  // Handle the delete action
+  const handleDelete = async () => {
+    if (!blockData) return;
+    try {
+      // Call the store action to remove the block
+      await removeScheduleBlock(blockData.id);
+      setIsOpen(false); // Close the dialog on success
+    } catch (error) {
+      // The store already handles error toasts, so we can just log here if needed
+      console.error('Failed to delete schedule block:', error);
+    }
+  };
 
   return (
-    <>
-      <Dialog>
-        <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Jadwal Fitting dengan {schedule.title}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {isFittingEvent && fittingData && (
-              <div className="flex items-start gap-2">
-                <User className="mt-1 size-4 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">Pelanggan</p>
-                  <p className="text-sm text-muted-foreground">
-                    {fittingData.user.username}
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-start gap-2">
-              <Calendar className="mt-1 size-4 shrink-0" />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {/* Dynamic title based on event type */}
+            {isFittingEvent &&
+              `Jadwal Fitting: ${fittingData?.user.first_name}`}
+            {isBlockEvent && 'Detail Waktu yang Diblokir'}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Show customer info only for fitting events */}
+          {isFittingEvent && fittingData && (
+            <div className="flex items-start gap-3">
+              <User className="mt-1 size-4 shrink-0 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Tanggal Mulai</p>
+                <p className="text-sm font-medium">Pelanggan</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(startDate, 'MMM d, yyyy HH:mm')}
+                  {fittingData.user.first_name} {fittingData.user.last_name}
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <Clock className="mt-1 size-4 shrink-0" />
-              <div>
-                <p className="text-sm font-medium">Tanggal Selesai</p>
-                <p className="text-sm text-muted-foreground">
-                  {format(endDate, 'MMM d, yyyy HH:mm')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Text className="mt-1 size-4 shrink-0" />
-              <div>
-                <p className="text-sm font-medium">Description</p>
-                <p className="text-sm text-muted-foreground">
-                  {isFittingEvent && fittingData
-                    ? fittingData.note
-                    : schedule.type === 'block'
-                    ? (schedule.originalData as IScheduleBlock).description
-                    : 'No description available'}
-                </p>
-              </div>
+          )}
+
+          <div className="flex items-start gap-3">
+            <Calendar className="mt-1 size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Waktu Mulai</p>
+              <p className="text-sm text-muted-foreground">
+                {format(schedule.startTime, 'EEEE, d MMM yyyy HH:mm')}
+              </p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          <div className="flex items-start gap-3">
+            <Clock className="mt-1 size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Waktu Selesai</p>
+              <p className="text-sm text-muted-foreground">
+                {format(schedule.endTime, 'EEEE, d MMM yyyy HH:mm')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Text className="mt-1 size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Deskripsi</p>
+              <p className="text-sm text-muted-foreground">
+                {/* Simplified description logic */}
+                {fittingData?.note ||
+                  blockData?.description ||
+                  'Tidak ada deskripsi.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* The footer will only be displayed for block events to show the delete button */}
+        {isBlockEvent && blockData && (
+          <DialogFooter>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isLoading}>
+                  <Trash2 className="mr-2 size-4" />
+                  {isLoading ? 'Menghapus...' : 'Hapus Blok Jadwal'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tindakan ini akan menghapus jadwal blok secara permanen.
+                    Slot waktu ini akan tersedia kembali untuk pemesanan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  {/* The action button calls the handleDelete function */}
+                  <AlertDialogAction onClick={handleDelete}>
+                    Ya, Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

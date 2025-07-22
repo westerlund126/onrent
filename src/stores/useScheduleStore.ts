@@ -148,9 +148,6 @@ export const useScheduleStore = create<ScheduleState>()(
           const parseSlot = (slot: any): IFittingSlot => {
             try {
               const isBooked = !!slot.fittingSchedule;
-              console.log(
-                `🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
-              );
               let dateTime: Date;
               if (typeof slot.dateTime === 'string') {
                 const cleanDateString = slot.dateTime.replace('Z', '');
@@ -181,14 +178,13 @@ export const useScheduleStore = create<ScheduleState>()(
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
-          console.error('💥 fetchFittingSlots error:', error);
+          console.error('fetchFittingSlots error:', error);
           set({ error: errorMessage, isFittingSlotsLoading: false });
           toast.error('Failed to fetch slots', { description: errorMessage });
         }
       },
 
       fetchAllAvailableSlots: async () => {
-        console.log('🔍 Fetching all available slots for the next 90 days');
         set({ isFittingSlotsLoading: true, error: null });
 
         try {
@@ -215,9 +211,6 @@ export const useScheduleStore = create<ScheduleState>()(
           const parseSlot = (slot: any): IFittingSlot => {
             try {
               const isBooked = !!slot.fittingSchedule;
-              console.log(
-                `🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
-              );
               let dateTime: Date;
               if (typeof slot.dateTime === 'string') {
                 const cleanDateString = slot.dateTime.replace('Z', '');

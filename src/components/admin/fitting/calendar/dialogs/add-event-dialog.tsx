@@ -34,10 +34,10 @@ import { SingleDatePicker } from 'components/date-time-range-picker/single-date-
 import { useScheduleStore } from 'stores';
 import { eventSchema, TEventFormData } from 'variables/fitting/schemas';
 import { useMemo, useEffect, useState } from 'react';
-import { toZonedTime, format} from 'date-fns-tz';
-
+import { toZonedTime, format } from 'date-fns-tz';
 
 const timeZone = 'Asia/Jakarta';
+
 interface IProps {
   children: React.ReactNode;
   startDate?: Date;
@@ -50,7 +50,9 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     addScheduleBlock,
     isLoading,
     fittingSlots,
+    scheduleBlocks, 
     fetchAllAvailableSlots,
+    fetchScheduleBlocks,
     getAvailableSlots,
   } = useScheduleStore();
 
@@ -68,23 +70,35 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
   useEffect(() => {
     if (isOpen) {
-      console.log('🚀 Fetching all available slots...');
       fetchAllAvailableSlots();
+
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + 90);
+
+      fetchScheduleBlocks(today.toISOString(), futureDate.toISOString());
     }
-  }, [isOpen, fetchAllAvailableSlots]);
+  }, [isOpen, fetchAllAvailableSlots, fetchScheduleBlocks]);
 
   useEffect(() => {
-    console.log('🔍 Store state changed:');
-    console.log('  - fittingSlots length:', fittingSlots?.length || 0);
-    console.log('  - isLoading:', isLoading);
-
     if (fittingSlots && fittingSlots.length > 0) {
       console.log('  - First few slots:', fittingSlots.slice(0, 3));
     }
   }, [fittingSlots, isLoading]);
 
+  const isTimeBlockedByScheduleBlock = (
+    startTime: Date,
+    endTime: Date,
+  ): boolean => {
+    return scheduleBlocks.some((block) => {
+      const blockStart = new Date(block.startTime);
+      const blockEnd = new Date(block.endTime);
+
+      return startTime < blockEnd && endTime > blockStart;
+    });
+  };
+
   const availableDates = useMemo(() => {
-    console.log('🔄 Processing availableDates...');
     const availableSlots = getAvailableSlots();
     if (!availableSlots || availableSlots.length === 0) {
       return [];
@@ -94,21 +108,17 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
     availableSlots.forEach((slot) => {
       const zonedDate = toZonedTime(slot.dateTime, timeZone);
-      
       const dateString = format(zonedDate, 'yyyy-MM-dd');
-      
       uniqueDates.add(dateString);
     });
 
     return Array.from(uniqueDates).sort();
   }, [fittingSlots, getAvailableSlots]);
 
-
   const availableTimes = useMemo(() => {
     if (!selectedDate) return [];
 
     const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
-
     const availableSlots = getAvailableSlots();
 
     const slotsForDate = availableSlots.filter((slot) => {
@@ -123,12 +133,18 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
         return {
           value: dateTime.toISOString(),
-          label: label, 
+          label: label,
           slot: slot,
         };
       })
+      .filter((timeOption) => {
+        const startTime = new Date(timeOption.value);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+        return !isTimeBlockedByScheduleBlock(startTime, endTime);
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [selectedDate, getAvailableSlots]);
+  }, [selectedDate, getAvailableSlots, scheduleBlocks]);
 
   const availableEndTimes = useMemo(() => {
     if (!selectedStartTime) return [];
@@ -137,11 +153,16 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
     return availableTimes
       .filter((time) => new Date(time.value) > startTime)
+      .filter((timeOption) => {
+        const endTime = new Date(timeOption.value);
+
+        return !isTimeBlockedByScheduleBlock(startTime, endTime);
+      })
       .map((time) => ({
         value: time.value,
         label: time.label,
       }));
-  }, [selectedStartTime, availableTimes]);
+  }, [selectedStartTime, availableTimes, scheduleBlocks]);
 
   const onSubmit = async (values: TEventFormData) => {
     try {
@@ -198,7 +219,8 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
         <DialogHeader>
           <DialogTitle>Periode Blokir Jadwal</DialogTitle>
           <DialogDescription>
-            Blokir periode waktu tertentu pada kalender Anda untuk menghindari penjadwalan acara pada waktu tersebut.
+            Blokir periode waktu tertentu pada kalender Anda untuk menghindari
+            penjadwalan acara pada waktu tersebut.
           </DialogDescription>
         </DialogHeader>
 
@@ -306,7 +328,8 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="size-3.5 rounded-full bg-gray-700" />
-              Jadwal yang diblokir akan ditampilkan dengan warna abu-abu pada kalender Anda.
+              Jadwal yang diblokir akan ditampilkan dengan warna abu-abu pada
+              kalender Anda.
             </div>
           </form>
         </Form>
