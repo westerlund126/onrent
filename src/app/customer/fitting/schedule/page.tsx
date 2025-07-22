@@ -35,6 +35,7 @@ import { SingleDatePicker } from 'components/date-time-range-picker/single-date-
 import { parse } from 'date-fns';
 import { toZonedTime, format} from 'date-fns-tz';
 import { id } from 'date-fns/locale'; 
+import ImageUpload from 'components/image-upload/image-upload';
 
 const timeZone = 'Asia/Jakarta';
 
@@ -224,6 +225,14 @@ const availableTimes = useMemo(() => {
     if (timeSlot) {
       setSelectedSlot(timeSlot.slot);
     }
+  };
+
+  const handleImageUpload = (url: string) => {
+    updateFormField('tfProofUrl', url);
+  };
+
+  const handleImageRemove = (url: string) => {
+    updateFormField('tfProofUrl', '');
   };
 
   const handleSubmit = async () => {
@@ -445,6 +454,21 @@ const availableTimes = useMemo(() => {
                        </p>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                <Label htmlFor="transferProof" className="text-sm font-semibold text-gray-700">
+                  Bukti Transfer
+                </Label>
+                <ImageUpload
+                  onChange={handleImageUpload}
+                  onRemove={handleImageRemove}
+                  value={formData.tfProofUrl ? [formData.tfProofUrl] : []}
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-gray-500">
+                  Unggah bukti transfer jika diperlukan oleh penyedia jasa.
+                </p>
+              </div>
 
                   {/* Notes */}
                   <div className="space-y-2">
