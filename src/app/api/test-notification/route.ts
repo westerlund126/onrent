@@ -46,8 +46,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[API Test] Failed to send test notification:', error);
+    // Return a more specific error message to the client for better debugging.
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { 
+        error: 'Internal Server Error', 
+        details: error.message // This will now show the specific error in the browser console
+      },
       { status: 500 },
     );
   }
