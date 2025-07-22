@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       variantId,
       variantIds = [],
+      tfProofUrl,
     } = await request.json();
 
     if (!fittingSlotId) {
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
           duration,
           note,
           status: initialStatus,
+          tfProofUrl,
         },
       });
 

@@ -13,6 +13,7 @@ export interface FittingFormData {
   selectedDate: string;
   selectedTime: string;
   selectedVariants: number[];
+  tfProofUrl?: string; 
 }
 
 export interface AvailableSlot {
@@ -89,6 +90,7 @@ const initialFormData: FittingFormData = {
   selectedDate: '',
   selectedTime: '',
   selectedVariants: [],
+  tfProofUrl: '',
 };
 
 export const useFittingFormStore = create<FittingFormState>()(
@@ -349,6 +351,7 @@ const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOStr
           phoneNumber: (formData.phoneNumber as string).trim(),
           customerName: (formData.customerName as string).trim(),
           variantIds: pageType === 'product' ? formData.selectedVariants : [],
+          tfProofUrl: formData.tfProofUrl ? formData.tfProofUrl.trim() : null,
         };
 
         const response = await fetch('/api/fitting/schedule', {

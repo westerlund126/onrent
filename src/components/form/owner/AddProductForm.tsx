@@ -118,7 +118,7 @@ const AddProductForm = () => {
       return;
     }
 
-    if (variants.some(v => !v.size || !v.color || !v.price || !v.bustlength || !v.waistlength || !v.length)) {
+    if (variants.some(v => !v.size || !v.color || !v.price)) {
       toast.error("Lengkapi semua data varian");
       return;
     }

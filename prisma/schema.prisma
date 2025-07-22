@@ -133,6 +133,7 @@ model FittingSchedule {
   note           String?
   duration       Int
   ownerId        Int
+  tfProofUrl     String?
   FittingProduct FittingProduct[]
   fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
   owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
