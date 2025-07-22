@@ -146,7 +146,7 @@ export function generateTimeSlots(
 
 // ================ Week and day view helper functions ================ //
 
-export function getCurrentSchedule(schedule: IFittingSchedule[]) {
+export function getCurrentSchedule(schedule: ICalendarEvent[]) {
   const now = new Date();
   return (
     schedule.filter((schedule) =>
@@ -158,11 +158,11 @@ export function getCurrentSchedule(schedule: IFittingSchedule[]) {
   );
 }
 
-export function groupSchedule(daySchedule: IFittingSchedule[]) {
+export function groupSchedule(daySchedule: ICalendarEvent[]) {
   const sortedSchedule = daySchedule.sort(
     (a, b) => parseISO(a.startTime.toISOString()).getTime() - parseISO(b.startTime.toISOString()).getTime(),
   );
-  const groups: IFittingSchedule[][] = [];
+  const groups: ICalendarEvent[][] = [];
 
   for (const schedule of sortedSchedule) {
     const scheduleStart = schedule.startTime;
@@ -186,7 +186,7 @@ export function groupSchedule(daySchedule: IFittingSchedule[]) {
 }
 
 export function getScheduleBlockStyle(
-  schedule: IFittingSchedule,
+  schedule: ICalendarEvent,
   day: Date,
   groupIndex: number,
   groupSize: number,
@@ -247,6 +247,21 @@ export function getVisibleHours(
   );
 
   return { hours, earliestScheduleHour, latestScheduleHour };
+}
+
+
+export function transformFittingScheduleToCalendarEvent(
+  schedule: IFittingSchedule,
+): ICalendarEvent {
+  return {
+    id: schedule.id,
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    title: schedule.title,
+    color: schedule.color,
+    type: 'fitting' as const,
+    originalData: schedule,
+  };
 }
 
 // ================ Month view helper functions ================ //

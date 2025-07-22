@@ -4,7 +4,7 @@ import { DraggableEvent } from 'components/admin/fitting/calendar/dnd/draggable-
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
 import { cn } from '@/lib/utils';
 import type { HTMLAttributes } from 'react';
-import type { IFittingSchedule } from 'types/fitting';
+import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
 import type { VariantProps } from 'class-variance-authority';
 import { useSettingsStore } from 'stores';
 
@@ -50,7 +50,7 @@ const calendarWeekEventCardVariants = cva(
 interface IProps
   extends HTMLAttributes<HTMLDivElement>,
     Omit<VariantProps<typeof calendarWeekEventCardVariants>, 'color'> {
-  schedule: IFittingSchedule;
+  schedule: ICalendarEvent;
 }
 
 export function EventBlock({ schedule, className }: IProps) {
