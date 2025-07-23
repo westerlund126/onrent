@@ -34,7 +34,6 @@ import {
   User,
   Phone,
   Mail,
-  MapPin,
   Calendar,
   Clock,
   CheckCircle,
@@ -74,7 +73,6 @@ const CustomerActivityDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
 
-  // REMOVED: `confirmReturn` logic as it's not the customer's role.
   const { initiateReturn, returnInitiateLoading } = useRentalStore();
 
   const isRental = type === 'rental';
@@ -107,7 +105,6 @@ const CustomerActivityDetailPage = () => {
     [],
   );
 
-  // IMPROVED: Encapsulated data fetching logic.
   const loadData = useCallback(async () => {
     if (!type || !id) return;
     try {
@@ -140,10 +137,8 @@ const CustomerActivityDetailPage = () => {
     );
   }, [activity, isRental]);
 
-  // SIMPLIFIED: Removed unused variables for a cleaner summary.
   const total = subtotal;
 
-  // IMPROVED: Return handler now just initiates and reloads data.
   const handleInitiateReturn = async () => {
     if (!isRental || !activity) return;
 
@@ -153,7 +148,7 @@ const CustomerActivityDetailPage = () => {
       alert(
         'Return Initiated: Your return request has been submitted to the owner for confirmation.',
       );
-      await loadData(); // Refresh data to update the UI status.
+      await loadData();
     } catch (error) {
       console.error('Failed to initiate return:', error);
       alert('Return Failed: Failed to initiate return. Please try again.');
@@ -162,22 +157,18 @@ const CustomerActivityDetailPage = () => {
 
   const currentTrackingStatus = useMemo(() => {
     if (!isRental || !tracking.length) return null;
-    return tracking[0]?.status; // Most recent status
+    return tracking[0]?.status;
   }, [tracking, isRental]);
 
-  // CORRECTED: Button only shows if the rental is ongoing. It disappears after initiation.
   const canInitiateReturn = useMemo(() => {
     if (!isRental || !activity) return false;
     return currentTrackingStatus === 'RENTAL_ONGOING';
   }, [isRental, activity, currentTrackingStatus]);
 
-  // REMOVED: `canConfirmReturn` memo is no longer needed.
-
   if (loading) return <div className="p-6">Loading…</div>;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!activity) return <div className="p-6">Activity not found</div>;
 
-  // Helper functions remain largely the same, but are included for completeness.
   const getRentalStatusBadge = (status: RentalDetail['status']) => {
     const statusConfig = {
       BELUM_LUNAS: {
@@ -192,6 +183,42 @@ const CustomerActivityDetailPage = () => {
         icon: AlertCircle,
       },
       SELESAI: { label: 'Selesai', variant: 'default', icon: CheckCircle },
+    } as const;
+    const config = statusConfig[status] ?? {
+      label: status,
+      variant: 'secondary',
+      icon: AlertCircle,
+    };
+    const Icon = config.icon;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" /> {config.label}
+      </Badge>
+    );
+  };
+
+  const getFittingStatusBadge = (status: FittingDetail['status']) => {
+    const statusConfig = {
+      SCHEDULED: {
+        label: 'Dijadwalkan',
+        variant: 'secondary',
+        icon: Calendar,
+      },
+      IN_PROGRESS: {
+        label: 'Sedang Berlangsung',
+        variant: 'default',
+        icon: RefreshCw,
+      },
+      COMPLETED: {
+        label: 'Selesai',
+        variant: 'default',
+        icon: CheckCircle,
+      },
+      CANCELLED: {
+        label: 'Dibatalkan',
+        variant: 'destructive',
+        icon: XCircle,
+      },
     } as const;
     const config = statusConfig[status] ?? {
       label: status,
@@ -268,6 +295,29 @@ const CustomerActivityDetailPage = () => {
       })()
     : null;
 
+const getFittingSchedule = () => {
+    if (!isFitting) return null;
+    const fitting = activity as FittingDetail;    
+    const dateObj = new Date(fitting.fittingSlot.dateTime);
+    
+    const utcTime = dateObj.getUTCHours().toString().padStart(2, '0') + ':' + 
+                   dateObj.getUTCMinutes().toString().padStart(2, '0');
+    
+
+    const utcDate = dateObj.getUTCDate().toString().padStart(2, '0') + '/' +
+                   (dateObj.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
+                   dateObj.getUTCFullYear();
+       
+    return {
+      date: utcDate, 
+      time: utcTime,
+      duration: fitting.fittingSlot.duration,
+    };
+};
+  const fittingSchedule = getFittingSchedule();
+
+  const fittingHasProducts = isFitting && (activity as FittingDetail).FittingProduct?.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
@@ -303,7 +353,14 @@ const CustomerActivityDetailPage = () => {
                     {getRentalStatusBadge((activity as RentalDetail).status)}
                   </>
                 )}
-                {/* Fitting status can go here if needed */}
+                {isFitting && (
+                  <>
+                    <span className="text-gray-600">
+                      Jadwal: {formatDate(fittingSchedule?.date || '')}
+                    </span>
+                    {getFittingStatusBadge((activity as FittingDetail).status)}
+                  </>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
@@ -380,57 +437,156 @@ const CustomerActivityDetailPage = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left column */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Items/Products Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" /> Detail Produk Sewa
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produk</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(activity as RentalDetail).rentalItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Image
-                              src={
-                                item.variantProduct.products.images[0] ??
-                                '/placeholder.svg'
-                              }
-                              width={64}
-                              height={64}
-                              alt={item.variantProduct.products.name}
-                              className="h-16 w-16 rounded-lg border bg-gray-100 object-cover"
-                            />
-                            <div>
-                              <h4 className="font-medium text-gray-900">
-                                {item.variantProduct.products.name}
-                              </h4>
-                              <div className="text-xs text-gray-500">
-                                SKU: {item.variantProduct.sku}
+            {/* Items/Products Card - Show for rentals and fittings with products */}
+            {(isRental || fittingHasProducts) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {isRental ? (
+                      <>
+                        <Package className="h-5 w-5" /> Detail Produk Sewa
+                      </>
+                    ) : (
+                      <>
+                        <Scissors className="h-5 w-5" /> Produk untuk Fitting
+                      </>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produk</TableHead>
+                        {isRental && <TableHead className="text-right">Total</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isRental && (activity as RentalDetail).rentalItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Image
+                                src={
+                                  item.variantProduct.products.images[0] ??
+                                  '/placeholder.svg'
+                                }
+                                width={64}
+                                height={64}
+                                alt={item.variantProduct.products.name}
+                                className="h-16 w-16 rounded-lg border bg-gray-100 object-cover"
+                              />
+                              <div>
+                                <h4 className="font-medium text-gray-900">
+                                  {item.variantProduct.products.name}
+                                </h4>
+                                <div className="text-xs text-gray-500">
+                                  SKU: {item.variantProduct.sku}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(item.variantProduct.price)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.variantProduct.price)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {isFitting && fittingHasProducts && (activity as FittingDetail).FittingProduct.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Image
+                                src={
+                                  item.product.images[0] ??
+                                  '/placeholder.svg'
+                                }
+                                width={64}
+                                height={64}
+                                alt={item.product.name}
+                                className="h-16 w-16 rounded-lg border bg-gray-100 object-cover"
+                              />
+                              <div>
+                                <h4 className="font-medium text-gray-900">
+                                  {item.product.name}
+                                </h4>
+                                {item.variantProduct && (
+                                  <>
+                                    <div className="text-xs text-gray-500">
+                                      SKU: {item.variantProduct.sku}
+                                    </div>
+                                    {item.variantProduct.size && (
+                                      <div className="text-xs text-gray-500">
+                                        Size: {item.variantProduct.size}
+                                      </div>
+                                    )}
+                                    {item.variantProduct.color && (
+                                      <div className="text-xs text-gray-500">
+                                        Color: {item.variantProduct.color}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* SIMPLIFIED: Summary card for rentals */}
+            {/* Regular fitting without products */}
+            {isFitting && !fittingHasProducts && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5" /> Fitting Session
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <Scissors className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Sesi Fitting Reguler
+                      </h3>
+                      <p className="text-gray-600">
+                        Ini adalah sesi fitting reguler tanpa produk spesifik.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isFitting && (activity as FittingDetail).tfProofUrl && (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" /> Bukti Transfer
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <a
+          href={(activity as FittingDetail).tfProofUrl!}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            src={(activity as FittingDetail).tfProofUrl!}
+            alt="Bukti transfer"
+            width={100}
+            height={100}
+            className="w-full max-w-sm rounded-md border object-cover transition-transform hover:scale-105"
+          />
+        </a>
+      </CardContent>
+    </Card>
+  )}
+
+            {/* Transaction Summary - Only for rentals */}
             {isRental && (
               <Card>
                 <CardHeader>
@@ -461,7 +617,7 @@ const CustomerActivityDetailPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" /> Informasi Owner
+                  <User className="h-5 w-5" /> Informasi Penyedia
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -478,6 +634,12 @@ const CustomerActivityDetailPage = () => {
                     {owner.phone_numbers}
                   </div>
                 )}
+                {owner.businessBio && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    {owner.businessBio}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -485,28 +647,57 @@ const CustomerActivityDetailPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" /> Periode Sewa
+                  <Calendar className="h-5 w-5" />
+                  {isRental ? 'Periode Sewa' : 'Jadwal Fitting'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600">Tanggal Mulai</span>
-                  <p className="font-medium">
-                    {formatDate((activity as RentalDetail).startDate)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Tanggal Selesai</span>
-                  <p className="font-medium">
-                    {formatDate((activity as RentalDetail).endDate)}
-                  </p>
-                </div>
+                {isRental && (
+                  <>
+                    <div>
+                      <span className="text-sm text-gray-600">Tanggal Mulai</span>
+                      <p className="font-medium">
+                        {formatDate((activity as RentalDetail).startDate)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Tanggal Selesai</span>
+                      <p className="font-medium">
+                        {formatDate((activity as RentalDetail).endDate)}
+                      </p>
+                    </div>
+                  </>
+                )}
+                {isFitting && fittingSchedule && (
+                  <>
+                    <div>
+                      <span className="text-sm text-gray-600">Tanggal & Waktu</span>
+                      <p className="font-medium">
+                        {fittingSchedule.date}, {fittingSchedule.time}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Durasi</span>
+                      <p className="font-medium">
+                        {fittingSchedule.duration} menit
+                      </p>
+                    </div>
+                    {(activity as FittingDetail).note && (
+                      <div>
+                        <span className="text-sm text-gray-600">Catatan</span>
+                        <p className="font-medium">
+                          {(activity as FittingDetail).note}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Transaction History Timeline */}
+        {/* Transaction History Timeline - Only for rentals */}
         {isRental && (
           <Card className="mt-6">
             <CardHeader>

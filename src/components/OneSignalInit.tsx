@@ -16,10 +16,26 @@ export default function OneSignalInit() {
   const { userId, isSignedIn } = useAuth();
   const initializedRef = useRef(false);
   const userIdRef = useRef(userId);
+  const subscriptionListenerSetup = useRef(false);
 
   useEffect(() => {
     userIdRef.current = userId;
   }, [userId]);
+
+  const waitForOneSignalReady = async (maxWait = 5000) => {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWait) {
+      if (window.OneSignal && 
+          typeof window.OneSignal.init === 'function' &&
+          window.OneSignal.User &&
+          window.OneSignal.Slidedown) {
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return false;
+  };
 
   const initializeOneSignal = async () => {
     console.log('[OneSignal] Starting initialization...');
@@ -29,15 +45,10 @@ export default function OneSignalInit() {
       return false;
     }
 
-    // Wait for OneSignal to be fully ready
-    if (typeof window.OneSignal.init !== 'function') {
-      console.log('[OneSignal] Waiting for OneSignal to be ready...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (typeof window.OneSignal.init !== 'function') {
-        console.error('[OneSignal] OneSignal.init still not available');
-        return false;
-      }
+    const isReady = await waitForOneSignalReady();
+    if (!isReady) {
+      console.error('[OneSignal] OneSignal failed to become ready');
+      return false;
     }
 
     try {
@@ -45,13 +56,12 @@ export default function OneSignalInit() {
         appId: ONESIGNAL_APP_ID,
         allowLocalhostAsSecureOrigin: true,
         autoResubscribe: true,
-        autoRegister: false,
+        autoRegister: false, // We'll handle registration manually
         debug: process.env.NODE_ENV === 'development',
         promptOptions: {
           slidedown: {
             enabled: true,
-            actionMessage:
-              'Kami ingin mengirimkan notifikasi tentang pembaruan rental dan fitting Anda.',
+            actionMessage: 'Kami ingin mengirimkan notifikasi tentang pembaruan rental dan fitting Anda.',
             acceptButtonText: 'Izinkan',
             cancelButtonText: 'Tidak, Terima Kasih',
           },
@@ -65,22 +75,8 @@ export default function OneSignalInit() {
       console.log('[OneSignal] Initialization successful!');
       window.OneSignalInitialized = true;
 
-      // Wait a bit more for OneSignal to be fully ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Set up subscription change listener using the new v16 API
-      try {
-        if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
-          window.OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
-            console.log('[OneSignal] Subscription changed:', event.current.optedIn);
-            if (event.current.optedIn && userIdRef.current) {
-              setExternalUserId(userIdRef.current);
-            }
-          });
-        }
-      } catch (listenerError) {
-        console.warn('[OneSignal] Could not set up subscription listener:', listenerError);
-      }
+      // Setup subscription listener
+      await setupSubscriptionListener();
 
       return true;
     } catch (err) {
@@ -89,14 +85,66 @@ export default function OneSignalInit() {
     }
   };
 
+  const setupSubscriptionListener = async () => {
+    if (subscriptionListenerSetup.current) return;
+    
+    try {
+      // Wait for User object to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
+        // Set up property change listener for v16
+        const checkSubscriptionChange = () => {
+          if (window.OneSignal.User.PushSubscription.optedIn && userIdRef.current) {
+            console.log('[OneSignal] User subscribed, setting external ID');
+            setExternalUserId(userIdRef.current);
+          }
+        };
+
+        // Check periodically for subscription changes
+        setInterval(checkSubscriptionChange, 2000);
+        subscriptionListenerSetup.current = true;
+      }
+    } catch (error) {
+      console.warn('[OneSignal] Could not set up subscription listener:', error);
+    }
+  };
+
+  const getSubscriptionStatus = async () => {
+    try {
+      if (window.OneSignal && window.OneSignal.User && window.OneSignal.User.PushSubscription) {
+        // Wait a moment for the object to be populated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const subscription = window.OneSignal.User.PushSubscription;
+        
+        return {
+          optedIn: subscription.optedIn,
+          permission: subscription.permission,
+          token: subscription.token,
+          id: subscription.id
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('[OneSignal] Error getting subscription status:', error);
+      return null;
+    }
+  };
+
   const setExternalUserId = async (userId: string) => {
     try {
-      // v16 API uses User.addAlias instead of setExternalUserId
+      // First check if user is actually subscribed
+      const status = await getSubscriptionStatus();
+      if (!status || !status.optedIn) {
+        console.log('[OneSignal] User not subscribed, skipping external ID');
+        return;
+      }
+
       if (window.OneSignal.User && typeof window.OneSignal.User.addAlias === 'function') {
         await window.OneSignal.User.addAlias('external_id', userId);
         console.log('[OneSignal] External user ID set:', userId);
       } else if (window.OneSignal.login && typeof window.OneSignal.login === 'function') {
-        // Alternative method in v16
         await window.OneSignal.login(userId);
         console.log('[OneSignal] User logged in with ID:', userId);
       } else {
@@ -115,32 +163,9 @@ export default function OneSignalInit() {
       } else if (window.OneSignal.User && typeof window.OneSignal.User.removeAlias === 'function') {
         await window.OneSignal.User.removeAlias('external_id');
         console.log('[OneSignal] Removed external user alias');
-      } else {
-        console.error('[OneSignal] logout not available');
       }
     } catch (error) {
       console.error('[OneSignal] Logout failed:', error);
-    }
-  };
-
-  const manageUserIdentity = async () => {
-    if (!window.OneSignal || !window.OneSignalInitialized) {
-      console.warn('[OneSignal] SDK not ready for user management');
-      return;
-    }
-
-    try {
-      if (isSignedIn && userId) {
-        // User is signed in, set their external ID
-        console.log('[OneSignal] Setting external user ID:', userId);
-        await setExternalUserId(userId);
-      } else {
-        // User is not signed in, log them out
-        console.log('[OneSignal] User signed out, logging out from OneSignal');
-        await logoutUser();
-      }
-    } catch (error) {
-      console.error('[OneSignal] User identity management failed:', error);
     }
   };
 
@@ -150,66 +175,73 @@ export default function OneSignalInit() {
       return;
     }
 
-    // Only show prompt if user is signed in
     if (!isSignedIn || !userId) {
       console.log('[OneSignal] User not signed in, skipping prompt');
       return;
     }
 
     try {
-      let isSubscribed = false;
-      
-      // Check subscription status using v16 API
-      if (window.OneSignal.User && window.OneSignal.User.PushSubscription) {
-        try {
-          const pushSubscription = window.OneSignal.User.PushSubscription;
-          if (pushSubscription.optedIn !== undefined) {
-            isSubscribed = pushSubscription.optedIn;
-          } else if (typeof pushSubscription.getOptedIn === 'function') {
-            isSubscribed = await pushSubscription.getOptedIn();
-          }
-        } catch (subError) {
-          console.warn('[OneSignal] Could not check subscription status:', subError);
-        }
-      }
-      
-      console.log('[OneSignal] Subscription status:', isSubscribed ? 'Subscribed' : 'Not subscribed');
+      const status = await getSubscriptionStatus();
+      console.log('[OneSignal] Current subscription status:', status);
 
-      if (!isSubscribed) {
-        try {
-          // Try different prompt methods available in v16
-          if (window.OneSignal.Slidedown && typeof window.OneSignal.Slidedown.promptPush === 'function') {
-            await window.OneSignal.Slidedown.promptPush();
-            console.log('[OneSignal] Slidedown prompt shown');
-          } else if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
-            await window.OneSignal.showSlidedownPrompt();
-            console.log('[OneSignal] Legacy slidedown prompt shown');
-          } else if (typeof window.OneSignal.showNativePrompt === 'function') {
-            await window.OneSignal.showNativePrompt();
-            console.log('[OneSignal] Native prompt shown');
-          } else if (window.OneSignal.User && window.OneSignal.User.PushSubscription && typeof window.OneSignal.User.PushSubscription.optIn === 'function') {
-            await window.OneSignal.User.PushSubscription.optIn();
-            console.log('[OneSignal] Direct opt-in attempted');
-          } else {
-            console.error('[OneSignal] No prompt methods available');
-          }
-        } catch (promptError) {
-          console.error('[OneSignal] All prompt methods failed:', promptError);
+      if (!status || !status.optedIn) {
+        // Try to register for push notifications first
+        if (window.OneSignal.User && typeof window.OneSignal.User.PushSubscription.optIn === 'function') {
+          console.log('[OneSignal] Attempting to opt in user...');
+          await window.OneSignal.User.PushSubscription.optIn();
+        } else if (typeof window.OneSignal.registerForPushNotifications === 'function') {
+          console.log('[OneSignal] Using registerForPushNotifications...');
+          await window.OneSignal.registerForPushNotifications();
+        } else {
+          console.error('[OneSignal] No registration methods available');
         }
       } else if (userId) {
+        // User is already subscribed, just set the external ID
         await setExternalUserId(userId);
       }
     } catch (error) {
-      console.error('[OneSignal] Prompt display failed:', error);
+      console.error('[OneSignal] Notification prompt failed:', error);
+    }
+  };
+
+  const manageUserIdentity = async () => {
+    if (!window.OneSignal || !window.OneSignalInitialized) {
+      console.warn('[OneSignal] SDK not ready for user management');
+      return;
+    }
+
+    // Add a small delay to ensure OneSignal is fully ready
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    try {
+      if (isSignedIn && userId) {
+        console.log('[OneSignal] Managing user identity for:', userId);
+        
+        // Check if user is subscribed first
+        const status = await getSubscriptionStatus();
+        
+        if (status && status.optedIn) {
+          await setExternalUserId(userId);
+        } else {
+          console.log('[OneSignal] User not subscribed yet');
+        }
+      } else {
+        console.log('[OneSignal] User signed out, logging out from OneSignal');
+        await logoutUser();
+      }
+    } catch (error) {
+      console.error('[OneSignal] User identity management failed:', error);
     }
   };
 
   const loadOneSignalScript = () => {
     return new Promise<void>((resolve, reject) => {
-      // Remove existing script
       const existingScript = document.getElementById('oneSignalSDK');
       if (existingScript) {
         existingScript.remove();
+        // Reset initialization flags
+        window.OneSignalInitialized = false;
+        subscriptionListenerSetup.current = false;
       }
 
       console.log('[OneSignal] Loading SDK script...');
@@ -219,19 +251,17 @@ export default function OneSignalInit() {
       script.id = 'oneSignalSDK';
       script.crossOrigin = 'anonymous';
 
-      script.onload = () => {
+      script.onload = async () => {
         console.log('[OneSignal] Script loaded successfully');
-        // Wait for OneSignal object to be available
-        const checkOneSignal = () => {
-          if (window.OneSignal && typeof window.OneSignal === 'object') {
-            console.log('[OneSignal] OneSignal object is available');
-            resolve();
-          } else {
-            console.log('[OneSignal] Waiting for OneSignal object...');
-            setTimeout(checkOneSignal, 100);
-          }
-        };
-        checkOneSignal();
+        
+        // Wait for OneSignal to be fully available
+        const isReady = await waitForOneSignalReady();
+        if (isReady) {
+          console.log('[OneSignal] OneSignal object is ready');
+          resolve();
+        } else {
+          reject(new Error('OneSignal object not ready after timeout'));
+        }
       };
 
       script.onerror = (e) => {
@@ -251,17 +281,15 @@ export default function OneSignalInit() {
 
     const setupOneSignal = async () => {
       try {
-        if (!window.OneSignal) {
+        if (!window.OneSignal || !window.OneSignalInitialized) {
           await loadOneSignalScript();
-          // Give it more time to initialize
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         if (!window.OneSignalInitialized) {
           const success = await initializeOneSignal();
           if (success) {
-            // Wait a bit before managing user identity
-            await new Promise((resolve) => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 500));
             await manageUserIdentity();
           }
         } else {
@@ -276,6 +304,7 @@ export default function OneSignalInit() {
     setupOneSignal();
   }, []);
 
+  // Handle user sign in/out
   useEffect(() => {
     const handleUserChange = async () => {
       if (!window.OneSignalInitialized) return;
@@ -283,9 +312,10 @@ export default function OneSignalInit() {
       await manageUserIdentity();
       
       if (isSignedIn && userId) {
+        // Show notification prompt when user signs in
         setTimeout(() => {
           showNotificationPrompt();
-        }, 2000);
+        }, 1000);
       }
     };
 

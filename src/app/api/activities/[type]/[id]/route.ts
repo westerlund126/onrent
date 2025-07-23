@@ -121,7 +121,8 @@ export async function GET(request, { params }) {
                   last_name: true,
                   businessAddress: true,
                   phone_numbers: true,
-                  email: true
+                  email: true,
+                  businessBio: true,
                 }
               }
             }
@@ -156,6 +157,7 @@ export async function GET(request, { params }) {
         status: fitting.status,
         duration: fitting.duration,
         note: fitting.note,
+        tfProofUrl: fitting.tfProofUrl,
         createdAt: fitting.createdAt.toISOString(),
         updatedAt: fitting.updatedAt.toISOString(),
         fittingSlot: {
@@ -169,7 +171,8 @@ export async function GET(request, { params }) {
             businessName: fitting.fittingSlot.owner.businessName,
             email: fitting.fittingSlot.owner.email,
             phone_numbers: fitting.fittingSlot.owner.phone_numbers,
-            businessAddress: fitting.fittingSlot.owner.businessAddress
+            businessAddress: fitting.fittingSlot.owner.businessAddress,
+            businessBio: fitting.fittingSlot.owner.businessBio,
           }
         },
         FittingProduct: fitting.FittingProduct.map(fp => ({

@@ -15,6 +15,7 @@ import {
   Package,
   Loader2,
   CheckCircle,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -545,6 +546,12 @@ const availableTimes = useMemo(() => {
                           <Mail className="h-4 w-4 text-gray-500" />
                           <span className="text-gray-700">
                             {ownerData.email}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-gray-500" />
+                          <span className="text-gray-700">
+                            {ownerData.businessBio}
                           </span>
                         </div>
                         </div>

@@ -36,6 +36,7 @@ export type RentalOwner = {
   email?: string | null; 
   phone_numbers?: string | null;
   businessAddress?: string | null;
+  businessBio?: string | null;
 };
 
 export type RentalDetail = {
@@ -85,6 +86,7 @@ export type FittingDetail = {
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   duration: number;
   note?: string | null;
+  tfProofUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   fittingSlot: {

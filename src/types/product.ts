@@ -28,6 +28,7 @@ export interface Owner {
   phone_numbers?: string;
   firstName?: string;
   lastName?: string;
+  businessBio?: string;
 }
 
 export interface Product {
