@@ -296,28 +296,27 @@ const CustomerActivityDetailPage = () => {
     : null;
 
   // Helper to get fitting date/time information
-  const getFittingSchedule = () => {
+const getFittingSchedule = () => {
     if (!isFitting) return null;
     const fitting = activity as FittingDetail;
-    const dateTime = new Date(fitting.fittingSlot.dateTime);
-    const endDateTime = new Date(dateTime.getTime() + fitting.fittingSlot.duration * 60000);
     
+    // Safe time extraction with fallback
+    const getTimeFromDateTime = (dateTimeString) => {
+      if (!dateTimeString) return '00:00';
+      
+      const parts = dateTimeString.split(' ');
+      if (parts.length < 2) return '00:00';
+      
+      const timePart = parts[1];
+      return timePart ? timePart.substring(0, 5) : '00:00';
+    };
+   
     return {
       date: fitting.fittingSlot.dateTime,
-      timeStart: dateTime.toLocaleTimeString('id-ID', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
-      timeEnd: endDateTime.toLocaleTimeString('id-ID', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
+      time: getTimeFromDateTime(fitting.fittingSlot.dateTime),
       duration: fitting.fittingSlot.duration,
     };
-  };
-
+};
   const fittingSchedule = getFittingSchedule();
 
   // Helper to check if fitting has products
