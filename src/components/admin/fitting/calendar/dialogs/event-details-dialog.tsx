@@ -38,17 +38,13 @@ interface IProps {
 }
 
 export function EventDetailsDialog({ schedule, children }: IProps) {
-  // State to control the dialog's visibility
   const [isOpen, setIsOpen] = useState(false);
 
-  // Get the remove function and loading state from the store
   const { removeScheduleBlock, isLoading } = useScheduleStore();
 
-  // Determine the event type for conditional rendering
   const isFittingEvent = schedule.type === 'fitting';
   const isBlockEvent = schedule.type === 'block';
 
-  // Safely cast the original data based on the event type
   const fittingData = isFittingEvent
     ? (schedule.originalData as IFittingSchedule)
     : null;
@@ -56,15 +52,12 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
     ? (schedule.originalData as IScheduleBlock)
     : null;
 
-  // Handle the delete action
   const handleDelete = async () => {
     if (!blockData) return;
     try {
-      // Call the store action to remove the block
       await removeScheduleBlock(blockData.id);
       setIsOpen(false); // Close the dialog on success
     } catch (error) {
-      // The store already handles error toasts, so we can just log here if needed
       console.error('Failed to delete schedule block:', error);
     }
   };

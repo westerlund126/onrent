@@ -39,6 +39,7 @@ export async function GET(
             username: true,
             email: true,
             phone_numbers: true,
+            imageUrl: true,
           },
         },
         fittingSlot: {
@@ -205,6 +206,7 @@ export async function PATCH(
             username: true,
             email: true,
             phone_numbers: true,
+            imageUrl: true,
           },
         },
         fittingSlot: {

@@ -47,8 +47,9 @@ export function CalendarAgendaView({ singleDaySchedule }: IProps) {
       allDates.get(dateKey)?.schedule.push(event);
     });
 
+    // Sort by latest date first (descending order)
     return Array.from(allDates.values()).sort(
-      (a, b) => a.date.getTime() - b.date.getTime(),
+      (a, b) => b.date.getTime() - a.date.getTime(),
     );
   }, [calendarEvents, selectedDate]);
   
