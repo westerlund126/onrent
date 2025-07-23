@@ -295,30 +295,27 @@ const CustomerActivityDetailPage = () => {
       })()
     : null;
 
-  // Helper to get fitting date/time information
 const getFittingSchedule = () => {
     if (!isFitting) return null;
-    const fitting = activity as FittingDetail;
-    
-    console.log('Raw dateTime from database:', fitting.fittingSlot.dateTime);
-    
+    const fitting = activity as FittingDetail;    
     const dateObj = new Date(fitting.fittingSlot.dateTime);
     
-    // Extract UTC time
     const utcTime = dateObj.getUTCHours().toString().padStart(2, '0') + ':' + 
                    dateObj.getUTCMinutes().toString().padStart(2, '0');
     
-    console.log('UTC time that will be displayed:', utcTime);
-   
+
+    const utcDate = dateObj.getUTCDate().toString().padStart(2, '0') + '/' +
+                   (dateObj.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
+                   dateObj.getUTCFullYear();
+       
     return {
-      date: fitting.fittingSlot.dateTime,
-      time: utcTime, // This will show 06:00
+      date: utcDate, 
+      time: utcTime,
       duration: fitting.fittingSlot.duration,
     };
 };
   const fittingSchedule = getFittingSchedule();
 
-  // Helper to check if fitting has products
   const fittingHasProducts = isFitting && (activity as FittingDetail).FittingProduct?.length > 0;
 
   return (
@@ -676,7 +673,7 @@ const getFittingSchedule = () => {
                     <div>
                       <span className="text-sm text-gray-600">Tanggal & Waktu</span>
                       <p className="font-medium">
-                        {formatDateTime(fittingSchedule.date)}
+                        {fittingSchedule.date}, {fittingSchedule.time}
                       </p>
                     </div>
                     <div>
