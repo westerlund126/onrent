@@ -89,6 +89,15 @@ export type DayOfWeek =
   | 'FRIDAY'
   | 'SATURDAY';
 
+export type dayNames =
+  | 'Minggu'
+  | 'Senin'
+  | 'Selasa'
+  | 'Rabu'
+  | 'Kamis'
+  | 'Jumat'
+  | 'Sabtu';
+
 export interface IWeeklySlot {
   id: number;
   ownerId: number;

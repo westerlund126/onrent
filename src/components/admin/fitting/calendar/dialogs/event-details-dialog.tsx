@@ -38,17 +38,13 @@ interface IProps {
 }
 
 export function EventDetailsDialog({ schedule, children }: IProps) {
-  // State to control the dialog's visibility
   const [isOpen, setIsOpen] = useState(false);
 
-  // Get the remove function and loading state from the store
   const { removeScheduleBlock, isLoading } = useScheduleStore();
 
-  // Determine the event type for conditional rendering
   const isFittingEvent = schedule.type === 'fitting';
   const isBlockEvent = schedule.type === 'block';
 
-  // Safely cast the original data based on the event type
   const fittingData = isFittingEvent
     ? (schedule.originalData as IFittingSchedule)
     : null;
@@ -56,18 +52,35 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
     ? (schedule.originalData as IScheduleBlock)
     : null;
 
-  // Handle the delete action
   const handleDelete = async () => {
     if (!blockData) return;
     try {
-      // Call the store action to remove the block
       await removeScheduleBlock(blockData.id);
-      setIsOpen(false); // Close the dialog on success
+      setIsOpen(false); 
     } catch (error) {
-      // The store already handles error toasts, so we can just log here if needed
       console.error('Failed to delete schedule block:', error);
     }
   };
+
+  const formatUTCDateTime = (date: Date) => {
+  
+  const utcDay = date.getUTCDate();
+  const utcMonth = date.getUTCMonth();
+  const utcYear = date.getUTCFullYear();
+  const utcHours = date.getUTCHours();
+  const utcMinutes = date.getUTCMinutes();
+  
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+  
+  const dayName = dayNames[date.getUTCDay()];
+  const monthName = monthNames[utcMonth];
+  
+  const formattedDate = `${dayName}, ${utcDay} ${monthName} ${utcYear} ${utcHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
+  
+  console.log('Formatted UTC date:', formattedDate);
+  return formattedDate;
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -75,7 +88,6 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {/* Dynamic title based on event type */}
             {isFittingEvent &&
               `Jadwal Fitting: ${fittingData?.user.first_name}`}
             {isBlockEvent && 'Detail Waktu yang Diblokir'}
@@ -83,7 +95,6 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Show customer info only for fitting events */}
           {isFittingEvent && fittingData && (
             <div className="flex items-start gap-3">
               <User className="mt-1 size-4 shrink-0 text-muted-foreground" />
@@ -101,8 +112,7 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
             <div>
               <p className="text-sm font-medium">Waktu Mulai</p>
               <p className="text-sm text-muted-foreground">
-                {format(schedule.startTime, 'EEEE, d MMM yyyy HH:mm')}
-              </p>
+{formatUTCDateTime(schedule.startTime)}              </p>
             </div>
           </div>
 
@@ -111,8 +121,7 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
             <div>
               <p className="text-sm font-medium">Waktu Selesai</p>
               <p className="text-sm text-muted-foreground">
-                {format(schedule.endTime, 'EEEE, d MMM yyyy HH:mm')}
-              </p>
+{formatUTCDateTime(schedule.endTime)}              </p>
             </div>
           </div>
 
