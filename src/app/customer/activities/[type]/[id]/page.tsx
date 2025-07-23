@@ -300,20 +300,19 @@ const getFittingSchedule = () => {
     if (!isFitting) return null;
     const fitting = activity as FittingDetail;
     
-    // Safe time extraction with fallback
-    const getTimeFromDateTime = (dateTimeString) => {
-      if (!dateTimeString) return '00:00';
-      
-      const parts = dateTimeString.split(' ');
-      if (parts.length < 2) return '00:00';
-      
-      const timePart = parts[1];
-      return timePart ? timePart.substring(0, 5) : '00:00';
-    };
+    console.log('Raw dateTime from database:', fitting.fittingSlot.dateTime);
+    
+    const dateObj = new Date(fitting.fittingSlot.dateTime);
+    
+    // Extract UTC time
+    const utcTime = dateObj.getUTCHours().toString().padStart(2, '0') + ':' + 
+                   dateObj.getUTCMinutes().toString().padStart(2, '0');
+    
+    console.log('UTC time that will be displayed:', utcTime);
    
     return {
       date: fitting.fittingSlot.dateTime,
-      time: getTimeFromDateTime(fitting.fittingSlot.dateTime),
+      time: utcTime, // This will show 06:00
       duration: fitting.fittingSlot.duration,
     };
 };
