@@ -136,6 +136,7 @@ export const useFittingStore = create<FittingState>()(
               schedule.fittingType?.name || 'Fitting'
             }`,
             color: schedule.fittingType?.color || 'blue',
+            userImageUrl: schedule.user?.imageUrl,
           };
         });
 

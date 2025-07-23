@@ -309,7 +309,8 @@ export function getCalendarCells(selectedDate: Date): ICalendarCell[] {
 }
 
 export function calculateMonthSchedulePositions(
-  allEvents: ICalendarEvent[],
+  // multiDaySchedule: IFittingSchedule[],
+  singleDaySchedule: ICalendarEvent[],
   selectedDate: Date,
 ) {
   const monthStart = startOfMonth(selectedDate);
@@ -322,23 +323,35 @@ export function calculateMonthSchedulePositions(
     occupiedPositions[day.toISOString()] = [false, false, false];
   });
 
-  // 2. This new sorting logic prioritizes single-day events
-  const sortedSchedule = allEvents.sort((a, b) => {
-    const aIsSingleDay = isSameDay(a.startTime, a.endTime);
-    const bIsSingleDay = isSameDay(b.startTime, b.endTime);
-
-    // If a is single-day and b is multi-day, a comes first.
-    if (aIsSingleDay && !bIsSingleDay) {
-      return -1;
-    }
-    // If b is single-day and a is multi-day, b comes first.
-    if (!aIsSingleDay && bIsSingleDay) {
-      return 1;
-    }
-
-    // Otherwise, sort by start time.
-    return a.startTime.getTime() - b.startTime.getTime();
-  });
+  const sortedSchedule = [
+    // ...multiDaySchedule.sort((a, b) => {
+    //   const aDuration = differenceInDays(
+    //     parseISO(a.endTime.toISOString()),
+    //     parseISO(a.startTime.toISOString()),
+    //   );
+    //   const bDuration = differenceInDays(
+    //     parseISO(b.endTime.toISOString()),
+    //     parseISO(b.startTime.toISOString()),
+    //   );
+    //   return (
+    //     bDuration - aDuration ||
+    //     parseISO(a.startTime.toISOString()).getTime() -
+    //       parseISO(b.startTime.toISOString()).getTime()
+    //   );
+    // }),
+    ...singleDaySchedule.sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+    ),
+  ];
+  console.log('schedulePositions result:', schedulePositions);
+  console.log(
+    'sortedSchedule:',
+    sortedSchedule.map((s) => ({
+      id: s.id,
+      startTime: s.startTime,
+      title: s.title,
+    })),
+  );
 
   sortedSchedule.forEach((schedule) => {
     const scheduleStart = schedule.startTime;

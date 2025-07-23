@@ -40,14 +40,12 @@ const Dashboard = () => {
           </div>
 
           {/* Activity Table Section */}
-          <div>
-            {/* <ComplexTable tableData={tableDataComplex} /> */}
-          </div>
+          <div>{/* <ComplexTable tableData={tableDataComplex} /> */}</div>
         </div>
 
         <div className="h-full lg:col-span-2">
           <div className="mt-3 h-full pb-3">
-            <CheckTable tableData={tableDataCheck} />
+            <CheckTable />
           </div>
         </div>
       </div>

@@ -55,31 +55,29 @@ export async function POST(request: NextRequest) {
       ),
     );
 
-    // Get fitting slot with owner's auto-confirm setting
     const fittingSlot = await prisma.fittingSlot.findUnique({
       where: { id: parseInt(fittingSlotId) },
       include: {
         owner: {
           select: {
             id: true,
-            clerkUserId: true, // Need this for OneSignal
-            isAutoConfirm: true,
-          }
-        }
-      }
+            clerkUserId: true,
+          },
+        },
+      },
     });
 
     if (!fittingSlot) {
       return NextResponse.json(
         { error: 'Fitting slot not found' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (fittingSlot.isBooked) {
       return NextResponse.json(
         { error: 'Fitting slot is already booked' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,14 +85,14 @@ export async function POST(request: NextRequest) {
     if (variantIdsNumeric.length > 0) {
       existingVariants = await prisma.variantProducts.findMany({
         where: { id: { in: variantIdsNumeric } },
-        include: { 
+        include: {
           products: {
-            select: { 
+            select: {
               id: true,
               name: true,
-              ownerId: true 
-            }
-          }
+              ownerId: true,
+            },
+          },
         },
       });
 
@@ -103,68 +101,75 @@ export async function POST(request: NextRequest) {
           (id) => !existingVariants.some((v) => v.id === id),
         );
         return NextResponse.json(
-          { error: `Variants not found: ${missingIds.join(', ')} `},
-          { status: 400 }
+          { error: `Variants not found: ${missingIds.join(', ')} ` },
+          { status: 400 },
         );
       }
     }
 
-    const initialStatus = fittingSlot.owner.isAutoConfirm ? 'CONFIRMED' : 'PENDING';
+    const initialStatus = 'PENDING';
 
-    const result = await prisma.$transaction(async (tx) => {
-      const currentSlot = await tx.fittingSlot.findUnique({
-        where: { id: parseInt(fittingSlotId) },
-        include: {
-          owner: { select: { id: true } }, 
-        },
-      });
-
-      if (currentSlot?.isBooked) {
-        throw new Error('Fitting slot was just booked by another user');
-      }
-
-      if (phoneNumber && phoneNumber !== user.phone_numbers) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { phone_numbers: phoneNumber },
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const currentSlot = await tx.fittingSlot.findUnique({
+          where: { id: parseInt(fittingSlotId) },
+          include: {
+            owner: {
+              select: {
+                id: true,
+              },
+            },
+          },
         });
-      }
 
-      const fittingSchedule = await tx.fittingSchedule.create({
-        data: {
-          userId: user.id,
-          ownerId: fittingSlot.owner.id,
-          fittingSlotId: parseInt(fittingSlotId),
-          duration,
-          note,
-          status: initialStatus,
-          tfProofUrl,
-        },
-      });
+        if (currentSlot?.isBooked) {
+          throw new Error('Fitting slot was just booked by another user');
+        }
 
-      await tx.fittingSlot.update({
-        where: { id: parseInt(fittingSlotId) },
-        data: { isBooked: true },
-      });
+        if (phoneNumber && phoneNumber !== user.phone_numbers) {
+          await tx.user.update({
+            where: { id: user.id },
+            data: { phone_numbers: phoneNumber },
+          });
+        }
 
-      if (variantIdsNumeric.length > 0) {
-        await tx.fittingProduct.createMany({
-          data: variantIdsNumeric.map((variantId: number) => {
-            const variant = existingVariants.find((v) => v.id === variantId);
-            return {
-              fittingId: fittingSchedule.id,
-              variantProductId: Number(variantId),
-              ownerId: variant!.products.ownerId,
-            };
-          }),
-          skipDuplicates: true,
+        const fittingSchedule = await tx.fittingSchedule.create({
+          data: {
+            userId: user.id,
+            ownerId: fittingSlot.owner.id,
+            fittingSlotId: parseInt(fittingSlotId),
+            duration,
+            note,
+            status: initialStatus,
+            tfProofUrl,
+          },
         });
-      }
 
-      return fittingSchedule.id;
-    }, {
-      timeout: 10000, 
-    });
+        await tx.fittingSlot.update({
+          where: { id: parseInt(fittingSlotId) },
+          data: { isBooked: true },
+        });
+
+        if (variantIdsNumeric.length > 0) {
+          await tx.fittingProduct.createMany({
+            data: variantIdsNumeric.map((variantId: number) => {
+              const variant = existingVariants.find((v) => v.id === variantId);
+              return {
+                fittingId: fittingSchedule.id,
+                variantProductId: Number(variantId),
+                ownerId: variant!.products.ownerId,
+              };
+            }),
+            skipDuplicates: true,
+          });
+        }
+
+        return fittingSchedule.id;
+      },
+      {
+        timeout: 10000,
+      },
+    );
 
     const completeSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: result },
@@ -177,6 +182,7 @@ export async function POST(request: NextRequest) {
             username: true,
             email: true,
             phone_numbers: true,
+            imageUrl: true,
           },
         },
         fittingSlot: {
@@ -216,49 +222,45 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send OneSignal notification to owner
     if (completeSchedule) {
       try {
         const oneSignal = new OneSignalService();
-        const customerName = `${completeSchedule.user.first_name || ''} ${completeSchedule.user.last_name || ''}`.trim() || completeSchedule.user.username || 'Customer';
-        const productNames = completeSchedule.FittingProduct.map(fp => fp.variantProduct.products.name);
-        const fittingDate = completeSchedule.fittingSlot.dateTime.toLocaleDateString('id-ID', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
+        const customerName =
+          `${completeSchedule.user.first_name || ''} ${
+            completeSchedule.user.last_name || ''
+          }`.trim() ||
+          completeSchedule.user.username ||
+          'Customer';
+        const productNames = completeSchedule.FittingProduct.map(
+          (fp) => fp.variantProduct.products.name,
+        );
+        const fittingDate =
+          completeSchedule.fittingSlot.dateTime.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
 
-        if (initialStatus === 'CONFIRMED') {
-          // If auto-confirmed, send acceptance notification to customer
-          await oneSignal.notifyCustomerFittingAccepted({
-            customerExternalId: userId, // Using Clerk userId as external ID
-            ownerName: completeSchedule.fittingSlot.owner.businessName || 'Owner',
-            fittingId: completeSchedule.id,
-            fittingDate,
-          });
-        } else {
-          // Send new fitting notification to owner
-          await oneSignal.notifyOwnerNewFitting({
-            ownerExternalId: completeSchedule.fittingSlot.owner.clerkUserId,
-            customerName,
-            fittingId: completeSchedule.id,
-            fittingDate,
-            productNames,
-          });
-        }
+        await oneSignal.notifyOwnerNewFitting({
+          ownerExternalId: completeSchedule.fittingSlot.owner.clerkUserId,
+          customerName,
+          fittingId: completeSchedule.id,
+          fittingDate,
+          productNames,
+        });
       } catch (notificationError) {
-        console.error('Failed to send OneSignal notification:', notificationError);
-        // Don't fail the whole request if notification fails
+        console.error(
+          'Failed to send OneSignal notification:',
+          notificationError,
+        );
       }
     }
 
     return NextResponse.json({
-      message: initialStatus === 'CONFIRMED'
-        ? 'Fitting scheduled and automatically confirmed'
-        : 'Fitting scheduled - pending confirmation',
+      message: 'Fitting scheduled - pending confirmation',
       schedule: completeSchedule,
       status: initialStatus,
     });
@@ -339,6 +341,7 @@ export async function GET(request: NextRequest) {
             username: true,
             email: true,
             phone_numbers: true,
+            imageUrl: true,
           },
         },
         fittingSlot: {
@@ -352,7 +355,6 @@ export async function GET(request: NextRequest) {
                 phone_numbers: true,
                 email: true,
                 imageUrl: true,
-                isAutoConfirm: true,
               },
             },
           },
