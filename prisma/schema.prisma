@@ -102,25 +102,25 @@ model RentalItem {
   id               Int             @id @default(autoincrement())
   rentalId         Int
   variantProductId Int
-  rental           Rental          @relation(fields: [rentalId], references: [id])
+  rental           Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade) 
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
 }
 
 model Tracking {
-  id        Int            @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   rentalId  Int
   status    TrackingStatus @default(RENTAL_ONGOING)
-  updatedAt DateTime       @default(now())
-  rental    Rental         @relation(fields: [rentalId], references: [id])
+  updatedAt DateTime     @default(now())
+  rental    Rental       @relation(fields: [rentalId], references: [id], onDelete: Cascade) 
 }
 
 model Return {
-  id         Int             @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   rentalId   Int
   returnDate DateTime
   condition  ReturnCondition @default(GOOD)
-  createdAt  DateTime        @default(now())
-  rental     Rental          @relation(fields: [rentalId], references: [id])
+  createdAt  DateTime      @default(now())
+  rental     Rental        @relation(fields: [rentalId], references: [id], onDelete: Cascade)
 }
 
 model FittingSchedule {
@@ -133,7 +133,7 @@ model FittingSchedule {
   note           String?
   duration       Int
   ownerId        Int
-  tfProofUrl     String?
+  tfProofUrl     String
   FittingProduct FittingProduct[]
   fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
   owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])

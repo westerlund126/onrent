@@ -392,7 +392,7 @@ export async function DELETE(
         id: rentalId,
         ownerId: owner.id,
       },
-      include: {
+      select: {
         rentalItems: {
           select: {
             variantProductId: true,
@@ -410,16 +410,6 @@ export async function DELETE(
     );
 
     await prisma.$transaction(async (tx) => {
-      await tx.return.deleteMany({
-        where: { rentalId: rentalId },
-      });
-      await tx.tracking.deleteMany({
-        where: { rentalId: rentalId },
-      });
-      await tx.rentalItem.deleteMany({
-        where: { rentalId: rentalId },
-      });
-
       if (variantProductIds.length > 0) {
         await tx.variantProducts.updateMany({
           where: { id: { in: variantProductIds } },
