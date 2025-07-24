@@ -19,7 +19,7 @@ export async function GET(
     if (!callerClerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const resolvedParams = await params; 
+    const resolvedParams = await params;
     const rentalId = Number(resolvedParams.id);
     if (Number.isNaN(rentalId)) {
       return NextResponse.json({ error: 'Invalid rental ID' }, { status: 400 });
@@ -48,7 +48,7 @@ export async function GET(
 
     const events = await prisma.tracking.findMany({
       where: { rentalId },
-      orderBy: { updatedAt: 'asc' },
+      orderBy: { updatedAt: 'desc' },
       select: { id: true, status: true, updatedAt: true },
     });
 

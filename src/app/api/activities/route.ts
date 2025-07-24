@@ -13,7 +13,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database using clerkUserId
     const user = await prisma.user.findUnique({
       where: { clerkUserId: userId }
     });
@@ -22,13 +21,11 @@ export async function GET(request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get URL search params for pagination
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
-    // Fetch rentals where user is the customer
     const rentals = await prisma.rental.findMany({
       where: {
         userId: user.id
@@ -69,7 +66,6 @@ export async function GET(request) {
       take: limit
     });
 
-    // Fetch fitting schedules where user is the customer
     const fittings = await prisma.fittingSchedule.findMany({
       where: {
         userId: user.id
@@ -114,7 +110,6 @@ export async function GET(request) {
         return total + (item.variantProduct?.price || 0);
       }, 0);
 
-     // Get product names with variants
   const products = rental.rentalItems.map(item => {
     const productName = item.variantProduct?.products?.name;
     const size = item.variantProduct?.size;
@@ -125,7 +120,6 @@ export async function GET(request) {
     return `${productName}${size ? ` (${size}` : ''}${color ? `, ${color})` : size ? ')' : ''}`;
   }).filter(Boolean);
 
-      // Get owner name (business name or full name)
       const ownerName = rental.owner.businessName || 
         `${rental.owner.first_name} ${rental.owner.last_name || ''}`.trim();
 
@@ -138,20 +132,16 @@ export async function GET(request) {
         status: rental.status,
         totalPrice,
         rentalCode: rental.rentalCode,
-        // Additional data for detail page
         startDate: rental.startDate,
         endDate: rental.endDate,
         additionalInfo: rental.additionalInfo
       };
     });
 
-    // Transform fittings to activity format
     const fittingActivities = fittings.map(fitting => {
-      // Get product names from FittingProduct relation
-const products = fitting.FittingProduct.map(fp =>
+      const products = fitting.FittingProduct.map(fp =>
   `${fp.variantProduct.products.name} (${fp.variantProduct.size}${fp.variantProduct.color ? `, ${fp.variantProduct.color}` : ''})`
 );
-      // Get owner name from fitting slot owner
       const ownerName = fitting.fittingSlot.owner.businessName || 
         `${fitting.fittingSlot.owner.first_name} ${fitting.fittingSlot.owner.last_name || ''}`.trim();
 
@@ -163,18 +153,15 @@ const products = fitting.FittingProduct.map(fp =>
         products,
         status: fitting.status,
         totalPrice: null, // Fittings don't have price
-        // Additional data for detail page
         duration: fitting.duration,
         note: fitting.note,
         fittingDateTime: fitting.fittingSlot.dateTime
       };
     });
 
-    // Combine and sort activities by date
     const allActivities = [...rentalActivities, ...fittingActivities]
 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Get total count for pagination
     const totalRentals = await prisma.rental.count({
       where: { userId: user.id }
     });
