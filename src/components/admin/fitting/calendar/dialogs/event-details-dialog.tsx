@@ -62,6 +62,26 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
     }
   };
 
+  const formatUTCDateTime = (date: Date) => {
+  
+  const utcDay = date.getUTCDate();
+  const utcMonth = date.getUTCMonth();
+  const utcYear = date.getUTCFullYear();
+  const utcHours = date.getUTCHours();
+  const utcMinutes = date.getUTCMinutes();
+  
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+  
+  const dayName = dayNames[date.getUTCDay()];
+  const monthName = monthNames[utcMonth];
+  
+  const formattedDate = `${dayName}, ${utcDay} ${monthName} ${utcYear} ${utcHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
+  
+  console.log('Formatted UTC date:', formattedDate);
+  return formattedDate;
+};
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -75,7 +95,6 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Show customer info only for fitting events */}
           {isFittingEvent && fittingData && (
             <div className="flex items-start gap-3">
               <User className="mt-1 size-4 shrink-0 text-muted-foreground" />
@@ -93,8 +112,7 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
             <div>
               <p className="text-sm font-medium">Waktu Mulai</p>
               <p className="text-sm text-muted-foreground">
-                {format(schedule.startTime, 'EEEE, d MMM yyyy HH:mm')}
-              </p>
+{formatUTCDateTime(schedule.startTime)}              </p>
             </div>
           </div>
 
@@ -103,8 +121,7 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
             <div>
               <p className="text-sm font-medium">Waktu Selesai</p>
               <p className="text-sm text-muted-foreground">
-                {format(schedule.endTime, 'EEEE, d MMM yyyy HH:mm')}
-              </p>
+{formatUTCDateTime(schedule.endTime)}              </p>
             </div>
           </div>
 
