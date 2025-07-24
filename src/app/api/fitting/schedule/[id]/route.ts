@@ -111,7 +111,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
@@ -126,8 +126,8 @@ export async function PATCH(
     if (!caller) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    const scheduleId = parseInt(params.id);
+    const resolvedParams = await params;
+    const scheduleId = parseInt(resolvedParams.id);
     const updates = await request.json();
 
     // Use a transaction to ensure atomicity
@@ -150,7 +150,7 @@ export async function PATCH(
       if (!canUpdate) {
         throw new Error('Access denied');
       }
-      
+
       // -- THIS IS THE CRUCIAL LOGIC --
       const isCancelingOrRejecting =
         (updates.status === 'CANCELED' || updates.status === 'REJECTED') &&
@@ -172,7 +172,6 @@ export async function PATCH(
 
         // Since the record is "deleted", we return a simple message.
         return { message: 'Schedule canceled/rejected successfully.' };
-
       } else {
         // If it's a normal update (e.g., changing status to CONFIRMED or updating a note)
         const newSchedule = await tx.fittingSchedule.update({
@@ -185,7 +184,9 @@ export async function PATCH(
           include: {
             user: true,
             fittingSlot: { include: { owner: true } },
-            FittingProduct: { include: { variantProduct: { include: { products: true } } } },
+            FittingProduct: {
+              include: { variantProduct: { include: { products: true } } },
+            },
           },
         });
         return newSchedule;
@@ -193,11 +194,13 @@ export async function PATCH(
     });
 
     return NextResponse.json(updatedSchedule);
-
   } catch (error: any) {
     console.error('Error updating fitting schedule:', error);
-    const status = error.message.includes('not found') ? 404 :
-                   error.message.includes('Access denied') ? 403 : 500;
+    const status = error.message.includes('not found')
+      ? 404
+      : error.message.includes('Access denied')
+      ? 403
+      : 500;
     return NextResponse.json(
       { error: 'Error updating fitting schedule', details: error.message },
       { status },
