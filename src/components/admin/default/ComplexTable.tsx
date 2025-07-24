@@ -1,6 +1,5 @@
 import React from 'react';
 import Card from 'components/card';
-import CardMenu from 'components/card/CardMenu';
 import Progress from 'components/progress';
 import {
   createColumnHelper,
@@ -134,9 +133,8 @@ export default function ComplexTable(props: { tableData: RowObj[] }) {
     <Card extra={'w-full h-full px-6 pb-6 sm:overflow-x-auto'}>
       <div className="relative flex items-center justify-between pt-4">
         <div className="text-xl font-bold text-navy-700 dark:text-white">
-          Aktivitas Sewa
+          Aktivitas Sewa Terbaru
         </div>
-        <CardMenu />
       </div>
 
       {tableData.length === 0 ? (

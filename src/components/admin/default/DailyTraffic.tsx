@@ -98,7 +98,7 @@ const DailyTraffic = () => {
             theme: 'dark',
           },
           xaxis: {
-            categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            categories: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
             show: false,
             labels: {
               show: true,
@@ -188,12 +188,12 @@ const DailyTraffic = () => {
       <div className="flex flex-row justify-between">
         <div className="ml-1 pt-2">
           <p className="text-sm font-medium leading-4 text-gray-600">
-            Weekly Fittings
+            Fitting Mingguan
           </p>
           <p className="text-[28px] font-bold text-navy-700 dark:text-white">
             {isLoading ? '...' : totalVisitors}{' '}
             <span className="text-sm font-medium leading-6 text-gray-600">
-              Confirmed
+              {' '}Pengunjung
             </span>
           </p>
         </div>
@@ -218,7 +218,7 @@ const DailyTraffic = () => {
       <div className="h-[200px] w-full pt-0 pb-0">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
-            <p>Loading Chart...</p>
+            <p>Memuat Chart...</p>
           </div>
         ) : (
           <BarChart chartData={chartData} chartOptions={chartOptions} />

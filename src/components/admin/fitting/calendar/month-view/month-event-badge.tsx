@@ -121,6 +121,17 @@ export function MonthEventBadge({
     }
   };
 
+  const formatUTCTime = (date: Date) => {
+  
+  const utcHours = date.getUTCHours().toString().padStart(2, '0');
+  const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
+  
+  const formattedTime = `${utcHours}:${utcMinutes}`;
+  console.log('Formatted UTC time:', formattedTime);
+  
+  return formattedTime;
+};
+
   return (
     <DraggableEvent schedule={schedule}>
       <EventDetailsDialog schedule={schedule}>
@@ -156,7 +167,7 @@ export function MonthEventBadge({
           </div>
 
           {renderBadgeText && (
-            <span>{format(new Date(schedule.startTime), 'HH:mm')}</span>
+            <span>{formatUTCTime(itemStart)}</span>
             )}
         </div>
       </EventDetailsDialog>

@@ -85,7 +85,7 @@ const Dashboard = () => {
           setRentalStats({ activeRentals, pendingReturns });
 
           const formattedData: RowObj[] = allRentals
-            .slice(0, 4) 
+            .slice(0, 6) 
             .map((rental: any) => {
               const statusInfo = rentalStatusMap[rental.status] || {
                 text: 'Unknown',
