@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/onesignal'; // Adjust path as needed
+import { OneSignalService } from 'lib/onesignal';
 
 const prisma = new PrismaClient();
 

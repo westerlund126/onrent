@@ -176,7 +176,6 @@ export async function POST(request: NextRequest) {
 
     const slotDateTime = new Date(dateTime);
 
-    // DEBUG: Log the slot time
     console.log('🔍 Creating slot for:', {
       originalDateTime: dateTime,
       parsedDateTime: slotDateTime.toISOString(),
@@ -184,7 +183,6 @@ export async function POST(request: NextRequest) {
       ownerId: caller.id,
     });
 
-    // Check if slot already exists
     const existingSlot = await prisma.fittingSlot.findFirst({
       where: {
         ownerId: caller.id,

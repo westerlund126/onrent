@@ -17,7 +17,7 @@ const EMPTY_FILTERS: FilterState = {
 
 const Catalog = () => {
   const searchParams = useSearchParams();
-  const initialCategory = searchParams.get('category'); // Get category from URL
+  const initialCategory = searchParams.get('category'); 
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);

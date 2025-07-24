@@ -21,8 +21,8 @@ model User {
   first_name      String
   last_name       String?
   username        String            @unique
-  isAutoConfirm   Boolean          @default(false)
   businessBio     String?
+  isAutoConfirm   Boolean           @default(false)
   FittingProduct  FittingProduct[]  @relation("FittingProductOwner")
   OwnerFittings   FittingSchedule[] @relation("OwnerFittings")
   UserFittings    FittingSchedule[] @relation("UserFittings")
@@ -102,25 +102,25 @@ model RentalItem {
   id               Int             @id @default(autoincrement())
   rentalId         Int
   variantProductId Int
-  rental           Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade) 
+  rental           Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
 }
 
 model Tracking {
-  id        Int          @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   rentalId  Int
   status    TrackingStatus @default(RENTAL_ONGOING)
-  updatedAt DateTime     @default(now())
-  rental    Rental       @relation(fields: [rentalId], references: [id], onDelete: Cascade) 
+  updatedAt DateTime       @default(now())
+  rental    Rental         @relation(fields: [rentalId], references: [id], onDelete: Cascade)
 }
 
 model Return {
-  id         Int           @id @default(autoincrement())
+  id         Int             @id @default(autoincrement())
   rentalId   Int
   returnDate DateTime
   condition  ReturnCondition @default(GOOD)
-  createdAt  DateTime      @default(now())
-  rental     Rental        @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+  rental     Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade)
 }
 
 model FittingSchedule {

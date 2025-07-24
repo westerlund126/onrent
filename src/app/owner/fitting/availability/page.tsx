@@ -26,17 +26,6 @@ const Availability = () => {
             <ChangeWorkingHoursInput />
           </div>
 
-          {/* Section 2: Confirmation Settings */}
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <Settings className="size-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-800">
-                Pengaturan Konfirmasi Permintaan Fitting
-              </h2>
-            </div>
-          </div>
-
-          {/* Section 3: Calendar Settings */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <Settings className="size-5 text-gray-600" />
