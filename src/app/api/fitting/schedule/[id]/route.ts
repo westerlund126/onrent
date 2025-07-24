@@ -107,13 +107,14 @@ export async function GET(
   }
 }
 
+// in app/api/fitting/schedule/[id]/route.ts
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     const { userId: callerClerkId } = await auth();
-
     if (!callerClerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -122,155 +123,84 @@ export async function PATCH(
       where: { clerkUserId: callerClerkId },
       select: { id: true, role: true },
     });
-
     if (!caller) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const resolvedParams = await params;
-    const scheduleId = parseInt(resolvedParams.id);
+    const scheduleId = parseInt(params.id);
     const updates = await request.json();
 
-    const schedule = await prisma.fittingSchedule.findUnique({
-      where: { id: scheduleId },
-    });
+    // Use a transaction to ensure atomicity
+    const updatedSchedule = await prisma.$transaction(async (tx) => {
+      // First, get the original schedule to check permissions and get slot ID
+      const schedule = await tx.fittingSchedule.findUnique({
+        where: { id: scheduleId },
+      });
 
-    if (!schedule) {
-      return NextResponse.json(
-        { error: 'Fitting schedule not found' },
-        { status: 404 },
-      );
-    }
-
-    const canUpdate =
-      caller.role === 'ADMIN' ||
-      schedule.userId === caller.id ||
-      (caller.role === 'OWNER' && schedule.ownerId === caller.id);
-
-    if (!canUpdate) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
-    if (updates.status) {
-      const validStatuses = [
-        'PENDING',
-        'CONFIRMED',
-        'REJECTED',
-        'COMPLETED',
-        'CANCELED',
-      ];
-      if (!validStatuses.includes(updates.status)) {
-        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      if (!schedule) {
+        throw new Error('Fitting schedule not found');
       }
 
-      if (schedule.status === 'COMPLETED' && updates.status !== 'COMPLETED') {
-        return NextResponse.json(
-          { error: 'Cannot change status of completed appointment' },
-          { status: 400 },
-        );
-      }
+      // Authorization checks...
+      const canUpdate =
+        caller.role === 'ADMIN' ||
+        schedule.userId === caller.id ||
+        (caller.role === 'OWNER' && schedule.ownerId === caller.id);
 
-      if (schedule.status === 'CANCELED' && updates.status !== 'CANCELED') {
-        return NextResponse.json(
-          { error: 'Cannot change status of canceled appointment' },
-          { status: 400 },
-        );
+      if (!canUpdate) {
+        throw new Error('Access denied');
       }
-    }
-
-    await prisma.$transaction(async (tx) => {
-      if (
+      
+      // -- THIS IS THE CRUCIAL LOGIC --
+      const isCancelingOrRejecting =
         (updates.status === 'CANCELED' || updates.status === 'REJECTED') &&
         schedule.status !== 'CANCELED' &&
-        schedule.status !== 'REJECTED'
-      ) {
+        schedule.status !== 'REJECTED';
+
+      if (isCancelingOrRejecting) {
+        // 1. Soft-delete the schedule. The middleware will convert this .delete()
+        //    call into an update that sets the `deletedAt` field.
         await tx.fittingSchedule.delete({
           where: { id: scheduleId },
         });
 
+        // 2. Free up the slot so it can be booked again.
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
           data: { isBooked: false },
         });
+
+        // Since the record is "deleted", we return a simple message.
+        return { message: 'Schedule canceled/rejected successfully.' };
+
       } else {
-        await tx.fittingSchedule.update({
+        // If it's a normal update (e.g., changing status to CONFIRMED or updating a note)
+        const newSchedule = await tx.fittingSchedule.update({
           where: { id: scheduleId },
           data: {
             ...(updates.status && { status: updates.status }),
             ...(updates.note !== undefined && { note: updates.note }),
-            ...(updates.duration && { duration: updates.duration }),
+          },
+          // Include all the data you need to return to the frontend
+          include: {
+            user: true,
+            fittingSlot: { include: { owner: true } },
+            FittingProduct: { include: { variantProduct: { include: { products: true } } } },
           },
         });
+        return newSchedule;
       }
     });
 
-    const fullUpdatedSchedule = await prisma.fittingSchedule.findUnique({
-      where: { id: scheduleId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            first_name: true,
-            last_name: true,
-            username: true,
-            email: true,
-            phone_numbers: true,
-            imageUrl: true,
-          },
-        },
-        fittingSlot: {
-          include: {
-            owner: {
-              select: {
-                id: true,
-                businessName: true,
-                businessAddress: true,
-                phone_numbers: true,
-                email: true,
-                imageUrl: true,
-                isAutoConfirm: true,
-              },
-            },
-          },
-        },
-        FittingProduct: {
-          include: {
-            variantProduct: {
-              select: {
-                id: true,
-                size: true,
-                color: true,
-                sku: true,
-                products: {
-                  select: {
-                    id: true,
-                    name: true,
-                    category: true,
-                    images: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    return NextResponse.json(updatedSchedule);
 
-    return NextResponse.json(fullUpdatedSchedule);
   } catch (error: any) {
     console.error('Error updating fitting schedule:', error);
-    if (error.code === 'P2028') {
-      return NextResponse.json(
-        {
-          error: 'Database transaction failed, please try again.',
-          details: error.message,
-        },
-        { status: 500 },
-      );
-    }
+    const status = error.message.includes('not found') ? 404 :
+                   error.message.includes('Access denied') ? 403 : 500;
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 },
+      { error: 'Error updating fitting schedule', details: error.message },
+      { status },
     );
   }
 }
