@@ -25,7 +25,6 @@ import { Product } from 'types/product';
 const ProductCatalog = () => {
   const router = useRouter();
   
-  // Zustand store state and actions
   const {
     products,
     loading,
@@ -153,13 +152,11 @@ const ProductCatalog = () => {
                 </tr>
               ) : (
                 products.map((product) => {
-                  // Calculate total variants and available variants for the main row
                   const totalVariants = product.VariantProducts.length;
                   const availableVariants = product.VariantProducts.filter(
                     v => v.isAvailable && !v.isRented
                   ).length;
                   
-                  // Get price range
                   const prices = product.VariantProducts
                     .map(v => v.price)
                     .filter(price => typeof price === 'number' && !isNaN(price));

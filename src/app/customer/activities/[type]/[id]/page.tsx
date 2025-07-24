@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
+  DialogOverlay,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -60,6 +61,7 @@ import {
   RentalTrackingEvent,
   FittingTrackingEvent,
 } from 'types/activities';
+import { toast } from 'sonner';
 
 const CustomerActivityDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -145,13 +147,11 @@ const CustomerActivityDetailPage = () => {
     try {
       await initiateReturn(parseInt(id));
       setReturnDialogOpen(false);
-      alert(
-        'Return Initiated: Your return request has been submitted to the owner for confirmation.',
-      );
+      toast.success("Permintaan pengembalian berhasil diajukan.");
       await loadData();
     } catch (error) {
       console.error('Failed to initiate return:', error);
-      alert('Return Failed: Failed to initiate return. Please try again.');
+      toast.error('Gagal mengajukan permintaan pengembalian. Silakan coba lagi.');
     }
   };
 
@@ -380,6 +380,7 @@ const getFittingSchedule = () => {
                             <Undo2 className="h-4 w-4" /> Kembalikan Produk
                           </Button>
                         </DialogTrigger>
+                        <DialogOverlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm backdrop-contrast-50" >
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>Konfirmasi Pengembalian</DialogTitle>
@@ -414,6 +415,7 @@ const getFittingSchedule = () => {
                             </Button>
                           </DialogFooter>
                         </DialogContent>
+                        </DialogOverlay>
                       </Dialog>
                     )}
 

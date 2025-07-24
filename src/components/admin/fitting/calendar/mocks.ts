@@ -180,6 +180,7 @@ const mockGenerator = (numberOfEvents: number): IFittingSchedule[] => {
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'CONFIRMED',
+      tfProofUrl: '',
       user: USERS_MOCK[0],
       fittingSlot: {
         id: 1,
@@ -216,6 +217,7 @@ const mockGenerator = (numberOfEvents: number): IFittingSchedule[] => {
     createdAt: new Date(),
     updatedAt: new Date(),
     status: 'CONFIRMED',
+    tfProofUrl: '',
     user: USERS_MOCK[Math.floor(Math.random() * USERS_MOCK.length)],
     fittingSlot: {
       id: currentId,
@@ -320,6 +322,7 @@ const mockGenerator = (numberOfEvents: number): IFittingSchedule[] => {
       status: ['PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELED'][
         Math.floor(Math.random() * 5)
       ] as IFittingSchedule['status'],
+      tfProofUrl: '',
       user: randomUser,
       fittingSlot: {
         id: currentId,
