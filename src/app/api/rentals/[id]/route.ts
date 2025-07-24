@@ -6,7 +6,7 @@ import { TrackingStatus } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }, 
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId } = await auth();
@@ -140,208 +140,212 @@ export async function PATCH(
       return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
     }
 
-    const updatedRental = await prisma.$transaction(async (tx) => {
-      const updateData: any = {};
+    const updatedRental = await prisma.$transaction(
+      async (tx) => {
+        const updateData: any = {};
 
-      // Update basic fields
-      if (status !== undefined) updateData.status = status;
-      if (additionalInfo !== undefined)
-        updateData.additionalInfo = additionalInfo;
+        // Update basic fields
+        if (status !== undefined) updateData.status = status;
+        if (additionalInfo !== undefined)
+          updateData.additionalInfo = additionalInfo;
 
-      if (startDate || endDate) {
-        const newStartDate = startDate
-          ? new Date(startDate)
-          : existingRental.startDate;
-        const newEndDate = endDate ? new Date(endDate) : existingRental.endDate;
+        if (startDate || endDate) {
+          const newStartDate = startDate
+            ? new Date(startDate)
+            : existingRental.startDate;
+          const newEndDate = endDate
+            ? new Date(endDate)
+            : existingRental.endDate;
 
-        if (newEndDate <= newStartDate) {
-          throw new Error('End date must be after start date');
+          if (newEndDate <= newStartDate) {
+            throw new Error('End date must be after start date');
+          }
+
+          updateData.startDate = newStartDate;
+          updateData.endDate = newEndDate;
         }
 
-        updateData.startDate = newStartDate;
-        updateData.endDate = newEndDate;
-      }
-
-      if (variantIds && Array.isArray(variantIds)) {
-        const currentVariantIds = existingRental.rentalItems.map(
-          (item) => item.variantProductId,
-        );
-        const newVariantIds = variantIds.map((id) => parseInt(id));
-
-        const currentSorted = [...currentVariantIds].sort();
-        const newSorted = [...newVariantIds].sort();
-        const variantsChanged =
-          JSON.stringify(currentSorted) !== JSON.stringify(newSorted);
-
-        if (variantsChanged) {
-          const variantData = await Promise.all(
-            newVariantIds.map(async (variantId) => {
-              const variant = await tx.variantProducts.findUnique({
-                where: { id: variantId },
-                include: { products: true },
-              });
-
-              if (!variant || !variant.isAvailable) {
-                throw new Error(`Variant ${variantId} is not available`);
-              }
-
-              const conflictWhere: any = {
-                variantProductId: variantId,
-                rental: {
-                  id: { not: rentalId },
-                  OR: [
-                    {
-                      startDate: {
-                        lte: updateData.startDate || existingRental.startDate,
-                      },
-                      endDate: {
-                        gte: updateData.startDate || existingRental.startDate,
-                      },
-                    },
-                    {
-                      startDate: {
-                        lte: updateData.endDate || existingRental.endDate,
-                      },
-                      endDate: {
-                        gte: updateData.endDate || existingRental.endDate,
-                      },
-                    },
-                    {
-                      startDate: {
-                        gte: updateData.startDate || existingRental.startDate,
-                      },
-                      endDate: {
-                        lte: updateData.endDate || existingRental.endDate,
-                      },
-                    },
-                  ],
-                  status: { not: 'SELESAI' },
-                },
-              };
-
-              const conflict = await tx.rentalItem.findFirst({
-                where: conflictWhere,
-              });
-
-              if (conflict) {
-                throw new Error(
-                  `Variant ${variant.sku} is already rented for the selected dates,
-                `);
-              }
-
-              return variant;
-            }),
+        if (variantIds && Array.isArray(variantIds)) {
+          const currentVariantIds = existingRental.rentalItems.map(
+            (item) => item.variantProductId,
           );
+          const newVariantIds = variantIds.map((id) => parseInt(id));
 
-          const ownerIds = [
-            ...new Set(variantData.map((v) => v.products.ownerId)),
-          ];
-          if (ownerIds.length > 1 || ownerIds[0] !== owner.id) {
-            throw new Error('All variants must belong to the same owner');
-          }
+          const currentSorted = [...currentVariantIds].sort();
+          const newSorted = [...newVariantIds].sort();
+          const variantsChanged =
+            JSON.stringify(currentSorted) !== JSON.stringify(newSorted);
 
-          const variantsToRemove = currentVariantIds.filter(
-            (id) => !newVariantIds.includes(id),
-          );
-          const variantsToAdd = newVariantIds.filter(
-            (id) => !currentVariantIds.includes(id),
-          );
+          if (variantsChanged) {
+            const variantData = await Promise.all(
+              newVariantIds.map(async (variantId) => {
+                const variant = await tx.variantProducts.findUnique({
+                  where: { id: variantId },
+                  include: { products: true },
+                });
 
-          if (variantsToRemove.length > 0) {
-            await tx.rentalItem.deleteMany({
-              where: {
-                rentalId: rentalId,
-                variantProductId: { in: variantsToRemove },
-              },
-            });
+                if (!variant || !variant.isAvailable) {
+                  throw new Error(`Variant ${variantId} is not available`);
+                }
 
-            await tx.variantProducts.updateMany({
-              where: { id: { in: variantsToRemove } },
-              data: { isRented: false, isAvailable: true },
-            });
-          }
-
-          if (variantsToAdd.length > 0) {
-            await tx.rentalItem.createMany({
-              data: variantsToAdd.map((variantId) => ({
-                rentalId: rentalId,
-                variantProductId: variantId,
-              })),
-            });
-
-            await tx.variantProducts.updateMany({
-              where: { id: { in: variantsToAdd } },
-              data: { isRented: true, isAvailable: false },
-            });
-          }
-        }
-      }
-
-      const rental = await tx.rental.update({
-        where: { id: rentalId },
-        data: updateData,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-            },
-          },
-          owner: {
-            select: {
-              id: true,
-              username: true,
-              businessName: true,
-              phone_numbers: true,
-            },
-          },
-          rentalItems: {
-            include: {
-              variantProduct: {
-                select: {
-                  id: true,
-                  sku: true,
-                  size: true,
-                  color: true,
-                  price: true,
-                  products: {
-                    select: {
-                      id: true,
-                      name: true,
-                      category: true,
-                    },
+                const conflictWhere: any = {
+                  variantProductId: variantId,
+                  rental: {
+                    id: { not: rentalId },
+                    OR: [
+                      {
+                        startDate: {
+                          lte: updateData.startDate || existingRental.startDate,
+                        },
+                        endDate: {
+                          gte: updateData.startDate || existingRental.startDate,
+                        },
+                      },
+                      {
+                        startDate: {
+                          lte: updateData.endDate || existingRental.endDate,
+                        },
+                        endDate: {
+                          gte: updateData.endDate || existingRental.endDate,
+                        },
+                      },
+                      {
+                        startDate: {
+                          gte: updateData.startDate || existingRental.startDate,
+                        },
+                        endDate: {
+                          lte: updateData.endDate || existingRental.endDate,
+                        },
+                      },
+                    ],
+                    status: { not: 'SELESAI' },
                   },
-                  isAvailable: true,
-                  isRented: true,
+                };
+
+                const conflict = await tx.rentalItem.findFirst({
+                  where: conflictWhere,
+                });
+
+                if (conflict) {
+                  throw new Error(
+                    `Variant ${variant.sku} is already rented for the selected dates,
+                `,
+                  );
+                }
+
+                return variant;
+              }),
+            );
+
+            const ownerIds = [
+              ...new Set(variantData.map((v) => v.products.ownerId)),
+            ];
+            if (ownerIds.length > 1 || ownerIds[0] !== owner.id) {
+              throw new Error('All variants must belong to the same owner');
+            }
+
+            const variantsToRemove = currentVariantIds.filter(
+              (id) => !newVariantIds.includes(id),
+            );
+            const variantsToAdd = newVariantIds.filter(
+              (id) => !currentVariantIds.includes(id),
+            );
+
+            if (variantsToRemove.length > 0) {
+              await tx.rentalItem.deleteMany({
+                where: {
+                  rentalId: rentalId,
+                  variantProductId: { in: variantsToRemove },
+                },
+              });
+
+              await tx.variantProducts.updateMany({
+                where: { id: { in: variantsToRemove } },
+                data: { isRented: false, isAvailable: true },
+              });
+            }
+
+            if (variantsToAdd.length > 0) {
+              await tx.rentalItem.createMany({
+                data: variantsToAdd.map((variantId) => ({
+                  rentalId: rentalId,
+                  variantProductId: variantId,
+                })),
+              });
+
+              await tx.variantProducts.updateMany({
+                where: { id: { in: variantsToAdd } },
+                data: { isRented: true, isAvailable: false },
+              });
+            }
+          }
+        }
+
+        const rental = await tx.rental.update({
+          where: { id: rentalId },
+          data: updateData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                first_name: true,
+                last_name: true,
+              },
+            },
+            owner: {
+              select: {
+                id: true,
+                username: true,
+                businessName: true,
+                phone_numbers: true,
+              },
+            },
+            rentalItems: {
+              include: {
+                variantProduct: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    size: true,
+                    color: true,
+                    price: true,
+                    products: {
+                      select: {
+                        id: true,
+                        name: true,
+                        category: true,
+                      },
+                    },
+                    isAvailable: true,
+                    isRented: true,
+                  },
                 },
               },
             },
-          },
-          Tracking: {
-            orderBy: { updatedAt: 'desc' },
-            take: 1,
-          },
-        },
-      });
-
-      if (status && status !== existingRental.status) {
-        const trackingStatus = getTrackingStatus(status);
-        if (trackingStatus) {
-          await tx.tracking.create({
-            data: {
-              rentalId: rentalId,
-              status: trackingStatus as TrackingStatus,
+            Tracking: {
+              orderBy: { updatedAt: 'desc' },
+              take: 1,
             },
-          });
-        }
-      }
+          },
+        });
 
-      return rental;
-    },
-    { maxWait: 10000, timeout: 10000 },
-  );
+        if (status && status !== existingRental.status) {
+          const trackingStatus = getTrackingStatus(status);
+          if (trackingStatus) {
+            await tx.tracking.create({
+              data: {
+                rentalId: rentalId,
+                status: trackingStatus as TrackingStatus,
+              },
+            });
+          }
+        }
+
+        return rental;
+      },
+      { maxWait: 10000, timeout: 10000 },
+    );
 
     return NextResponse.json({
       success: true,
@@ -359,7 +363,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }, // Updated type
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId } = await auth();
@@ -367,7 +371,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const params = await context.params; // Direct await
+    const params = await context.params;
     const rentalId = parseInt(params.id);
 
     if (isNaN(rentalId)) {
@@ -376,34 +380,59 @@ export async function DELETE(
 
     const owner = await prisma.user.findUnique({
       where: { clerkUserId: userId },
+      select: { id: true },
     });
 
     if (!owner) {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
     }
 
-    const rental = await prisma.rental.findFirst({
+    const rentalToDelete = await prisma.rental.findFirst({
       where: {
         id: rentalId,
         ownerId: owner.id,
       },
+      include: {
+        rentalItems: {
+          select: {
+            variantProductId: true,
+          },
+        },
+      },
     });
 
-    if (!rental) {
+    if (!rentalToDelete) {
       return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
     }
 
-    await prisma.rentalItem.deleteMany({
-      where: { rentalId },
-    });
+    const variantProductIds = rentalToDelete.rentalItems.map(
+      (item) => item.variantProductId,
+    );
 
-    await prisma.tracking.deleteMany({
-      where: { rentalId },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.return.deleteMany({
+        where: { rentalId: rentalId },
+      });
+      await tx.tracking.deleteMany({
+        where: { rentalId: rentalId },
+      });
+      await tx.rentalItem.deleteMany({
+        where: { rentalId: rentalId },
+      });
 
-    // Then delete the rental
-    await prisma.rental.delete({
-      where: { id: rentalId },
+      if (variantProductIds.length > 0) {
+        await tx.variantProducts.updateMany({
+          where: { id: { in: variantProductIds } },
+          data: {
+            isRented: false,
+            isAvailable: true,
+          },
+        });
+      }
+
+      await tx.rental.delete({
+        where: { id: rentalId },
+      });
     });
 
     return NextResponse.json({ message: 'Rental deleted successfully' });

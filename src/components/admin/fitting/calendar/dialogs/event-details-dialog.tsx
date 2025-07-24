@@ -56,7 +56,7 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
     if (!blockData) return;
     try {
       await removeScheduleBlock(blockData.id);
-      setIsOpen(false); // Close the dialog on success
+      setIsOpen(false); 
     } catch (error) {
       console.error('Failed to delete schedule block:', error);
     }
@@ -68,7 +68,6 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {/* Dynamic title based on event type */}
             {isFittingEvent &&
               `Jadwal Fitting: ${fittingData?.user.first_name}`}
             {isBlockEvent && 'Detail Waktu yang Diblokir'}

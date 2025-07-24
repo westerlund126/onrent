@@ -1,7 +1,4 @@
-// components/AgendaList.tsx (or your file path)
-
-'use client'; // Required for using React hooks
-
+'use client'; 
 import React, { useEffect } from 'react';
 import Card from 'components/card';
 import { FaUser } from 'react-icons/fa';

@@ -7,8 +7,7 @@ import Widget from 'components/widget/Widget';
 import CheckTable from 'components/admin/default/CheckTable';
 import ComplexTable from 'components/admin/default/ComplexTable';
 import DailyTraffic from 'components/admin/default/DailyTraffic';
-import tableDataCheck from 'variables/data-tables/tableDataCheck';
-import tableDataComplex from 'variables/data-tables/tableDataComplex';
+
 
 const Dashboard = () => {
   return (
@@ -38,9 +37,6 @@ const Dashboard = () => {
             <DailyTraffic />
             <MiniCalendar />
           </div>
-
-          {/* Activity Table Section */}
-          <div>{/* <ComplexTable tableData={tableDataComplex} /> */}</div>
         </div>
 
         <div className="h-full lg:col-span-2">
