@@ -1,9 +1,10 @@
 // app/api/fitting/schedule/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client';
+import prisma from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
@@ -183,20 +184,24 @@ export async function PATCH(
         schedule.status !== 'CANCELED' &&
         schedule.status !== 'REJECTED'
       ) {
+        await tx.fittingSchedule.delete({
+          where: { id: scheduleId },
+        });
+
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
           data: { isBooked: false },
         });
+      } else {
+        await tx.fittingSchedule.update({
+          where: { id: scheduleId },
+          data: {
+            ...(updates.status && { status: updates.status }),
+            ...(updates.note !== undefined && { note: updates.note }),
+            ...(updates.duration && { duration: updates.duration }),
+          },
+        });
       }
-
-      await tx.fittingSchedule.update({
-        where: { id: scheduleId },
-        data: {
-          ...(updates.status && { status: updates.status }),
-          ...(updates.note !== undefined && { note: updates.note }),
-          ...(updates.duration && { duration: updates.duration }),
-        },
-      });
     });
 
     const fullUpdatedSchedule = await prisma.fittingSchedule.findUnique({
@@ -323,12 +328,6 @@ export async function DELETE(
     }
 
     await prisma.$transaction(async (tx) => {
-      if (schedule.FittingProduct.length > 0) {
-        await tx.fittingProduct.deleteMany({
-          where: { fittingId: scheduleId },
-        });
-      }
-
       await tx.fittingSchedule.delete({
         where: { id: scheduleId },
       });
@@ -337,6 +336,10 @@ export async function DELETE(
         where: { id: schedule.fittingSlotId },
         data: { isBooked: false },
       });
+    });
+
+    return NextResponse.json({
+      message: 'Fitting schedule canceled successfully',
     });
 
     return NextResponse.json({

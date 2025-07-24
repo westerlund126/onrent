@@ -60,7 +60,7 @@ export const useFittingStore = create<FittingState>()(
     selectedDate: new Date(),
     fittingSchedules: [],
     fittingSlots: [],
-    ownerSettings: null, 
+    ownerSettings: null,
     isLoading: false,
     error: null,
     scheduleLoadingStates: {},
@@ -335,32 +335,49 @@ export const useFittingStore = create<FittingState>()(
           throw new Error(errorData.error || 'Failed to update schedule');
         }
 
-        const updatedSchedule = await response.json();
-
-        set((state) => {
-          const index = state.fittingSchedules.findIndex(
-            (s) => s.id === scheduleId,
-          );
-          if (index !== -1) {
-            // Process the updated schedule similar to fetchFittingSchedules
-            const base = new Date(
-              updatedSchedule.fittingSlot?.dateTime ?? null,
+        if (updates.status === 'CANCELED' || updates.status === 'REJECTED') {
+          set((state) => {
+            state.fittingSchedules = state.fittingSchedules.filter(
+              (s) => s.id !== scheduleId,
             );
-            const duration = updatedSchedule.duration ?? 60;
+            const scheduleToRemove = state.fittingSchedules.find(
+              (s) => s.id === scheduleId,
+            );
+            if (scheduleToRemove) {
+              const slotIndex = state.fittingSlots.findIndex(
+                (slot) => slot.id === scheduleToRemove.fittingSlotId,
+              );
+              if (slotIndex > -1) {
+                state.fittingSlots[slotIndex].isBooked = false;
+              }
+            }
+          });
+        } else {
+          const updatedSchedule = await response.json();
+          set((state) => {
+            const index = state.fittingSchedules.findIndex(
+              (s) => s.id === scheduleId,
+            );
+            if (index !== -1) {
+              const base = new Date(
+                updatedSchedule.fittingSlot?.dateTime ?? null,
+              );
+              const duration = updatedSchedule.duration ?? 60;
 
-            state.fittingSchedules[index] = {
-              ...state.fittingSchedules[index],
-              ...updatedSchedule,
-              startTime: base,
-              endTime: new Date(base.getTime() + duration * 60 * 1000),
-              title: `${updatedSchedule.user?.first_name || 'Unknown'} - ${
-                updatedSchedule.fittingType?.name || 'Fitting'
-              }`,
-              color: updatedSchedule.fittingType?.color || 'blue',
-            };
-          }
-          state.scheduleLoadingStates[scheduleId] = false;
-        });
+              state.fittingSchedules[index] = {
+                ...state.fittingSchedules[index], // Keep existing fields
+                ...updatedSchedule, // Overwrite with new data
+                startTime: base,
+                endTime: new Date(base.getTime() + duration * 60 * 1000),
+                title: `${
+                  updatedSchedule.user?.first_name || 'Unknown'
+                } - Fitting`,
+                color: updatedSchedule.fittingType?.color || 'blue',
+                userImageUrl: updatedSchedule.user?.imageUrl,
+              };
+            }
+          });
+        }
       } catch (error) {
         console.error('Failed to update fitting schedule:', error);
         set((state) => {
@@ -368,9 +385,12 @@ export const useFittingStore = create<FittingState>()(
             error instanceof Error
               ? error.message
               : 'Failed to update schedule';
+        });
+        throw error; 
+      } finally {
+        set((state) => {
           state.scheduleLoadingStates[scheduleId] = false;
         });
-        throw error;
       }
     },
 
