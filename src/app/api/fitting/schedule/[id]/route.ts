@@ -149,8 +149,8 @@ export async function PATCH(
     if (!canUpdate) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-    
-     if (updates.status) {
+
+    if (updates.status) {
       const validStatuses = [
         'PENDING',
         'CONFIRMED',
@@ -178,7 +178,11 @@ export async function PATCH(
     }
 
     await prisma.$transaction(async (tx) => {
-      if (updates.status === 'CANCELED' && schedule.status !== 'CANCELED') {
+      if (
+        (updates.status === 'CANCELED' || updates.status === 'REJECTED') &&
+        schedule.status !== 'CANCELED' &&
+        schedule.status !== 'REJECTED'
+      ) {
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
           data: { isBooked: false },
@@ -248,14 +252,16 @@ export async function PATCH(
     });
 
     return NextResponse.json(fullUpdatedSchedule);
-
   } catch (error: any) {
     console.error('Error updating fitting schedule:', error);
     if (error.code === 'P2028') {
-        return NextResponse.json(
-            { error: 'Database transaction failed, please try again.', details: error.message },
-            { status: 500 },
-        );
+      return NextResponse.json(
+        {
+          error: 'Database transaction failed, please try again.',
+          details: error.message,
+        },
+        { status: 500 },
+      );
     }
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
