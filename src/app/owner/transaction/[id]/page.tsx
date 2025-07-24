@@ -25,6 +25,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogOverlay,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -46,6 +47,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useRentalStore } from 'stores/useRentalStore';
+import { toast } from 'sonner';
 
 // Type definitions can be moved to a central types file
 type TrackingEvent = {
@@ -153,13 +155,13 @@ const TransactionDetailPage = () => {
     try {
       await confirmReturn(rental.id);
       setConfirmReturnDialogOpen(false);
-      alert('Return confirmed successfully!');
+      toast.success("Pengembalian berhasil dikonfirmasi.");
       await loadData();
     } catch (error) {
       console.error('Failed to confirm return:', error);
-      alert(
-        `Confirmation Failed: ${
-          error instanceof Error ? error.message : 'Please try again.'
+      toast.error(
+        `Gagal mengonfirmasi pengembalian: ${
+          error instanceof Error ? error.message : 'Tolong coba kembali.'
         }`,
       );
     }
@@ -300,6 +302,7 @@ const TransactionDetailPage = () => {
                       Konfirmasi Pengembalian
                     </Button>
                   </DialogTrigger>
+                  <DialogOverlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm backdrop-contrast-50" >
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Konfirmasi Penerimaan Produk</DialogTitle>
@@ -333,6 +336,7 @@ const TransactionDetailPage = () => {
                       </Button>
                     </DialogFooter>
                   </DialogContent>
+                  </DialogOverlay>
                 </Dialog>
               )}
               <Button
