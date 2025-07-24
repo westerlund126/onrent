@@ -76,9 +76,6 @@ export function AgendaEventCard({
     fittingSchedule.status === 'PENDING' &&
     user?.id === fittingSchedule.fittingSlot.owner.clerkUserId;
 
-  const startDate = schedule.startTime;
-  const endDate = schedule.endTime;
-
   const colorMap: Record<IFittingSchedule['status'], TEventColor> = {
     PENDING: 'blue',
     CONFIRMED: 'green',
@@ -106,6 +103,19 @@ export function AgendaEventCard({
 
   const handleApprove = () => confirmFittingSchedule(fittingSchedule.id);
   const handleReject = () => rejectFittingSchedule(fittingSchedule.id);
+
+  const formatUTCTime = (date: Date) => {
+  const utcHours = date.getUTCHours().toString().padStart(2, '0');
+  const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
+  
+  const formattedTime = `${utcHours}:${utcMinutes}`;
+  console.log('Formatted UTC time:', formattedTime);
+  
+  return formattedTime;
+};
+
+const startDate = schedule.startTime;
+const endDate = schedule.endTime;
 
   return (
     <div
@@ -139,7 +149,7 @@ export function AgendaEventCard({
           <div className="flex items-center gap-1">
             <Clock className="size-3 shrink-0" />
             <p className="text-xs text-foreground">
-              {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+              {formatUTCTime(startDate)} - {formatUTCTime(endDate)}
             </p>
           </div>
           {fittingSchedule.note && (

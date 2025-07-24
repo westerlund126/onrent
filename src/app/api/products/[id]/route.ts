@@ -254,15 +254,21 @@ export async function DELETE(
       );
     }
 
-    // Delete all variant products first
-    await prisma.variantProducts.deleteMany({
-      where: { productsId: productId }
-    });
+    await prisma.fittingProduct.deleteMany({
+  where: {
+    variantProduct: {
+      productsId: productId,
+    },
+  },
+});
 
-    // Then delete the product
-    const deleted = await prisma.products.delete({
-      where: { id: productId },
-    });
+await prisma.variantProducts.deleteMany({
+  where: { productsId: productId }
+});
+
+const deleted = await prisma.products.delete({
+  where: { id: productId },
+});
 
     return NextResponse.json({ success: true, deleted });
   } catch (error) {
