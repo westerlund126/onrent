@@ -9,7 +9,6 @@ import {
   MdMoreVert,
 } from 'react-icons/md';
 import Card from 'components/card';
-import { ConfirmationPopup } from 'components/confirmationpopup/ConfirmationPopup';
 import { useRentalStore } from 'stores/useRentalStore';
 import EditRentalForm from 'components/form/owner/EditRentalForm';
 import { DeleteConfirmation, RentalFilters, RentalStatus } from 'types/rental';
@@ -39,6 +38,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { TransactionTableProps } from 'types/rental';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const getTotalRentalPrice = (rental: any) =>
   sumBy(rental?.rentalItems ?? [], (ri: any) => ri.variantProduct?.price ?? 0);
@@ -113,6 +114,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const handleEditSuccess = () => {
     loadRentals();
     setIsEditDialogOpen(false);
+    toast.success('Transaksi berhasil diperbarui!');
   };
 
   const handleEdit = (rentalId: number) => {
@@ -161,8 +163,14 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   const handleDeleteRental = async () => {
     if (!deleteConfirmation.rentalId) return;
-    await deleteRental(deleteConfirmation.rentalId);
-    cancelDelete();
+    try {
+      await deleteRental(deleteConfirmation.rentalId);
+      toast.success(`Transaksi ${deleteConfirmation.rentalCode} berhasil dihapus.`);
+      cancelDelete();
+    } catch (err) {
+      toast.error('Gagal menghapus transaksi. Silakan coba lagi.');
+      console.error(err);
+    }
   };
 
   const cancelDelete = () => {
@@ -457,13 +465,33 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       )}
 
       {/* Delete confirmation */}
-      {deleteConfirmation.isOpen && (
-        <ConfirmationPopup
-          message={`Apakah Anda yakin ingin menghapus transaksi ${deleteConfirmation.rentalCode}? Tindakan ini tidak dapat dibatalkan.`}
-          onConfirm={handleDeleteRental}
-          onCancel={cancelDelete}
-        />
-      )}
+        <AlertDialog
+        open={deleteConfirmation.isOpen}
+        onOpenChange={(open) => !open && cancelDelete()}
+      >
+        <AlertDialogOverlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm backdrop-contrast-50" />
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Transaksi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus transaksi{' '}
+              <b>{deleteConfirmation.rentalCode}</b>? Tindakan ini tidak dapat
+              dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteRental}
+              disabled={deleteLoading}
+              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleteLoading ? 'Menghapus...' : 'Hapus'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Card>
   );
 };

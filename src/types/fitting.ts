@@ -61,6 +61,7 @@ export interface IFittingSchedule {
   note?: string;
   createdAt: Date;
   updatedAt: Date;
+  tfProofUrl: string;
   status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
   user: IUser;
   fittingSlot: IFittingSlot;
@@ -123,6 +124,10 @@ export interface IScheduleBlockInput {
   description: string;
 }
 
+export interface IProduct {
+  id: number;
+  name: string;
+}
 export interface IFittingProduct {
   fittingId: number;
   variantProductId: number;
@@ -143,6 +148,7 @@ export interface IVariantProduct {
   length?: number;
   isRented: boolean;
   sku: string;
+  products: IProduct;
 }
 
 export type TBadgeVariant = 'colored' | 'dot' | 'mixed';
