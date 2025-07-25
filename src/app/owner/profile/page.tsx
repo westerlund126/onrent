@@ -10,6 +10,7 @@ import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';
 import MapCard from 'components/owner/profile/MapCard'; // Changed from CategoriesCard
 import BusinessStatsCard from 'components/owner/profile/BusinessStatsCard';
+import { toast } from 'sonner';
 
 interface ProfileData {
   businessName: string;
@@ -65,12 +66,15 @@ const OwnerBusinessProfile = () => {
         first_name: profileData.firstName,
         last_name: profileData.lastName,
         username: profileData.username,
+        phone_numbers: profileData.phone,
         businessName: profileData.businessName,
         businessAddress: profileData.businessAddress,
         businessBio: profileData.description,
       });
       setIsEditing(false);
+      toast.success('Profil berhasil disimpan!');
     } catch (error) {
+      toast.error('Gagal menyimpan profil. Silakan coba lagi.');
       console.error('Failed to save profile:', error);
     }
   };

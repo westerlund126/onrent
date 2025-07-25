@@ -147,7 +147,7 @@ const FittingSchedulePage = () => {
   
 }, [availableSlots]);
 
-
+console.log("Owner business bio:", ownerData?.businessBio);
 
 const getDateFromString = (dateString: string): Date | undefined => {
   if (!dateString) return undefined;
