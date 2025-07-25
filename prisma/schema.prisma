@@ -102,7 +102,7 @@ model RentalItem {
   id               Int             @id @default(autoincrement())
   rentalId         Int
   variantProductId Int
-  rental           Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  rental           Rental          @relation(fields: [rentalId], references: [id])
   variantProduct   VariantProducts @relation(fields: [variantProductId], references: [id])
 }
 
@@ -111,7 +111,7 @@ model Tracking {
   rentalId  Int
   status    TrackingStatus @default(RENTAL_ONGOING)
   updatedAt DateTime       @default(now())
-  rental    Rental         @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  rental    Rental         @relation(fields: [rentalId], references: [id])
 }
 
 model Return {
@@ -120,7 +120,7 @@ model Return {
   returnDate DateTime
   condition  ReturnCondition @default(GOOD)
   createdAt  DateTime        @default(now())
-  rental     Rental          @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  rental     Rental          @relation(fields: [rentalId], references: [id])
 }
 
 model FittingSchedule {
@@ -128,29 +128,29 @@ model FittingSchedule {
   userId         Int
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  deletedAt      DateTime?        
   status         FittingStatus    @default(PENDING)
-  fittingSlotId  Int              
-  isActive       Boolean          @default(true)
+  fittingSlotId  Int
   note           String?
   duration       Int
   ownerId        Int
   tfProofUrl     String
+  deletedAt      DateTime?
+  isActive       Boolean          @default(true)
   FittingProduct FittingProduct[]
- fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])  
- owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
+  fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
+  owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
   user           User             @relation("UserFittings", fields: [userId], references: [id])
+
   @@unique([fittingSlotId, isActive])
 }
 
 model FittingSlot {
-  id              Int              @id @default(autoincrement())
-  ownerId         Int
-  dateTime        DateTime
-  isBooked        Boolean          @default(false)
+  id               Int               @id @default(autoincrement())
+  ownerId          Int
+  dateTime         DateTime
+  isBooked         Boolean           @default(false)
   fittingSchedules FittingSchedule[]
-  owner           User             @relation(fields: [ownerId], references: [id])
-  
+  owner            User              @relation(fields: [ownerId], references: [id])
 }
 
 model WeeklySlot {
