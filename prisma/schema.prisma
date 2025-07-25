@@ -128,17 +128,19 @@ model FittingSchedule {
   userId         Int
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  deletedAt     DateTime?
+  deletedAt      DateTime?        
   status         FittingStatus    @default(PENDING)
-  fittingSlotId  Int              @unique
+  fittingSlotId  Int              
+  isActive       Boolean          @default(true)
   note           String?
   duration       Int
   ownerId        Int
   tfProofUrl     String
   FittingProduct FittingProduct[]
-  fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
-  owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
+ fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])  
+ owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
   user           User             @relation("UserFittings", fields: [userId], references: [id])
+  @@unique([fittingSlotId, isActive])
 }
 
 model FittingSlot {
@@ -146,8 +148,9 @@ model FittingSlot {
   ownerId         Int
   dateTime        DateTime
   isBooked        Boolean          @default(false)
-  fittingSchedule FittingSchedule?
+  fittingSchedules FittingSchedule[]
   owner           User             @relation(fields: [ownerId], references: [id])
+  
 }
 
 model WeeklySlot {

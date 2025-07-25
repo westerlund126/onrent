@@ -109,67 +109,38 @@ export async function POST(request: NextRequest) {
 
     const initialStatus = 'PENDING';
 
-    const result = await prisma.$transaction(
-      async (tx) => {
-        const currentSlot = await tx.fittingSlot.findUnique({
-          where: { id: parseInt(fittingSlotId) },
-          include: {
-            owner: {
-              select: {
-                id: true,
-              },
-            },
-          },
-        });
-
-        if (currentSlot?.isBooked) {
-          throw new Error('Fitting slot was just booked by another user');
-        }
-
-        if (phoneNumber && phoneNumber !== user.phone_numbers) {
-          await tx.user.update({
-            where: { id: user.id },
-            data: { phone_numbers: phoneNumber },
-          });
-        }
-
-        const fittingSchedule = await tx.fittingSchedule.create({
-          data: {
-            userId: user.id,
-            ownerId: fittingSlot.owner.id,
-            fittingSlotId: parseInt(fittingSlotId),
-            duration,
-            note,
-            status: initialStatus,
-            tfProofUrl,
-          },
-        });
-
-        await tx.fittingSlot.update({
-          where: { id: parseInt(fittingSlotId) },
-          data: { isBooked: true },
-        });
-
-        if (variantIdsNumeric.length > 0) {
-          await tx.fittingProduct.createMany({
-            data: variantIdsNumeric.map((variantId: number) => {
-              const variant = existingVariants.find((v) => v.id === variantId);
-              return {
-                fittingId: fittingSchedule.id,
-                variantProductId: Number(variantId),
-                ownerId: variant!.products.ownerId,
-              };
-            }),
-            skipDuplicates: true,
-          });
-        }
-
-        return fittingSchedule.id;
+    const result = await prisma.$transaction(async (tx) => {
+    const activeSchedule = await tx.fittingSchedule.findFirst({
+      where: {
+        fittingSlotId: parseInt(fittingSlotId),
+        isActive: true,
+      }
+    });
+  
+    if (activeSchedule) {
+      throw new Error('Fitting slot is already booked');
+    }
+  
+    const fittingSchedule = await tx.fittingSchedule.create({
+      data: {
+        userId: user.id,
+        ownerId: fittingSlot.owner.id,
+        fittingSlotId: parseInt(fittingSlotId),
+        duration,
+        note,
+        status: initialStatus,
+        tfProofUrl,
+        isActive: true, // Mark as active
       },
-      {
-        timeout: 10000,
-      },
-    );
+    });
+  
+    await tx.fittingSlot.update({
+      where: { id: parseInt(fittingSlotId) },
+      data: { isBooked: true },
+    });
+  
+    return fittingSchedule.id;
+  });
 
     const completeSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: result },
@@ -331,7 +302,10 @@ export async function GET(request: NextRequest) {
     }
 
     const schedules = await prisma.fittingSchedule.findMany({
-      where: whereClause,
+      where: {
+    ...whereClause,
+    isActive: true, 
+  },
       include: {
         user: {
           select: {

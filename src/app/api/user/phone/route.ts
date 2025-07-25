@@ -45,7 +45,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { phoneNumber } = body;
 
-    // Basic validation
     if (phoneNumber && typeof phoneNumber !== 'string') {
       return NextResponse.json(
         { error: 'Phone number must be a string' },

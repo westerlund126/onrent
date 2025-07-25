@@ -277,12 +277,16 @@ export const useFittingStore = create<FittingState>()(
           variantIds: scheduleData.variantId
             ? [scheduleData.variantId, ...(scheduleData.variantIds || [])]
             : scheduleData.variantIds || [],
+          isActive: true,
         };
 
         const response = await fetch('/api/fitting/schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestData),
+          body: JSON.stringify({
+            ...scheduleData,
+            isActive: true, // Ensure active flag
+          }),
         });
 
         if (!response.ok) {
@@ -386,7 +390,7 @@ export const useFittingStore = create<FittingState>()(
               ? error.message
               : 'Failed to update schedule';
         });
-        throw error; 
+        throw error;
       } finally {
         set((state) => {
           state.scheduleLoadingStates[scheduleId] = false;
@@ -395,12 +399,10 @@ export const useFittingStore = create<FittingState>()(
     },
 
     cancelFittingSchedule: async (scheduleId) => {
-      try {
-        await get().updateFittingSchedule(scheduleId, { status: 'CANCELED' });
-      } catch (error) {
-        console.error('Failed to cancel fitting schedule:', error);
-        throw error;
-      }
+      return get().updateFittingSchedule(scheduleId, {
+        status: 'CANCELED',
+        isActive: false, 
+      });
     },
 
     confirmFittingSchedule: async (scheduleId) => {

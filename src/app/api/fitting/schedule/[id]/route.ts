@@ -107,7 +107,6 @@ export async function GET(
   }
 }
 
-// in app/api/fitting/schedule/[id]/route.ts
 
 export async function PATCH(
   request: NextRequest,
@@ -130,9 +129,7 @@ export async function PATCH(
     const scheduleId = parseInt(resolvedParams.id);
     const updates = await request.json();
 
-    // Use a transaction to ensure atomicity
     const updatedSchedule = await prisma.$transaction(async (tx) => {
-      // First, get the original schedule to check permissions and get slot ID
       const schedule = await tx.fittingSchedule.findUnique({
         where: { id: scheduleId },
       });
@@ -141,7 +138,6 @@ export async function PATCH(
         throw new Error('Fitting schedule not found');
       }
 
-      // Authorization checks...
       const canUpdate =
         caller.role === 'ADMIN' ||
         schedule.userId === caller.id ||
@@ -151,36 +147,33 @@ export async function PATCH(
         throw new Error('Access denied');
       }
 
-      // -- THIS IS THE CRUCIAL LOGIC --
       const isCancelingOrRejecting =
         (updates.status === 'CANCELED' || updates.status === 'REJECTED') &&
         schedule.status !== 'CANCELED' &&
         schedule.status !== 'REJECTED';
 
       if (isCancelingOrRejecting) {
-        // 1. Soft-delete the schedule. The middleware will convert this .delete()
-        //    call into an update that sets the `deletedAt` field.
-        await tx.fittingSchedule.delete({
+        await tx.fittingSchedule.update({
           where: { id: scheduleId },
+          data: {
+            status: updates.status,
+            isActive: false, 
+          },
         });
 
-        // 2. Free up the slot so it can be booked again.
         await tx.fittingSlot.update({
           where: { id: schedule.fittingSlotId },
           data: { isBooked: false },
         });
 
-        // Since the record is "deleted", we return a simple message.
-        return { message: 'Schedule canceled/rejected successfully.' };
+        return { message: 'Schedule updated successfully' };
       } else {
-        // If it's a normal update (e.g., changing status to CONFIRMED or updating a note)
         const newSchedule = await tx.fittingSchedule.update({
           where: { id: scheduleId },
           data: {
             ...(updates.status && { status: updates.status }),
             ...(updates.note !== undefined && { note: updates.note }),
           },
-          // Include all the data you need to return to the frontend
           include: {
             user: true,
             fittingSlot: { include: { owner: true } },
@@ -261,8 +254,12 @@ export async function DELETE(
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.fittingSchedule.delete({
+      await tx.fittingSchedule.update({
         where: { id: scheduleId },
+        data: {
+          isActive: false,
+          deletedAt: new Date(),
+        },
       });
 
       await tx.fittingSlot.update({
