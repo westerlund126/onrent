@@ -32,7 +32,7 @@ export async function GET(
             imageUrl: true,
           },
         },
-        fittingSchedule: {
+        fittingSchedules: {
           include: {
             user: {
               select: {
@@ -143,7 +143,7 @@ export async function PATCH(
             imageUrl: true,
           },
         },
-        fittingSchedule: {
+        fittingSchedules: {
           include: {
             user: {
               select: {
@@ -207,7 +207,7 @@ export async function DELETE(
     const slot = await prisma.fittingSlot.findUnique({
       where: { id: slotId },
       include: {
-        fittingSchedule: true,
+        fittingSchedules: true,
       },
     });
 
@@ -225,7 +225,7 @@ export async function DELETE(
       );
     }
 
-    if (slot.isBooked && slot.fittingSchedule) {
+    if (slot.isBooked && slot.fittingSchedules) {
       return NextResponse.json(
         {
           error:

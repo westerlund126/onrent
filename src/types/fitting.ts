@@ -54,13 +54,15 @@ export interface IFittingSchedule {
   userId: number;
   fittingSlotId: number;
   duration: number;
-  startTime: Date; 
+  startTime: Date;
   endTime: Date;
   title: string;
   color: TEventColor;
   note?: string;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date;
+  isActive: boolean;
   tfProofUrl: string;
   status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
   user: IUser;
@@ -73,6 +75,7 @@ export interface IFittingSlot {
   ownerId: number;
   dateTime: Date;
   isBooked: boolean;
+  isActive: boolean;
   owner: IUser;
   fittingSchedule?: IFittingSchedule;
 }

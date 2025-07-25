@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
               imageUrl: true,
             },
           },
-          fittingSchedule: {
+          fittingSchedules: {
             include: {
               user: {
                 select: {
@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
             imageUrl: true,
           },
         },
-        fittingSchedule: {
+        fittingSchedules: {
           include: {
             user: {
               select: {
