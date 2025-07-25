@@ -140,8 +140,6 @@ model FittingSchedule {
   fittingSlot    FittingSlot      @relation(fields: [fittingSlotId], references: [id])
   owner          User             @relation("OwnerFittings", fields: [ownerId], references: [id])
   user           User             @relation("UserFittings", fields: [userId], references: [id])
-
-  @@unique([fittingSlotId, isActive])
 }
 
 model FittingSlot {

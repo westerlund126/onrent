@@ -110,37 +110,37 @@ export async function POST(request: NextRequest) {
     const initialStatus = 'PENDING';
 
     const result = await prisma.$transaction(async (tx) => {
-    const activeSchedule = await tx.fittingSchedule.findFirst({
-      where: {
-        fittingSlotId: parseInt(fittingSlotId),
-        isActive: true,
+      const activeSchedule = await tx.fittingSchedule.findFirst({
+        where: {
+          fittingSlotId: parseInt(fittingSlotId),
+          isActive: true,
+        },
+      });
+
+      if (activeSchedule) {
+        throw new Error('Fitting slot is already booked');
       }
+
+      const fittingSchedule = await tx.fittingSchedule.create({
+        data: {
+          userId: user.id,
+          ownerId: fittingSlot.owner.id,
+          fittingSlotId: parseInt(fittingSlotId),
+          duration,
+          note,
+          status: initialStatus,
+          tfProofUrl,
+          isActive: true, // Mark as active
+        },
+      });
+
+      await tx.fittingSlot.update({
+        where: { id: parseInt(fittingSlotId) },
+        data: { isBooked: true },
+      });
+
+      return fittingSchedule.id;
     });
-  
-    if (activeSchedule) {
-      throw new Error('Fitting slot is already booked');
-    }
-  
-    const fittingSchedule = await tx.fittingSchedule.create({
-      data: {
-        userId: user.id,
-        ownerId: fittingSlot.owner.id,
-        fittingSlotId: parseInt(fittingSlotId),
-        duration,
-        note,
-        status: initialStatus,
-        tfProofUrl,
-        isActive: true, // Mark as active
-      },
-    });
-  
-    await tx.fittingSlot.update({
-      where: { id: parseInt(fittingSlotId) },
-      data: { isBooked: true },
-    });
-  
-    return fittingSchedule.id;
-  });
 
     const completeSchedule = await prisma.fittingSchedule.findUnique({
       where: { id: result },
@@ -304,9 +304,9 @@ export async function GET(request: NextRequest) {
 
     const schedules = await prisma.fittingSchedule.findMany({
       where: {
-    ...whereClause,
-    isActive: true, 
-  },
+        ...whereClause,
+        isActive: true,
+      },
       include: {
         user: {
           select: {
