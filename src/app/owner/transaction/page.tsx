@@ -60,7 +60,7 @@ const Transaction = () => {
               onClick={() => setDialogOpen(true)}
               className="cursor-pointer md:col-span-1"
             >
-              <Card extra="!flex-row flex-grow items-center rounded-[20px] h-[90px] bg-gradient-to-r from-blue-500 to-blue-600">
+              <Card extra="!flex-row flex-grow items-center rounded-[20px] h-[90px] bg-orange-500">
                 <div className="flex w-full items-center justify-center text-white">
                   <p className="text-lg font-bold">+ Tambah Transaksi</p>
                 </div>

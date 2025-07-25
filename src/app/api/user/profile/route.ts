@@ -23,6 +23,7 @@ export async function GET() {
         phone_numbers: true,
         businessAddress: true,
         businessName: true,
+        businessBio: true,
         role: true,
         clerkUserId: true,
         createdAt: true,
@@ -62,6 +63,7 @@ export async function PUT(request: Request) {
       businessName,
       businessAddress,
       username,
+      businessBio,
     } = body;
 
     const updatedUser = await prisma.user.update({
@@ -73,6 +75,7 @@ export async function PUT(request: Request) {
         ...(businessName !== undefined && { businessName }),
         ...(businessAddress !== undefined && { businessAddress }),
         ...(username !== undefined && { username }),
+        ...(businessBio !== undefined && { businessBio }),
       },
       select: {
         id: true,
@@ -84,6 +87,7 @@ export async function PUT(request: Request) {
         email: true,
         businessName: true,
         businessAddress: true,
+        businessBio: true,
         imageUrl: true,
         createdAt: true,
         clerkUserId: true,

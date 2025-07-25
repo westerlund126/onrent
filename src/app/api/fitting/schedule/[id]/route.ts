@@ -51,6 +51,7 @@ export async function GET(
                 businessName: true,
                 businessAddress: true,
                 phone_numbers: true,
+                businessBio: true,
                 email: true,
                 imageUrl: true,
                 isAutoConfirm: true,

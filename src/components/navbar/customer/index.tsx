@@ -3,7 +3,6 @@ import Dropdown from 'components/dropdown';
 import { FiAlignJustify, FiSearch } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
 import Logo from '/public/img/logo.png';
-import { BsArrowBarUp } from 'react-icons/bs';
 import { IoMdNotificationsOutline } from 'react-icons/io';
 import { UserButton } from '@clerk/nextjs';
 import SearchComponent from 'components/search/Search';
@@ -16,26 +15,22 @@ const NavbarCustomer = (props: {
   const [darkmode, setDarkmode] = React.useState(false);
   
   React.useEffect(() => {
-    // Safely access document only on the client-side
     if (typeof window !== 'undefined') {
       setDarkmode(document.body.classList.contains('dark'));
     }
   }, []);
 
-  // Central navigation links data
   const navLinks = [
-    { href: "/customer/default", text: "Home" },
+    { href: "/customer/default", text: "Beranda" },
     { href: "/customer/catalog", text: "Katalog" },
     { href: "/customer/activities", text: "Aktivitas" },
-    { href: "/customer/about", text: "About" },
+    { href: "/customer/wishlist", text: "Wishlist" },
   ];
 
   return (
     <nav className="sticky top-4 z-40 flex flex-wrap items-center justify-between rounded-xl bg-white px-4 py-2 shadow-lg mx-2 dark:bg-navy-800">
       
-      {/* Left side: Logo and Desktop Nav Links */}
       <div className="flex items-center gap-8">
-        {/* Logo */}
         <NavLink href="/customer/default">
           <img src={Logo.src} alt="Logo" className="h-12 w-auto" />
         </NavLink>
@@ -54,7 +49,6 @@ const NavbarCustomer = (props: {
         </div>
       </div>
 
-      {/* Right side: Icons and Mobile Menu */}
       <div className="flex items-center gap-4">
 
         {/* Desktop Search Bar - Hidden on mobile */}
@@ -62,7 +56,6 @@ const NavbarCustomer = (props: {
           <SearchComponent />
         </div>
 
-        {/* Notification Icon */}
         <Dropdown
           button={
             <p className="cursor-pointer">
@@ -72,14 +65,11 @@ const NavbarCustomer = (props: {
           animation="origin-top-right transition-all duration-300 ease-in-out"
           classNames={'py-2 top-4 -right-10 md:-right-2 w-max'}
         >
-          {/* ... Your Notification content ... */}
           <div className="flex w-[320px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl dark:!bg-navy-700 dark:text-white sm:w-[400px]">
             <p className="font-bold">Notifications</p>
-            {/* Add notification items here */}
           </div>
         </Dropdown>
         
-        {/* User Button */}
         <UserButton
           appearance={{
             elements: {
@@ -88,7 +78,6 @@ const NavbarCustomer = (props: {
           }}
         />
 
-        {/* Mobile Menu (Hamburger) - Hidden on desktop */}
         <div className="flex xl:hidden">
           <Dropdown
             button={
@@ -99,13 +88,11 @@ const NavbarCustomer = (props: {
             animation="origin-top-right transition-all duration-300 ease-in-out"
             classNames={'py-2 top-4 -right-2 w-max'}
           >
-            <div className="flex w-[280px] flex-col gap-2 rounded-[20px] bg-white p-4 shadow-xl dark:!bg-navy-700 dark:text-white">
-              {/* Mobile Search Bar */}
+            <div className="flex w-[320px] flex-col gap-2 rounded-[20px] bg-white p-4 shadow-xl dark:!bg-navy-700 dark:text-white">
               <div className="mb-2 sm:hidden">
-                  <SearchComponent placeholder="Search..." />
+                  <SearchComponent placeholder="Cari Produk atau Penyedia..." />
               </div>
 
-              {/* Mobile Navigation Links */}
               {navLinks.map((link) => (
                 <NavLink
                   key={link.href}

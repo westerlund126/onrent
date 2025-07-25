@@ -42,6 +42,7 @@ export async function GET(
         email: true,
         businessName: true,
         businessAddress: true,
+        businessBio: true,
         imageUrl: true,
         phone_numbers: true,
         role: true,

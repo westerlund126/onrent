@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
                 businessName: true,
                 businessAddress: true,
                 phone_numbers: true,
+                businessBio: true,
                 email: true,
                 imageUrl: true,
               },

@@ -29,6 +29,7 @@ interface UserStore {
     first_name: string;
     last_name: string | null;
     username: string;
+    phone_numbers: string | null;
     businessAddress: string | null;
     businessName: string | null;
     businessBio: string | null;

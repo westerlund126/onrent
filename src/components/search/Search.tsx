@@ -51,7 +51,7 @@ export default function SearchComponent({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           className={`
-            w-full border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent
+            w-full w-min-[200px] border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent
             ${showIcon ? 'pl-10' : 'pl-4'} pr-10
             ${sizeClasses[size]}
             ${className}

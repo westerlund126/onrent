@@ -16,7 +16,7 @@ export default function AddProductPage() {
               onClick={() => router.back()}
               className="flex items-center gap-2"
             >
-              <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Transaksi
+              <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Produk
             </Button>
           </div>
  <Card extra="w-full h-full">
