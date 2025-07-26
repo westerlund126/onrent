@@ -341,12 +341,14 @@ export const useFittingStore = create<FittingState>()(
 
         if (updates.status === 'CANCELED' || updates.status === 'REJECTED') {
           set((state) => {
-            state.fittingSchedules = state.fittingSchedules.filter(
-              (s) => s.id !== scheduleId,
-            );
             const scheduleToRemove = state.fittingSchedules.find(
               (s) => s.id === scheduleId,
             );
+
+            state.fittingSchedules = state.fittingSchedules.filter(
+              (s) => s.id !== scheduleId,
+            );
+
             if (scheduleToRemove) {
               const slotIndex = state.fittingSlots.findIndex(
                 (slot) => slot.id === scheduleToRemove.fittingSlotId,
@@ -401,7 +403,7 @@ export const useFittingStore = create<FittingState>()(
     cancelFittingSchedule: async (scheduleId) => {
       return get().updateFittingSchedule(scheduleId, {
         status: 'CANCELED',
-        isActive: false, 
+        isActive: false,
       });
     },
 
@@ -415,15 +417,12 @@ export const useFittingStore = create<FittingState>()(
     },
 
     rejectFittingSchedule: async (scheduleId) => {
-      try {
-        await get().updateFittingSchedule(scheduleId, { status: 'REJECTED' });
-      } catch (error) {
-        console.error('Failed to reject fitting schedule:', error);
-        throw error;
-      }
+      return get().updateFittingSchedule(scheduleId, {
+        status: 'REJECTED',
+        isActive: false,
+      });
     },
 
-    // Updated slot methods without isAutoConfirm
     createFittingSlot: async ({ dateTime }) => {
       set((state) => {
         state.isLoading = true;
