@@ -80,7 +80,7 @@ const Tables = () => {
             <div className="md:col-span-1 flex items-center justify-center">
               <Button
   onClick={handleAddProductClick}
-  className="flex flex-col items-center justify-center h-[90px] w-full rounded-[20px] bg-orange-500 text-white text-sm font-semibold hover:brightness-110 transition-all gap-1"
+  className="flex flex-col items-center justify-center h-[90px] w-full rounded-[20px] bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold hover:brightness-110 transition-all gap-1"
 >
   <FaPlus className="h-7 w-7" />
   <span>Tambah Produk</span>
