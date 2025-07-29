@@ -14,7 +14,7 @@ interface SearchComponentProps {
 }
 
 export default function SearchComponent({
-  placeholder = "Cari Produk atau Penyedia",
+  placeholder = "",
   className = "",
   showIcon = true,
   size = 'md'

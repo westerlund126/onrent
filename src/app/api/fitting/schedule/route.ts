@@ -2,9 +2,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/onesignal';
+import { EmailService } from 'lib/resend';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 const prisma = new PrismaClient();
+const emailService = new EmailService();
+
+// Helper function to format dates in Indonesian
+const formatFittingDate = (date: Date) => {
+  return format(date, "EEEE, d MMMM yyyy 'pukul' HH:mm", { locale: id });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +34,6 @@ export async function POST(request: NextRequest) {
       fittingSlotId,
       duration = 60,
       note,
-      phoneNumber,
-      variantId,
       variantIds = [],
       tfProofUrl,
     } = await request.json();
@@ -39,19 +45,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let allVariantIds: number[] = [];
-
-    if (variantIds.length > 0) {
-      allVariantIds = [...variantIds];
-    }
-
-    if (variantId) {
-      allVariantIds.push(variantId);
-    }
-
     const variantIdsNumeric: number[] = Array.from(
       new Set(
-        allVariantIds.map((id: any) => parseInt(id)).filter((id) => !isNaN(id)),
+        variantIds.map((id: any) => parseInt(id)).filter((id) => !isNaN(id))
       ),
     );
 
@@ -62,6 +58,10 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             clerkUserId: true,
+            email: true,
+            first_name: true,
+            last_name: true,
+            businessName: true,
           },
         },
       },
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           note,
           status: initialStatus,
           tfProofUrl,
-          isActive: true, // Mark as active
+          isActive: true,
         },
       });
 
@@ -138,6 +138,21 @@ export async function POST(request: NextRequest) {
         where: { id: parseInt(fittingSlotId) },
         data: { isBooked: true },
       });
+
+      // Create fitting products
+      if (variantIdsNumeric.length > 0) {
+        await Promise.all(
+          variantIdsNumeric.map((variantId) =>
+            tx.fittingProduct.create({
+              data: {
+                fittingId: fittingSchedule.id,
+                variantProductId: variantId,
+                ownerId: fittingSlot.owner.id,
+              },
+            })
+          )
+        );
+      }
 
       return fittingSchedule.id;
     });
@@ -153,7 +168,6 @@ export async function POST(request: NextRequest) {
             username: true,
             email: true,
             phone_numbers: true,
-            imageUrl: true,
           },
         },
         fittingSlot: {
@@ -167,7 +181,8 @@ export async function POST(request: NextRequest) {
                 phone_numbers: true,
                 businessBio: true,
                 email: true,
-                imageUrl: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
@@ -184,7 +199,6 @@ export async function POST(request: NextRequest) {
                   select: {
                     id: true,
                     name: true,
-                    images: true,
                   },
                 },
               },
@@ -196,38 +210,44 @@ export async function POST(request: NextRequest) {
 
     if (completeSchedule) {
       try {
-        const oneSignal = new OneSignalService();
+        // Format the fitting date
+        const formattedFittingDate = formatFittingDate(
+          completeSchedule.fittingSlot.dateTime
+        );
+        
+        // Get product names
+        const productNames = completeSchedule.FittingProduct.map(
+          (fp) => fp.variantProduct.products.name
+        );
+        
+        // Get customer name
         const customerName =
           `${completeSchedule.user.first_name || ''} ${
             completeSchedule.user.last_name || ''
-          }`.trim() ||
-          completeSchedule.user.username ||
-          'Customer';
-        const productNames = completeSchedule.FittingProduct.map(
-          (fp) => fp.variantProduct.products.name,
-        );
-        const fittingDate =
-          completeSchedule.fittingSlot.dateTime.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          }`.trim() || completeSchedule.user.username || 'Customer';
 
-        await oneSignal.notifyOwnerNewFitting({
-          ownerExternalId: completeSchedule.fittingSlot.owner.clerkUserId,
+        // Get owner name
+        const ownerName = 
+          completeSchedule.fittingSlot.owner.businessName ||
+          `${completeSchedule.fittingSlot.owner.first_name} ${
+            completeSchedule.fittingSlot.owner.last_name || ''
+          }`.trim();
+
+        // Send email to owner
+        await emailService.notifyOwnerNewFitting({
+          ownerEmail: completeSchedule.fittingSlot.owner.email,
+          ownerName,
           customerName,
+          customerEmail: completeSchedule.user.email,
+          customerPhone: completeSchedule.user.phone_numbers || undefined,
+          fittingDate: formattedFittingDate,
           fittingId: completeSchedule.id,
-          fittingDate,
           productNames,
+          note: completeSchedule.note || undefined,
+          businessName: completeSchedule.fittingSlot.owner.businessName || undefined,
         });
-      } catch (notificationError) {
-        console.error(
-          'Failed to send OneSignal notification:',
-          notificationError,
-        );
+      } catch (emailError) {
+        console.error('Failed to send owner notification email:', emailError);
       }
     }
 
@@ -316,7 +336,6 @@ export async function GET(request: NextRequest) {
             username: true,
             email: true,
             phone_numbers: true,
-            imageUrl: true,
           },
         },
         fittingSlot: {
@@ -329,7 +348,8 @@ export async function GET(request: NextRequest) {
                 businessAddress: true,
                 phone_numbers: true,
                 email: true,
-                imageUrl: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
@@ -346,7 +366,6 @@ export async function GET(request: NextRequest) {
                   select: {
                     id: true,
                     name: true,
-                    images: true,
                   },
                 },
               },
