@@ -1,34 +1,11 @@
+// components/owner/profile/MainProfileCard.jsx
 'use client';
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Edit, Save, X, Camera } from 'lucide-react';
+import Image from 'next/image';
+import { FiEdit, FiSave, FiX, FiMail, FiUser } from 'react-icons/fi';
 
-interface ProfileData {
-  businessName: string;
-  businessAddress: string;
-  email: string;
-  phone: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  description: string;
-  imageUrl: string;
-}
-
-interface MainProfileCardProps {
-  profileData: ProfileData;
-  isEditing: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  onProfileDataChange: (data: ProfileData) => void;
-}
-
-const MainProfileCard: React.FC<MainProfileCardProps> = ({
+const MainProfileCard = ({
   profileData,
   isEditing,
   onEdit,
@@ -36,94 +13,108 @@ const MainProfileCard: React.FC<MainProfileCardProps> = ({
   onCancel,
   onProfileDataChange,
 }) => {
-  const handleInputChange = (field: keyof ProfileData, value: string) => {
-    onProfileDataChange({
-      ...profileData,
-      [field]: value,
-    });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    onProfileDataChange({ ...profileData, [name]: value });
   };
 
   return (
-    <Card className="relative w-full overflow-hidden rounded-2xl bg-white shadow-md">
-      {/* Curved green top */}
-      <div className="relative h-32 rounded-b-[40%] bg-gradient-to-tr from-green-400 to-teal-500" />
-
-      {/* Avatar - overlapping */}
-      <div className="-mt-12 flex justify-center">
-        <div className="relative">
-          <Avatar className="h-24 w-24 border-4 border-white shadow-md">
-            <AvatarImage src={profileData.imageUrl} />
-            <AvatarFallback className="bg-teal-600 text-2xl text-white">
-              {profileData.firstName?.charAt(0) || 'N'}
-            </AvatarFallback>
-          </Avatar>
-          {isEditing && (
-            <Button
-              size="sm"
-              className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-2 border-white bg-gradient-to-r from-pink-500 to-orange-500 p-0 shadow-lg"
-            >
-              <Camera className="h-3 w-3" />
-            </Button>
-          )}
+    <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      {/* Header Section */}
+      <div className="relative h-32 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600">
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 bg-black/5"></div>
+        
+        {/* Profile Image */}
+        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
+          <div className="relative">
+            <Image
+              src={profileData.imageUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${profileData.username || 'Owner'}`}
+              alt={profileData.username || 'Profile Picture'}
+              width={96}
+              height={96}
+              className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover bg-white"
+            />
+            {/* Online status indicator */}
+            <div className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+          </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="space-y-4 px-6 py-6 text-center">
-        {isEditing ? (
-          <>
-            <Input
-              value={profileData.firstName}
-              onChange={(e) => handleInputChange('firstName', e.target.value)}
-              placeholder="First Name"
-            />
-            <Input
-              value={profileData.lastName}
-              onChange={(e) => handleInputChange('lastName', e.target.value)}
-              placeholder="Last Name"
-            />
-            <Input
-              value={profileData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="Email"
-            />
-          </>
-        ) : (
-          <>
-            <h2 className="text-xl font-semibold">
-              {profileData.firstName} {profileData.lastName}
-            </h2>
-            <p className="text-gray-600">{profileData.email}</p>
-            <p className="text-gray-500">{profileData.businessAddress}</p>
-            <p className="text-gray-500">{profileData.phone}</p>
-          </>
-        )}
+      {/* Content Section */}
+      <div className="pt-16 pb-8 px-8 text-center">
+        {/* Name Section */}
+        <div className="mb-6">
+          {isEditing ? (
+            <div className="space-y-3">
+              <div className="relative">
+                <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  name="username"
+                  value={profileData.username || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter username"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-center font-semibold"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                {profileData.username || 'Owner'}
+              </h2>
+              <div className="flex items-center justify-center text-gray-500 text-sm">
+                <FiMail className="w-4 h-4 mr-2" />
+                <span>{profileData.email || 'No email provided'}</span>
+              </div>
+            </>
+          )}
+        </div>
 
-        {isEditing ? (
-          <div className="flex gap-2">
-            <Button
-              onClick={onSave}
-              className="w-full bg-teal-500 text-white hover:bg-teal-600"
+
+
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {isEditing ? (
+            <div className="flex space-x-3">
+              <button
+                onClick={onSave}
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-green-700 focus:ring-4 focus:ring-green-500/20 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+              >
+                <FiSave className="w-4 h-4" />
+                <span>Save Changes</span>
+              </button>
+              <button
+                onClick={onCancel}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all duration-200 flex items-center justify-center space-x-2"
+              >
+                <FiX className="w-4 h-4" />
+                <span>Cancel</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onEdit}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-6 rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
             >
-              <Save className="mr-2 h-4 w-4" />
-              Simpan
-            </Button>
-            <Button
-              onClick={onCancel}
-              className="w-full border border-gray-300"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Batal
-            </Button>
+              <FiEdit className="w-4 h-4" />
+              <span>Edit Profile</span>
+            </button>
+          )}
+        </div>
+
+        {/* Additional Info */}
+        {!isEditing && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-center text-xs text-gray-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              <span>Active now</span>
+            </div>
           </div>
-        ) : (
-          <Button onClick={onEdit} className="bg-orange-400 hover:bg-orange-600">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Profile
-          </Button>
         )}
       </div>
-    </Card>
+    </div>
   );
 };
 

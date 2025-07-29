@@ -32,7 +32,7 @@ export const HeroSection = () => {
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">
             <Link href="/customer/catalog/">
-            <Button className="w-5/6 md:w-1/3 font-bold group/arrow bg-primary-500">
+            <Button className="w-5/6 md:w-1/3 font-bold group/arrow bg-primary-500 hover:bg-primary-600">
               Sewa Sekarang!
               <ArrowRight className="size-5 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
             </Button>
@@ -46,7 +46,7 @@ export const HeroSection = () => {
             width={1200}
             height={1200}
             className="w-full md:w-[1200px] mx-auto rounded-lg relative rouded-lg leading-none flex items-center border border-t-2 border-secondary  border-t-primary/30"
-            src={"/img/hero-image-light.jpeg"}
+            src={"/img/hero.png"}
             alt="dashboard"
           />
 

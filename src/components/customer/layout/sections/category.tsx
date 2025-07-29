@@ -48,14 +48,20 @@ const categoryData = [
 
 export function CategoryShowcase() {
   const [emblaApi, setEmblaApi] = useState<EmblaCarouselType | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
   const onSelect = useCallback((api: EmblaCarouselType) => {
     if (!api) return;
+    setSelectedIndex(api.selectedScrollSnap()); // <-- Add this
     setCanScrollPrev(api.canScrollPrev());
     setCanScrollNext(api.canScrollNext());
   }, []);
+
+  const scrollTo = useCallback((index: number) => {
+    emblaApi?.scrollTo(index);
+  }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -72,7 +78,6 @@ export function CategoryShowcase() {
           opts={{
             align: 'start',
             loop: false,
-            // Enable touch/drag on mobile
             dragFree: true,
             containScroll: 'trimSnaps',
           }}
@@ -133,18 +138,20 @@ export function CategoryShowcase() {
           />
         </Carousel>
 
-        {/* Mobile indicators/dots (optional) */}
-        <div className="flex justify-center mt-4 md:hidden">
-          <div className="flex space-x-2">
-            {categoryData.map((_, index) => (
-              <button
-                key={index}
-                className="w-2 h-2 rounded-full bg-gray-300 transition-colors duration-200"
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
+       <div className="flex justify-center mt-6 md:hidden">
+        <div className="flex space-x-2">
+          {categoryData.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollTo(index)}
+              className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                index === selectedIndex ? 'bg-primary' : 'bg-gray-300'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
+      </div>
       </div>
     </section>
   );

@@ -8,7 +8,7 @@ import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import MainProfileCard from 'components/owner/profile/MainProfileCard';
 import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';
-import MapCard from 'components/owner/profile/MapCard'; // Changed from CategoriesCard
+import MapCard from 'components/owner/profile/MapCard'; 
 import BusinessStatsCard from 'components/owner/profile/BusinessStatsCard';
 import { toast } from 'sonner';
 
@@ -128,17 +128,18 @@ const OwnerBusinessProfile = () => {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Working Hours Card */}
-          <WorkingHoursCard workingHours={workingHours} />
+          <div className="lg:col-span-1">
+            <WorkingHoursCard workingHours={workingHours} />
+          </div>
 
-          {/* Map Card - Replaces Categories Card */}
-          <MapCard
-            businessAddress={profileData.businessAddress}
-            businessName={profileData.businessName}
-          />
-
-          {/* Business Stats Card */}
-          <BusinessStatsCard />
-        </div>
+  {/* Map Card - Spans 2 columns on large screens to be wider */}
+  <div className="lg:col-span-2">
+    <MapCard
+      businessAddress={profileData.businessAddress}
+      businessName={profileData.businessName}
+    />
+  </div>
+</div>
       </div>
     </div>
   );

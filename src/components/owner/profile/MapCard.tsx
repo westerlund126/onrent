@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Navigation, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-// Dynamically import map components to avoid SSR issues
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false },
@@ -35,7 +34,6 @@ const MapCard: React.FC<MapCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Geocoding function to convert address to coordinates
   const geocodeAddress = async (address: string) => {
     try {
       setIsLoading(true);
