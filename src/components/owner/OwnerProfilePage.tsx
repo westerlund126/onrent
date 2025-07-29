@@ -183,24 +183,24 @@ const OwnerProfilePage = ({ ownerId }) => {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b">
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Skeleton className="w-16 h-16 rounded-2xl" />
-                <div className="space-y-2">
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-4 w-64" />
+          <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <Skeleton className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex-shrink-0" />
+                <div className="space-y-2 flex-1 min-w-0">
+                  <Skeleton className="h-5 sm:h-6 w-32 sm:w-48" />
+                  <Skeleton className="h-3 sm:h-4 w-40 sm:w-64" />
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Skeleton className="h-10 w-32" />
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-10" />
+              <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
+                <Skeleton className="h-8 sm:h-10 w-24 sm:w-32" />
+                <Skeleton className="h-8 sm:h-10 w-20 sm:w-24" />
+                <Skeleton className="h-8 sm:h-10 w-8 sm:w-10" />
               </div>
             </div>
-            <div className="mt-6 space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-48" />
+            <div className="mt-4 sm:mt-6 space-y-2">
+              <Skeleton className="h-3 sm:h-4 w-24 sm:w-32" />
+              <Skeleton className="h-3 sm:h-4 w-36 sm:w-48" />
             </div>
           </div>
         </div>
@@ -210,10 +210,10 @@ const OwnerProfilePage = ({ ownerId }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="p-6 text-center">
-          <p className="text-red-600 mb-4">Error: {error}</p>
-          <Button onClick={() => window.location.reload()}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="p-6 text-center w-full max-w-md">
+          <p className="text-red-600 mb-4 text-sm sm:text-base">Error: {error}</p>
+          <Button onClick={() => window.location.reload()} className="w-full sm:w-auto">
             Coba Lagi
           </Button>
         </Card>
@@ -223,131 +223,135 @@ const OwnerProfilePage = ({ ownerId }) => {
 
   if (!ownerData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-muted-foreground">Toko tidak ditemukan</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <p className="text-muted-foreground text-sm sm:text-base">Toko tidak ditemukan</p>
       </div>
     );
   }
 
-  return (
+ return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Profile Card */}
-      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {/* Profile Avatar */}
-              <Avatar className="w-24 h-24 rounded-2xl">
-                <AvatarImage src={ownerData.imageUrl} alt={ownerData.businessName} />
-                <AvatarFallback className="rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 text-white text-xl font-bold">
-                  {ownerData.businessName?.charAt(0) || 'T'}
+      {/* Header Profile Card - Matches your image layout */}
+      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm rounded-none sm:rounded-lg">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          {/* Desktop Layout - Horizontal Section */}
+          <div className="flex flex-col sm:flex-row items-start justify-between">
+            {/* Left Column - Profile Info */}
+            <div className="flex items-start space-x-3 sm:space-x-4 flex-1">
+              <Avatar className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex-shrink-0">
+                <AvatarImage src={ownerData?.imageUrl} alt={ownerData?.businessName} />
+                <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-white font-bold">
+                  {ownerData?.businessName?.charAt(0) || 'T'}
                 </AvatarFallback>
               </Avatar>
               
-              {/* Business Info */}
-              <div>
-                <h1 className="text-xl font-semibold text-foreground mb-1">
-                  {ownerData.businessName || 'Nama Toko'}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground mb-1 truncate">
+                  {ownerData?.businessName || 'Nama Toko'}
                 </h1>
-                <p className="text-muted-foreground text-sm flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {ownerData.businessAddress || 'Alamat tidak tersedia'}
+                <p className="text-muted-foreground text-xs sm:text-sm flex items-start">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">
+                    {ownerData?.businessAddress || 'Alamat tidak tersedia'}
+                  </span>
                 </p>
-
-                {/* Action Buttons */}
-                <div className="flex items-center space-x-3 pt-2">
-                  <Button
-                    onClick={handleJadwalkanFitting}
-                    className="bg-primary-500 hover:bg-primary-600 text-white"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Jadwalkan Fitting
-                  </Button>
-                  
-                  <Button
-                    variant="outline" 
-                    onClick={handleChatPenjual}
-                    className="border-primary-500 text-primary-500 hover:bg-primary-50"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat Penjual
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleShare}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </Button>
-                </div>
               </div>
             </div>
 
-            {/* Stats - Right Side */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="text-sm text-center">
-                  <div className="font-bold text-foreground text-lg pb-2">
+            {/* Right Column - Stats (Matches your image) */}
+            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto mt-4 sm:mt-0">
+              <div className="flex items-center space-x-4 sm:space-x-6">
+                {/* Total Products */}
+                <div className="text-center">
+                  <div className="font-bold text-foreground text-sm sm:text-base">
                     {products.length}
                   </div>
-                  <span className="text-sm text-muted-foreground">Total Produk</span>
-                </div>    
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <div className="text-sm text-center">
+                  <span className="text-xs text-muted-foreground">Total Produk</span>
+                </div>
+                
+                {/* Operational Hours */}
+                <div className="text-center">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="ghost" className="p-0 h-auto flex flex-col items-center hover:bg-transparent">
-                        <div className="font-bold text-foreground text-lg flex items-center">
-                          {getTodayOperationalHours()}
-                          <ChevronRight className="w-4 h-4 ml-1" />
+                        <div className="font-bold text-foreground text-sm sm:text-base flex items-center">
+                          <span className="max-w-20 sm:max-w-none truncate">
+                            {getTodayOperationalHours()}
+                          </span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 flex-shrink-0" />
                         </div>
-                        <span className="text-sm text-muted-foreground">Jam Operasional</span>
+                        <span className="text-xs text-muted-foreground">Jam Operasional</span>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
                       <DialogHeader>
-                        <DialogTitle className="flex items-center">
-                          <Clock className="w-5 h-5 mr-2" />
+                        <DialogTitle className="flex items-center text-base sm:text-lg">
                           Jam Operasional Mingguan
                         </DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {getAllWeeklyHours().map((item, index) => (
                           <div 
                             key={index} 
-                            className={`flex justify-between items-center p-3 rounded-lg ${
+                            className={`flex justify-between items-center p-2 sm:p-3 rounded-lg ${
                               item.isToday ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50'
                             }`}
                           >
-                            <span className={`font-medium ${item.isToday ? 'text-primary-700' : 'text-foreground'}`}>
+                            <span className={`font-medium text-sm sm:text-base ${item.isToday ? 'text-primary-700' : 'text-foreground'}`}>
                               {item.day}
-                              {item.isToday && <span className="text-xs ml-2 text-primary-600">(Hari Ini)</span>}
+                              {item.isToday && <span className="text-xs ml-1 sm:ml-2 text-primary-600">(Hari Ini)</span>}
                             </span>
-                            <span className={`${item.isToday ? 'text-primary-700 font-semibold' : 'text-muted-foreground'}`}>
+                            <span className={`text-sm sm:text-base ${item.isToday ? 'text-primary-700 font-semibold' : 'text-muted-foreground'}`}>
                               {item.hours}
                             </span>
                           </div>
                         ))}
                       </div>
-
                     </DialogContent>
                   </Dialog>
                 </div>
               </div>
+              
+              {/* Share Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleShare}
+                className="ml-4 w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0"
+              >
+                <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+              </Button>
             </div>
+          </div>
+
+          {/* Action Buttons - Bottom Row */}
+          <div className="flex flex-row gap-2 mt-4">
+            <Button
+              onClick={handleJadwalkanFitting}
+              className="flex-1 bg-primary-500 hover:bg-primary-600 text-white text-xs sm:text-sm px-3 py-2 h-10"
+            >
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              Jadwalkan Fitting
+            </Button>
+            
+            <Button
+              variant="outline" 
+              onClick={handleChatPenjual}
+              className="flex-1 border-primary-500 text-primary-500 hover:bg-primary-50 text-xs sm:text-sm px-3 py-2 h-10"
+            >
+              <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              Chat Penjual
+            </Button>
           </div>
         </div>
       </Card>
 
       {/* Products Section */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-foreground">Semua Produk</h2>
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Semua Produk</h2>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40 h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -357,16 +361,15 @@ const OwnerProfilePage = ({ ownerId }) => {
             </SelectContent>
           </Select>
         </div>
-
         {products.length === 0 ? (
-          <Card className="py-12">
+          <Card className="py-8 sm:py-12">
             <CardContent className="text-center">
-              <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Belum ada produk tersedia</p>
+              <Package className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+              <p className="text-muted-foreground text-sm sm:text-base">Belum ada produk tersedia</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
             {sortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
