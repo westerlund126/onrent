@@ -55,7 +55,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
 
   // Fetch product data
   useEffect(() => {
-    // Early return if no productId - but still call the hook
     if (!productId) {
       setIsLoading(false);
       return;
@@ -72,12 +71,11 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
         const productData = await response.json();
         setProduct(productData);
         
-        // Set form data including images
         setProductData({
           name: productData.name,
           category: productData.category,
           description: productData.description || '',
-          images: productData.images || [], // Add images
+          images: productData.images || [],
         });
 
         setVariants(
@@ -105,7 +103,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
     fetchProduct();
   }, [productId, router]);
 
-  // Early return after hooks
   if (!productId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -121,7 +118,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
     setProductData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Add image handling functions
   const handleImageUpload = (url: string) => {
     setProductData(prev => ({ ...prev, images: [...prev.images, url] }));
   };
@@ -130,12 +126,31 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
     setProductData(prev => ({ ...prev, images: prev.images.filter(image => image !== url) }));
   };
 
+  // MODIFIED: This function now handles price formatting
   const handleVariantChange = (index: number, field: keyof VariantFormData, value: string | boolean) => {
-    setVariants(prev =>
-      prev.map((variant, i) =>
-        i === index ? { ...variant, [field]: value } : variant
-      )
-    );
+    if (field === 'price' && typeof value === 'string') {
+      // Remove thousand separators (periods) to get the raw number string
+      const rawValue = value.replace(/\./g, '');
+
+      // Allow only digits. If not, do nothing.
+      if (!/^\d*$/.test(rawValue)) {
+        return;
+      }
+
+      // Update state with the raw numeric string
+      setVariants(prev =>
+        prev.map((variant, i) =>
+          i === index ? { ...variant, price: rawValue } : variant
+        )
+      );
+    } else {
+      // Handle other fields normally
+      setVariants(prev =>
+        prev.map((variant, i) =>
+          i === index ? { ...variant, [field]: value } : variant
+        )
+      );
+    }
   };
 
   const addVariant = () => {
@@ -162,14 +177,11 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
     setVariants(prev => prev.filter((_, i) => i !== index));
   };
 
- 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!product) return;
 
-    // Validation including images
     if (!productData.name || !productData.category || !productData.description) {
       toast.error('Lengkapi semua data produk');
       return;
@@ -185,7 +197,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
       return;
     }
 
-    // Convert string values to numbers for numeric fields
     const processedVariants = variants.map(variant => ({
       id: variant.id,
       size: variant.size,
@@ -207,7 +218,7 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...productData, // Now includes images
+          ...productData,
           variants: processedVariants,
         }),
       });
@@ -303,7 +314,6 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
               />
             </div>
 
-            {/* Add ImageUpload component */}
             <div>
               <Label className="block my-2">Gambar Produk</Label>
               <ImageUpload
@@ -357,14 +367,16 @@ const EditProductForm = ({ productId }: EditProductFormProps) => {
                       disabled={isSubmitting}
                     />
                   </div>
+                  {/* MODIFIED: This is the updated price input */}
                   <div>
                     <Label htmlFor={`price-${index}`}>Harga (Rp)</Label>
                     <Input
                       id={`price-${index}`}
                       name="price"
-                      type="number"
-                      placeholder="100000"
-                      value={variant.price}
+                      type="text" 
+                      inputMode="numeric"
+                      placeholder="100.000"
+                      value={variant.price ? new Intl.NumberFormat('id-ID').format(Number(variant.price)) : ''}
                       onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
                       disabled={isSubmitting}
                     />

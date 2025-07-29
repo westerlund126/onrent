@@ -15,6 +15,7 @@ const nextConfig = {
       'scontent.fotp8-1.fna.fbcdn.net',
       'onrent.onrent.live',
       'res.cloudinary.com',
+      'api.dicebear.com',
     ],
     unoptimized: true,
   },

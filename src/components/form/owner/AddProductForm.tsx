@@ -62,9 +62,22 @@ const AddProductForm = () => {
 
   const handleVariantChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, [name]: value } : v))
-    );
+
+    if (name === 'price') {
+      const rawValue = value.replace(/\./g, '');
+
+      if (!/^\d*$/.test(rawValue)) {
+        return;
+      }
+
+      setVariants((prev) =>
+        prev.map((v, i) => (i === index ? { ...v, price: rawValue } : v))
+      );
+    } else {
+      setVariants((prev) =>
+        prev.map((v, i) => (i === index ? { ...v, [name]: value } : v))
+      );
+    }
   };
 
   const addVariant = () => {
@@ -296,9 +309,10 @@ const AddProductForm = () => {
                   <Input
                     id={`price-${index}`}
                     name="price"
-                    type="number"
-                    placeholder="100000"
-                    value={variant.price}
+                    type="text" 
+                    inputMode="numeric"
+                    placeholder="100.000"
+                    value={variant.price ? new Intl.NumberFormat('id-ID').format(Number(variant.price)) : ''}
                     onChange={(e) => handleVariantChange(index, e)}
                     disabled={isSubmitting}
                   />

@@ -1,17 +1,10 @@
 import { BenefitsSection } from "components/customer/layout/sections/benefits";
 import { CategoryShowcase } from "components/customer/layout/sections/category";
-import { CommunitySection } from "components/customer/layout/sections/community";
-import { ContactSection } from "components/customer/layout/sections/contact";
 import { FAQSection } from "components/customer/layout/sections/faq";
-import { FeaturesSection } from "components/customer/layout/sections/features";
-import { FooterSection } from "components/customer/layout/sections/footer";
 import { HeroSection } from "components/customer/layout/sections/hero";
 import NewArrivals from "components/customer/layout/sections/newarrivals";
-import { PricingSection } from "components/customer/layout/sections/pricing";
-import { ServicesSection } from "components/customer/layout/sections/services";
 import { SponsorsSection } from "components/customer/layout/sections/sponsors";
-import { TeamSection } from "components/customer/layout/sections/team";
-import { TestimonialSection } from "components/customer/layout/sections/testimonial";
+
 
 export const metadata = {
   title: "Customer Portal - Welcome",
@@ -45,20 +38,22 @@ export default function CustomerLanding() {
   return (
     <>
       <HeroSection />
-      <SponsorsSection />
+
+      <div className="bg-muted/40 dark:bg-muted/20">
+        <SponsorsSection />
+      </div>
+
       <CategoryShowcase/>
-      <BenefitsSection />
+
+      <div className="bg-muted/40 dark:bg-muted/20">
+        <BenefitsSection />
+      </div>
+
       <NewArrivals />
 
-      {/* <FeaturesSection />
-      <ServicesSection /> */}
-      {/* <TestimonialSection />
-      <TeamSection />
-      <CommunitySection />
-      <PricingSection />
-      <ContactSection /> */}
-      <FAQSection />
-      {/* <FooterSection /> */}
+      <div className="bg-muted/40 dark:bg-muted/20">
+        <FAQSection />
+      </div>
     </>
   );
 }

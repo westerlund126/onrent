@@ -1,5 +1,5 @@
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Card from 'components/card';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -10,8 +10,8 @@ type ProductCardProps = {
     id: number;
     name: string;
     images: string[];
-    owner: { 
-      id: number; 
+    owner: {
+      id: number;
       username?: string;
       businessName?: string | null;
       first_name?: string;
@@ -28,12 +28,31 @@ type ProductCardProps = {
 const ProductCard = ({ product, extra }: ProductCardProps) => {
   const router = useRouter();
   const { isInWishlist, toggleWishlist, loading } = useWishlist(product.id);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const minPrice = useMemo(() => {
     return Math.min(...product.VariantProducts.map((v) => v.price));
   }, [product.VariantProducts]);
 
-  // Get owner display name
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isHovered && product.images.length > 1) {
+      interval = setInterval(() => {
+        setCurrentImageIndex((prevIndex) =>
+          (prevIndex + 1) % product.images.length
+        );
+      }, 1000); // You can adjust the interval duration here
+    } else {
+      setCurrentImageIndex(0);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isHovered, product.images.length]);
+
   const ownerName = useMemo(() => {
     if (product.owner.businessName) {
       return product.owner.businessName;
@@ -60,76 +79,85 @@ const ProductCard = ({ product, extra }: ProductCardProps) => {
 
   return (
     <Card
-      extra={`group relative flex flex-col w-full h-full !p-0 bg-white overflow-hidden cursor-pointer 
-               transform transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-xl 
-               border border-gray-100 hover:border-gray-200 ${extra}`}
+      extra={`group relative flex flex-col w-full h-full !p-0 bg-white overflow-hidden cursor-pointer
+              transform transition-all duration-300 ease-in-out hover:shadow-lg
+              border-0 shadow-sm hover:shadow-xl ${extra}`}
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative w-full aspect-square overflow-hidden">
-        <Image
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
-          src={product.images[0]}
-          alt={product.name}
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        />
+      {/* Image Container */}
+      <div className="relative w-full aspect-[3/4] overflow-hidden rounded-t-xl">
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent 
-                        opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {product.images.map((src, index) => (
+          <Image
+            key={src} 
+            fill
+            priority={index === 0} 
+            className={`
+              object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105
+              ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}
+            `}
+            src={src}
+            alt={`${product.name} image ${index + 1}`}
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+          />
+        ))}
+        {/* --- CHANGE END --- */}
         
+        {/* Wishlist Button */}
         <button
           onClick={handleWishlistClick}
           disabled={loading}
-          className={`absolute right-3 top-3 flex items-center justify-center rounded-full 
-                     bg-white/90 backdrop-blur-sm p-2.5 transition-all duration-200 shadow-lg
+          className={`absolute right-2 top-2 flex items-center justify-center rounded-full
+                     bg-white/95 backdrop-blur-sm p-2 transition-all duration-200 shadow-md
                      transform hover:scale-110 active:scale-95 z-10
-                     ${loading 
-                       ? 'cursor-not-allowed opacity-70' 
-                       : 'hover:bg-white hover:shadow-xl cursor-pointer'
+                     ${loading
+                       ? 'cursor-not-allowed opacity-70'
+                       : 'hover:bg-white hover:shadow-lg cursor-pointer'
                      }`}
         >
           {isInWishlist ? (
-            <IoHeart className="text-red-500 text-lg drop-shadow-sm" />
+            <IoHeart className="text-red-500 text-base" />
           ) : (
-            <IoHeartOutline className="text-lg text-gray-600 hover:text-red-500 transition-colors" />
+            <IoHeartOutline className="text-base text-gray-600 hover:text-red-500 transition-colors" />
           )}
         </button>
 
-        <div className="absolute inset-x-0 bottom-0 p-4 transform translate-y-full 
-                        group-hover:translate-y-0 transition-transform duration-300 ease-out
-                        hidden sm:block">
+        {/* Hover Overlay with Button */}
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100
+                        transition-opacity duration-300 flex items-end justify-center pb-4">
+          <button
+            onClick={handleSchedule}
+            className="bg-white text-gray-900 font-medium py-2.5 px-6 rounded-lg
+                       transition-all duration-200 transform translate-y-4 group-hover:translate-y-0
+                       hover:bg-gray-50 shadow-lg text-sm"
+          >
+            Jadwalkan Fitting
+          </button>
         </div>
       </div>
 
-      <div className="p-4 sm:p-5 flex flex-col flex-grow">
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-2 
-                       leading-tight mb-2 min-h-[2.5rem] sm:min-h-[3rem]">
+      {/* Content Container */}
+      <div className="p-3 sm:p-4 flex flex-col flex-grow">
+        {/* Owner Name */}
+        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium truncate mb-1">
+          {ownerName}
+        </p>
+        
+        {/* Product Name */}
+        <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2
+                       leading-tight mb-2 flex-grow">
           {product.name}
-        </h3>        
+        </h3>
+        
+        {/* Price */}
         <div className="mt-auto">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-gray-500 block">Mulai dari</span>
-              <p className="text-lg sm:text-xl font-bold text-brand-900 truncate">
-                Rp {minPrice.toLocaleString('id-ID')}
-              </p>
-            </div>
-            
-            <button 
-              onClick={handleSchedule}
-              className="flex-shrink-0 bg-gradient-to-r from-brand-900 to-brand-700 hover:from-brand-700 hover:to-brand-800 
-                         text-white font-medium py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg transition-all duration-200
-                         transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg
-                         text-xs sm:text-sm whitespace-nowrap"
-            >
-              Jadwalkan Fitting
-            </button>
-          </div>
+          <p className="text-base sm:text-lg font-bold text-gray-900">
+            Rp {minPrice.toLocaleString('id-ID')}
+          </p>
         </div>
       </div>
-
-      <div className="absolute inset-0 rounded-xl border-2 border-transparent 
-                      group-hover:border-blue-100 transition-all duration-300 pointer-events-none" />
     </Card>
   );
 };
