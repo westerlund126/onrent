@@ -27,5 +27,5 @@ export default async function RedirectPage() {
     return redirect('/customer');
   }
 
-  return redirect('/sign-in'); 
+  return redirect('/sign-up'); 
 }
