@@ -36,19 +36,18 @@ const verifyWebhook = async (body: string, headers: Record<string, string>) => {
   }
 };
 
-const storeUserInDatabase = async (userData: any) => {
+const syncUserToDatabase = async (userData: any, action: 'created' | 'updated') => {
   try {
-    const existingUser = await prisma.user.findUnique({
+    const user = await prisma.user.upsert({
       where: { clerkUserId: userData.id },
-    });
-
-    if (existingUser) {
-      console.log(`User ${userData.id} already exists in database`);
-      return existingUser;
-    }
-
-    return await prisma.user.create({
-      data: {
+      update: {
+        email: userData.email_addresses[0]?.email_address,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        username: userData.username,
+        imageUrl: userData.image_url,
+      },
+      create: {
         clerkUserId: userData.id,
         email: userData.email_addresses[0]?.email_address,
         first_name: userData.first_name,
@@ -57,39 +56,12 @@ const storeUserInDatabase = async (userData: any) => {
         imageUrl: userData.image_url,
       },
     });
+
+    console.log(`✅ User ${action}: ${userData.id} (${user.email})`);
+    return user;
   } catch (error) {
-    console.error('Error: Failed to store user in the database:', error);
-    throw new Error('Failed to store user in the database');
-  }
-};
-
-const updateUserInDatabase = async (userData: any) => {
-  try {
-    // Check if user exists first
-    const existingUser = await prisma.user.findUnique({
-      where: { clerkUserId: userData.id },
-    });
-
-    if (!existingUser) {
-      console.log(
-        `User ${userData.id} not found in database for update, creating new user`,
-      );
-      return await storeUserInDatabase(userData);
-    }
-
-    return await prisma.user.update({
-      where: { clerkUserId: userData.id },
-      data: {
-        email: userData.email_addresses[0]?.email_address,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        username: userData.username,
-        imageUrl: userData.image_url,
-      },
-    });
-  } catch (error) {
-    console.error('Error: Failed to update user in the database:', error);
-    throw new Error('Failed to update user in the database');
+    console.error(`Error: Failed to ${action === 'created' ? 'create' : 'update'} user in database:`, error);
+    throw new Error(`Failed to ${action === 'created' ? 'create' : 'update'} user in database`);
   }
 };
 
@@ -102,16 +74,13 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
         });
 
         if (!user) {
-          console.log(
-            `User with clerkUserId ${clerkUserId} not found in database`,
-          );
+          console.log(`User with clerkUserId ${clerkUserId} not found in database`);
           return;
         }
 
-        console.log(
-          `Starting deletion process for user ${user.id} (${clerkUserId})`,
-        );
+        console.log(`Starting deletion process for user ${user.id} (${clerkUserId})`);
 
+        // Delete in the correct order to avoid foreign key constraints
         const deletedFittingProducts = await tx.fittingProduct.deleteMany({
           where: { ownerId: user.id },
         });
@@ -120,16 +89,12 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
         const userFittingSchedules = await tx.fittingSchedule.deleteMany({
           where: { userId: user.id },
         });
-        console.log(
-          `Deleted ${userFittingSchedules.count} user fitting schedules`,
-        );
+        console.log(`Deleted ${userFittingSchedules.count} user fitting schedules`);
 
         const ownerFittingSchedules = await tx.fittingSchedule.deleteMany({
           where: { ownerId: user.id },
         });
-        console.log(
-          `Deleted ${ownerFittingSchedules.count} owner fitting schedules`,
-        );
+        console.log(`Deleted ${ownerFittingSchedules.count} owner fitting schedules`);
 
         const deletedFittingSlots = await tx.fittingSlot.deleteMany({
           where: { ownerId: user.id },
@@ -146,6 +111,7 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
         });
         console.log(`Deleted ${deletedScheduleBlocks.count} schedule blocks`);
 
+        // Handle rentals and related data
         const userRentals = await tx.rental.findMany({
           where: { userId: user.id },
           select: { id: true },
@@ -186,6 +152,7 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
         });
         console.log(`Deleted ${deletedOwnerRentals.count} owner rentals`);
 
+        // Handle products and variants
         const userProducts = await tx.products.findMany({
           where: { ownerId: user.id },
           select: { id: true },
@@ -196,9 +163,7 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
           const deletedVariantProducts = await tx.variantProducts.deleteMany({
             where: { productsId: { in: productIds } },
           });
-          console.log(
-            `Deleted ${deletedVariantProducts.count} variant products`,
-          );
+          console.log(`Deleted ${deletedVariantProducts.count} variant products`);
         }
 
         const deletedWishlist = await tx.wishlist.deleteMany({
@@ -211,13 +176,12 @@ const deleteUserFromDatabase = async (clerkUserId: string) => {
         });
         console.log(`Deleted ${deletedProducts.count} products`);
 
+        // Finally delete the user
         await tx.user.delete({
           where: { id: user.id },
         });
 
-        console.log(
-          `User ${clerkUserId} and all related records deleted successfully`,
-        );
+        console.log(`✅ User ${clerkUserId} and all related records deleted successfully`);
       },
       {
         maxWait: 30000, 
@@ -243,7 +207,7 @@ export async function POST(req: Request) {
       'svix-signature': svix_signature,
     });
 
-    console.log('Verified event:', evt.type, 'for user:', evt.data.id);
+    console.log(`📨 Webhook received: ${evt.type} for user: ${evt.data.id}`);
 
     switch (evt.type) {
       case 'user.created': {
@@ -256,17 +220,18 @@ export async function POST(req: Request) {
           last_name,
         } = evt.data;
 
-        const newUser = await storeUserInDatabase({
+        const newUser = await syncUserToDatabase({
           id,
           email_addresses,
           username,
           image_url,
           first_name,
           last_name,
-        });
+        }, 'created');
 
-        return new Response(JSON.stringify(newUser), {
+        return new Response(JSON.stringify({ success: true, user: newUser }), {
           status: 201,
+          headers: { 'Content-Type': 'application/json' },
         });
       }
 
@@ -280,17 +245,18 @@ export async function POST(req: Request) {
           last_name,
         } = evt.data;
 
-        const updatedUser = await updateUserInDatabase({
+        const updatedUser = await syncUserToDatabase({
           id,
           email_addresses,
           username,
           image_url,
           first_name,
           last_name,
-        });
+        }, 'updated');
 
-        return new Response(JSON.stringify(updatedUser), {
+        return new Response(JSON.stringify({ success: true, user: updatedUser }), {
           status: 200,
+          headers: { 'Content-Type': 'application/json' },
         });
       }
 
@@ -301,6 +267,7 @@ export async function POST(req: Request) {
 
         return new Response(
           JSON.stringify({
+            success: true,
             message: 'User and all related records deleted successfully',
           }),
           {
@@ -311,9 +278,10 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log(`Unhandled webhook event type: ${evt.type}`);
+        console.log(`⚠️ Unhandled webhook event type: ${evt.type}`);
         return new Response(
           JSON.stringify({
+            success: true,
             message: 'Webhook received but event type is not handled',
           }),
           {
@@ -323,12 +291,25 @@ export async function POST(req: Request) {
         );
     }
   } catch (err: any) {
-    console.error('Error handling webhook:', err);
+    console.error('❌ Error handling webhook:', err);
+    
+    // Return 200 for verification errors to avoid retries
+    if (err.message === 'Verification error') {
+      return new Response(
+        JSON.stringify({ error: 'Webhook verification failed' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    // Return 500 for other errors so Clerk will retry
     return new Response(
       JSON.stringify({ error: err.message || 'Unknown error' }),
       {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        status: 500,
+      headers: { 'Content-Type': 'application/json' },
       },
     );
   }
