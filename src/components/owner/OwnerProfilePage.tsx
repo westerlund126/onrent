@@ -258,69 +258,69 @@ const OwnerProfilePage = ({ ownerId }) => {
               </div>
             </div>
 
-            {/* Right Column - Stats (Matches your image) */}
-            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto mt-4 sm:mt-0">
-              <div className="flex items-center space-x-4 sm:space-x-6">
-                {/* Total Products */}
-                <div className="text-center">
-                  <div className="font-bold text-foreground text-sm sm:text-base">
-                    {products.length}
-                  </div>
-                  <span className="text-xs text-muted-foreground">Total Produk</span>
+            {/* Right Column - Stats with Equal Spacing */}
+            <div className="flex items-center justify-between w-full sm:w-auto mt-4 sm:mt-0 gap-4 sm:gap-6">
+              {/* Total Products */}
+              <div className="text-center flex-1 sm:flex-none">
+                <div className="font-bold text-foreground text-sm sm:text-base">
+                  {products.length}
                 </div>
-                
-                {/* Operational Hours */}
-                <div className="text-center">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" className="p-0 h-auto flex flex-col items-center hover:bg-transparent">
-                        <div className="font-bold text-foreground text-sm sm:text-base flex items-center">
-                          <span className="max-w-20 sm:max-w-none truncate">
-                            {getTodayOperationalHours()}
-                          </span>
-                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 flex-shrink-0" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">Jam Operasional</span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center text-base sm:text-lg">
-                          Jam Operasional Mingguan
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-2 sm:space-y-3">
-                        {getAllWeeklyHours().map((item, index) => (
-                          <div 
-                            key={index} 
-                            className={`flex justify-between items-center p-2 sm:p-3 rounded-lg ${
-                              item.isToday ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50'
-                            }`}
-                          >
-                            <span className={`font-medium text-sm sm:text-base ${item.isToday ? 'text-primary-700' : 'text-foreground'}`}>
-                              {item.day}
-                              {item.isToday && <span className="text-xs ml-1 sm:ml-2 text-primary-600">(Hari Ini)</span>}
-                            </span>
-                            <span className={`text-sm sm:text-base ${item.isToday ? 'text-primary-700 font-semibold' : 'text-muted-foreground'}`}>
-                              {item.hours}
-                            </span>
-                          </div>
-                        ))}
+                <span className="text-xs text-muted-foreground">Total Produk</span>
+              </div>
+              
+              {/* Operational Hours */}
+              <div className="text-center flex-1 sm:flex-none">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" className="p-0 h-auto flex flex-col items-center hover:bg-transparent">
+                      <div className="font-bold text-foreground text-sm sm:text-base flex items-center">
+                        <span className="max-w-20 sm:max-w-none truncate">
+                          {getTodayOperationalHours()}
+                        </span>
+                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 flex-shrink-0" />
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                      <span className="text-xs text-muted-foreground">Jam Operasional</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md mx-4 sm:mx-0">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center text-base sm:text-lg">
+                        Jam Operasional Mingguan
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 sm:space-y-3">
+                      {getAllWeeklyHours().map((item, index) => (
+                        <div 
+                          key={index} 
+                          className={`flex justify-between items-center p-2 sm:p-3 rounded-lg ${
+                            item.isToday ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50'
+                          }`}
+                        >
+                          <span className={`font-medium text-sm sm:text-base ${item.isToday ? 'text-primary-700' : 'text-foreground'}`}>
+                            {item.day}
+                            {item.isToday && <span className="text-xs ml-1 sm:ml-2 text-primary-600">(Hari Ini)</span>}
+                          </span>
+                          <span className={`text-sm sm:text-base ${item.isToday ? 'text-primary-700 font-semibold' : 'text-muted-foreground'}`}>
+                            {item.hours}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               
               {/* Share Button */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                className="ml-4 w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0"
-              >
-                <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
+              <div className="flex-1 sm:flex-none flex justify-center sm:justify-end">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0"
+                >
+                  <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                </Button>
+              </div>
             </div>
           </div>
 

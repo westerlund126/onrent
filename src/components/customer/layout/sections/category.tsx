@@ -21,7 +21,7 @@ const categoryData = [
   },
   {
     name: 'Gaun Pengantin',
-    imageSrc: '/img/jas.jpg',
+    imageSrc: '/img/wedding.jpg',
     href: '/customer/catalog?category=GAUN_PENGANTIN',
   },
   {
@@ -107,7 +107,7 @@ export function CategoryShowcase() {
 
                       }}/>
                     <div className="relative z-10 flex h-full flex-col items-center justify-center p-3 sm:p-4 text-center">
-                      <h3 className="text-3xl sm:text-xl md:text-2xl lg:text-3xl font-medium text-white leading-tight">
+                      <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-white leading-tight">
                         {category.name}
                       </h3>
                       <Button
