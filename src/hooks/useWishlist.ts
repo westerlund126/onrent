@@ -69,10 +69,11 @@ export const useWishlist = (productId: string | number) => {
 
         if (response.ok) {
           setIsInWishlist(true);
+          toast.success('Berhasil menambahkan ke favorit');
         } else {
           const error = await response.json();
           console.error('Error adding to wishlist:', error);
-          toast.error(error.message || 'Failed to add to wishlist');
+          toast.error(error.message || 'Gagal menambahkan ke favorit');
 
           if (response.status === 409) {
             setIsInWishlist(true);
@@ -81,7 +82,7 @@ export const useWishlist = (productId: string | number) => {
       }
     } catch (error) {
       console.error('Error toggling wishlist:', error);
-      toast.error('Something went wrong');
+      toast.error('Terjadi kesalahan saat mengubah status favorit');
     } finally {
       setLoading(false);
     }
