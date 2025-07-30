@@ -7,7 +7,7 @@ export default async function RedirectPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    return redirect('/sign-in');
+    return redirect('/sign-up');
   }
 
   const user = await prisma.user.findUnique({
@@ -16,7 +16,7 @@ export default async function RedirectPage() {
   });
 
   if (!user) {
-    return redirect('/sign-in');
+    return redirect('/sign-up');
   }
 
   if (user.role === 'ADMIN') {
