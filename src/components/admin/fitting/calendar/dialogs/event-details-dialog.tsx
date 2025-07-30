@@ -12,6 +12,7 @@ import {
   Receipt,
   Maximize2,
   X,
+  PhoneCall,
 } from 'lucide-react';
 import { useScheduleStore } from 'stores/useScheduleStore';
 
@@ -144,6 +145,18 @@ export function EventDetailsDialog({ schedule, children }: IProps) {
                   <p className="text-sm font-medium">Pelanggan</p>
                   <p className="text-sm text-muted-foreground">
                     {fittingData.user.first_name} {fittingData.user.last_name}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isFittingEvent && fittingData && (
+              <div className="flex items-start gap-3">
+                <PhoneCall className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">No Telepon</p>
+                  <p className="text-sm text-muted-foreground">
+                    {fittingData.user.phone_numbers}
                   </p>
                 </div>
               </div>
