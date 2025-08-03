@@ -45,6 +45,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { RentalFormProps, SelectedProduct } from 'types/rental';
+import { toast } from 'sonner';
 
 const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
   const [formData, setFormData] = useState({
@@ -349,8 +350,10 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
 
       if (!response.ok) {
         throw new Error(result.error || 'Gagal membuat transaksi sewa');
+        toast.error("Gagal membuat transaksi sewa!");
       }
       setSubmitSuccess(true);
+      toast.success("Transaksi sewa berhasil dibuat!");
 
       if (onSuccess) {
         onSuccess(result.data);
@@ -361,6 +364,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
       }, 1500);
     } catch (error) {
       console.error('Rental submission error:', error);
+      toast.error("Gagal menambahkan transaksi!");
       setSubmitError(
         error instanceof Error ? error.message : 'Gagal membuat transaksi sewa',
       );

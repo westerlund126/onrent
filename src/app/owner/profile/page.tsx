@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from 'stores/useUserStore';
 import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
-
-// Import the new components
 import MainProfileCard from 'components/owner/profile/MainProfileCard';
 import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';

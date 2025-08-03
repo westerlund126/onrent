@@ -24,7 +24,7 @@ const NavbarCustomer = (props: {
     { href: "/customer/default", text: "Beranda" },
     { href: "/customer/catalog", text: "Katalog" },
     { href: "/customer/activities", text: "Aktivitas" },
-    { href: "/customer/wishlist", text: "Wishlist" },
+    { href: "/customer/wishlist", text: "Favorit" },
   ];
 
   return (
@@ -56,7 +56,7 @@ const NavbarCustomer = (props: {
           <SearchComponent />
         </div>
 
-        <Dropdown
+        {/* <Dropdown
           button={
             <p className="cursor-pointer">
               <IoMdNotificationsOutline className="h-7 w-7 text-gray-600 dark:text-white" />
@@ -68,7 +68,7 @@ const NavbarCustomer = (props: {
           <div className="flex w-[320px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl dark:!bg-navy-700 dark:text-white sm:w-[400px]">
             <p className="font-bold">Notifications</p>
           </div>
-        </Dropdown>
+        </Dropdown> */}
         
         <UserButton
           appearance={{

@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       note,
       variantIds = [],
       tfProofUrl,
+      phoneNumber,
     } = await request.json();
 
     if (!fittingSlotId) {
@@ -45,11 +46,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (phoneNumber && phoneNumber !== user.phone_numbers) {
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { phone_numbers: phoneNumber },
+  });
+}
+
     const variantIdsNumeric: number[] = Array.from(
       new Set(
         variantIds.map((id: any) => parseInt(id)).filter((id) => !isNaN(id))
       ),
     );
+
 
     const fittingSlot = await prisma.fittingSlot.findUnique({
       where: { id: parseInt(fittingSlotId) },

@@ -31,7 +31,7 @@ const Navbar = (props: {
               className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
               href=" "
             >
-              Pages
+              Halaman
               <span className="mx-1 text-sm text-navy-700 hover:text-navy-700 dark:text-white">
                 {' '}
                 /{' '}
@@ -62,7 +62,7 @@ const Navbar = (props: {
             <FiAlignJustify className="h-5 w-5" />
           </span>
           {/* start Notification */}
-          <Dropdown
+          {/* <Dropdown
             button={
               <p className="cursor-pointer">
                 <IoMdNotificationsOutline className="h-7 w-7 text-gray-600 dark:text-white" />
@@ -109,7 +109,7 @@ const Navbar = (props: {
                 </div>
               </button>
             </div>
-          </Dropdown>
+          </Dropdown> */}
 
           <UserButton
             appearance={{

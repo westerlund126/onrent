@@ -314,7 +314,7 @@ const availableTimes = useMemo(() => {
                         type="text"
                         placeholder="Masukkan nama lengkap"
                         value={formData.customerName}
-                        onChange={(e) => updateFormField('customerName', e.target.value)}
+                        readOnly
                         className="h-12 border-gray-200 pl-10"
                         required
                       />
@@ -467,7 +467,7 @@ const availableTimes = useMemo(() => {
                   disabled={isSubmitting}
                 />
                 <p className="text-xs text-gray-500">
-                  Unggah bukti transfer jika diperlukan oleh penyedia jasa.
+                  Lakukan pembayaran sebesar Rp 100.000 pada nomor rekening yang ada pada detail penyedia, dan unggah bukti transfernya disini.
                 </p>
               </div>
 
@@ -662,7 +662,7 @@ const availableTimes = useMemo(() => {
                     'Datang tepat waktu sesuai jadwal yang dipilih',
                     'Kenakan pakaian yang mudah diganti',
                     'Bawa perlengkapan tambahan jika diperlukan',
-                    'Fitting berlangsung sekitar 30-45 menit',
+                    'Fitting berlangsung sekitar 60 menit',
                     'Hubungi penyedia jika ada perubahan jadwal',
                   ].map((guideline, index) => (
                     <div key={index} className="flex items-start gap-2">

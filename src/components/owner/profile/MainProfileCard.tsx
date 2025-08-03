@@ -83,14 +83,14 @@ const MainProfileCard = ({
                 className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-green-700 focus:ring-4 focus:ring-green-500/20 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
               >
                 <FiSave className="w-4 h-4" />
-                <span>Save Changes</span>
+                <span>Simpan</span>
               </button>
               <button
                 onClick={onCancel}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <FiX className="w-4 h-4" />
-                <span>Cancel</span>
+                <span>Batal</span>
               </button>
             </div>
           ) : (
@@ -99,7 +99,7 @@ const MainProfileCard = ({
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-6 rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
             >
               <FiEdit className="w-4 h-4" />
-              <span>Edit Profile</span>
+              <span>Edit Profil</span>
             </button>
           )}
         </div>
