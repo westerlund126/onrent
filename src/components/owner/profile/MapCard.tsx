@@ -127,12 +127,8 @@ const MapCard: React.FC<MapCardProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Using Nominatim (OpenStreetMap) geocoding service
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          address,
-        )}&limit=1`,
-      );
+      // Use the same API endpoint as the address autocomplete
+      const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
 
       if (!response.ok) {
         throw new Error('Failed to geocode address');
@@ -140,9 +136,11 @@ const MapCard: React.FC<MapCardProps> = ({
 
       const data = await response.json();
 
-      if (data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
+      if (data.success && data.results && data.results.length > 0) {
+        // Use the first result
+        const result = data.results[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
         setCoordinates([lat, lon]);
         // Force map re-render when coordinates change
         setMapKey(prev => prev + 1);

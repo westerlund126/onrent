@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Phone, Mail, User, Building2, Search, Navigation, CreditCard } from 'lucide-react';
-
+import { useUserStore } from 'stores/useUserStore';
 interface ProfileData {
   businessName: string;
   businessAddress: string;
   email: string;
-  phone: string;
-  firstName: string;
-  lastName: string;
+  phone_numbers: string; // Changed from 'phone' to match API
+  first_name: string;    // Changed from 'firstName' to match API
+  last_name: string;     // Changed from 'lastName' to match API
   username: string;
-  description: string;
+  businessBio: string;   // Changed from 'description' to match API
   imageUrl: string;
 }
 
@@ -22,6 +22,7 @@ interface BusinessInfoCardProps {
   profileData: ProfileData;
   isEditing: boolean;
   onProfileDataChange: (data: ProfileData) => void;
+  onSave?: () => Promise<void>; // Optional save callback
 }
 
 interface AddressSuggestion {
@@ -124,14 +125,11 @@ const AddressAutocomplete: React.FC<{
     }
   };
 
-  // Fixed handleBlur to prevent interference with suggestion clicks
   const handleBlur = (e: React.FocusEvent) => {
-    // Don't hide suggestions if the focus moved to a suggestion item
     if (suggestionsRef.current?.contains(e.relatedTarget as Node)) {
       return;
     }
     
-    // Use a longer timeout to ensure click events can complete
     setTimeout(() => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
@@ -195,9 +193,8 @@ const AddressAutocomplete: React.FC<{
               return (
                 <div
                   key={suggestion.place_id}
-                  // Use onMouseDown instead of onClick to trigger before onBlur
                   onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent input from losing focus
+                    e.preventDefault();
                     handleSuggestionClick(suggestion);
                   }}
                   className={`cursor-pointer px-4 py-3 transition-colors ${
@@ -240,7 +237,11 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
   profileData,
   isEditing,
   onProfileDataChange,
+  onSave,
 }) => {
+  const { updateBusinessProfile, isLoading, error } = useUserStore();
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     onProfileDataChange({
       ...profileData,
@@ -248,15 +249,61 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
     });
   };
 
+  // Auto-save function that calls the API
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      // Use the Zustand store to update the profile
+      await updateBusinessProfile({
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        username: profileData.username,
+        phone_numbers: profileData.phone_numbers,
+        businessAddress: profileData.businessAddress,
+        businessName: profileData.businessName,
+        businessBio: profileData.businessBio,
+      });
+
+      // Call optional onSave callback
+      if (onSave) {
+        await onSave();
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Auto-save when editing is finished (you can also trigger this manually)
+  useEffect(() => {
+    if (!isEditing && profileData.businessName) {
+      // Only auto-save if we have some data and just finished editing
+      handleSave();
+    }
+  }, [isEditing]);
+
   return (
     <Card className="border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center text-xl text-gray-800">
-          <div className="mr-3 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 p-2">
-            <User className="h-5 w-5 text-white" />
+        <CardTitle className="flex items-center justify-between text-xl text-gray-800">
+          <div className="flex items-center">
+            <div className="mr-3 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 p-2">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            Informasi Bisnis
           </div>
-          Informasi Bisnis
+          {(isSaving || isLoading) && (
+            <div className="text-sm text-gray-500">Menyimpan...</div>
+          )}
         </CardTitle>
+        {error && (
+          <div className="text-sm text-red-500 mt-2">
+            Error: {error}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Business Name */}
@@ -324,14 +371,14 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
                 </p>
                 {isEditing ? (
                   <Input
-                    value={profileData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    value={profileData.phone_numbers}
+                    onChange={(e) => handleInputChange('phone_numbers', e.target.value)}
                     placeholder="Nomor telepon"
                     className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                   />
                 ) : (
                   <p className="break-all text-sm text-gray-600">
-                    {profileData.phone}
+                    {profileData.phone_numbers}
                   </p>
                 )}
               </div>
@@ -352,6 +399,7 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
                     placeholder="Email bisnis"
                     className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                     type="email"
+                    disabled // Email shouldn't be editable since it's not in the API
                   />
                 ) : (
                   <p className="break-all text-sm text-gray-600">
@@ -370,42 +418,34 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
                   Nomor Rekening
                 </p>
                 {isEditing ? (
-              <Input
-                value={profileData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="BCA: 12345321243"
-                className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            ) : (
-              <p className="break-all text-sm text-gray-600">
-                {profileData.description}
-              </p>
-            )}
+                  <Input
+                    value={profileData.businessBio}
+                    onChange={(e) => handleInputChange('businessBio', e.target.value)}
+                    placeholder="BCA: 12345321243"
+                    className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                ) : (
+                  <p className="break-all text-sm text-gray-600">
+                    {profileData.businessBio}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Business Description */}
-        {/* <div className="space-y-3">
-          <h3 className="border-b border-gray-200 pb-2 text-base font-bold text-gray-800">
-            Nomor Rekening
-          </h3>
-          <div className="rounded-xl bg-gray-50 p-4">
-            {isEditing ? (
-              <Input
-                value={profileData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="BCA: 12345321243"
-                className="min-h-24 border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            ) : (
-              <p className="text-sm leading-relaxed text-gray-700">
-                {profileData.description}
-              </p>
-            )}
+        {/* Manual Save Button (optional) */}
+        {isEditing && (
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={handleSave}
+              disabled={isSaving || isLoading}
+              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving || isLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
           </div>
-        </div> */}
+        )}
       </CardContent>
     </Card>
   );
