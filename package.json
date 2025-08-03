@@ -68,7 +68,7 @@
     "react-dom": "19.0.0",
     "react-hook-form": "^7.56.4",
     "react-icons": "^4.4.0",
-    "react-leaflet": "^5.0.0",
+    "react-leaflet": "^5.0.0-rc.2",
     "react-no-ssr": "^1.1.0",
     "react-onesignal": "^3.2.3",
     "react-router-dom": "^6.4.0",

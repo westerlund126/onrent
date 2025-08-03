@@ -6,8 +6,27 @@ import { MapPin, Navigation, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
 
-// Fix for default markers
+// Fix for default markers and create custom red marker
 delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+// Create a custom red marker icon
+const redMarkerIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.5 0C5.596 0 0 5.596 0 12.5C0 21.875 12.5 41 12.5 41S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0Z" fill="#EF4444"/>
+      <circle cx="12.5" cy="12.5" r="6" fill="white"/>
+      <circle cx="12.5" cy="12.5" r="3" fill="#EF4444"/>
+    </svg>
+  `),
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  shadowSize: [41, 41],
+  shadowAnchor: [12, 41]
+});
+
+// Set default icon fallback
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -30,6 +49,65 @@ const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), {
   ssr: false,
 });
 
+// Map component to handle map events
+const MapComponent = ({ coordinates, businessName, businessAddress }: {
+  coordinates: [number, number];
+  businessName: string;
+  businessAddress: string;
+}) => {
+  const mapRef = React.useRef<L.Map>(null);
+
+  React.useEffect(() => {
+    if (mapRef.current) {
+      // Force map to recalculate size
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    }
+  }, [coordinates]);
+
+  return (
+    <MapContainer
+      center={coordinates}
+      zoom={16}
+      style={{ 
+        height: '100%', 
+        width: '100%',
+        borderRadius: '0.5rem'
+      }}
+      className="z-10"
+      dragging={true}
+      touchZoom={true}
+      doubleClickZoom={true}
+      scrollWheelZoom={true}
+      boxZoom={false}
+      keyboard={true}
+      zoomControl={true}
+      ref={mapRef}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxZoom={19}
+      />
+      <Marker 
+        position={coordinates} 
+        icon={redMarkerIcon}
+      >
+        <Popup>
+          <div className="text-center">
+            <strong className="text-red-600">{businessName}</strong>
+            <br />
+            <span className="text-sm text-gray-600">
+              {businessAddress}
+            </span>
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
+  );
+};
+
 interface MapCardProps {
   businessAddress?: string;
   businessName?: string;
@@ -42,6 +120,7 @@ const MapCard: React.FC<MapCardProps> = ({
   const [coordinates, setCoordinates] = useState<[number, number] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapKey, setMapKey] = useState(0); // Force re-render
 
   const geocodeAddress = async (address: string) => {
     try {
@@ -65,6 +144,8 @@ const MapCard: React.FC<MapCardProps> = ({
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
         setCoordinates([lat, lon]);
+        // Force map re-render when coordinates change
+        setMapKey(prev => prev + 1);
       } else {
         setError('Address not found');
       }
@@ -84,6 +165,17 @@ const MapCard: React.FC<MapCardProps> = ({
       setError(null);
     }
   }, [businessAddress]);
+
+  // Force map to invalidate size after render
+  useEffect(() => {
+    if (coordinates) {
+      const timer = setTimeout(() => {
+        // Trigger a window resize event to force Leaflet to recalculate
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [coordinates, mapKey]);
 
   const openInGoogleMaps = () => {
     if (businessAddress) {
@@ -181,40 +273,19 @@ const MapCard: React.FC<MapCardProps> = ({
               </p>
             </div>
 
-            {/* Map container */}
-            <div 
-              className="h-48 w-full overflow-hidden rounded-lg"
-              style={{ height: '192px' }}
-            >
-              <MapContainer
-                center={coordinates}
-                zoom={15}
-                style={{ height: '100%', width: '100%' }}
-                className="rounded-lg"
-                dragging={false}
-                touchZoom={false}
-                doubleClickZoom={false}
-                scrollWheelZoom={false}
-                boxZoom={false}
-                keyboard={false}
-                zoomControl={false}
+            {/* Map container with proper CSS */}
+            <div className="relative">
+              <div 
+                key={mapKey}
+                className="h-64 w-full overflow-hidden rounded-lg border border-gray-200"
+                style={{ height: '256px' }}
               >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                <MapComponent
+                  coordinates={coordinates}
+                  businessName={businessName}
+                  businessAddress={businessAddress}
                 />
-                <Marker position={coordinates}>
-                  <Popup>
-                    <div className="text-center">
-                      <strong>{businessName}</strong>
-                      <br />
-                      <span className="text-sm text-gray-600">
-                        {businessAddress}
-                      </span>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
+              </div>
             </div>
           </div>
         ) : (
