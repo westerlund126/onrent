@@ -13,11 +13,11 @@ interface ProfileData {
   businessName: string;
   businessAddress: string;
   email: string;
-  phone: string;
-  firstName: string;
-  lastName: string;
+  phone_numbers: string; // Changed from 'phone' to match API
+  first_name: string;    // Changed from 'firstName' to match API
+  last_name: string;     // Changed from 'lastName' to match API
   username: string;
-  description: string;
+  businessBio: string;   // Changed from 'description' to match API
   imageUrl: string;
 }
 
@@ -29,11 +29,11 @@ const OwnerBusinessProfile = () => {
     businessName: '',
     businessAddress: '',
     email: '',
-    phone: '',
-    firstName: '',
-    lastName: '',
+    phone_numbers: '',
+    first_name: '',
+    last_name: '',
     username: '',
-    description: '',
+    businessBio: '',
     imageUrl: '',
   });
 
@@ -47,12 +47,12 @@ const OwnerBusinessProfile = () => {
         businessName: user.businessName || '',
         businessAddress: user.businessAddress || '',
         email: user.email || '',
-        phone: user.phone_numbers || '',
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
+        phone_numbers: user.phone_numbers || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         username: user.username || '',
         imageUrl: user.imageUrl || '',
-        description: user.businessBio || '',
+        businessBio: user.businessBio || '',
       });
     }
   }, [user]);
@@ -60,13 +60,13 @@ const OwnerBusinessProfile = () => {
   const handleSave = async () => {
     try {
       await updateBusinessProfile({
-        first_name: profileData.firstName,
-        last_name: profileData.lastName,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
         username: profileData.username,
-        phone_numbers: profileData.phone,
+        phone_numbers: profileData.phone_numbers,
         businessName: profileData.businessName,
         businessAddress: profileData.businessAddress,
-        businessBio: profileData.description,
+        businessBio: profileData.businessBio,
       });
       setIsEditing(false);
       toast.success('Profil berhasil disimpan!');
@@ -82,12 +82,12 @@ const OwnerBusinessProfile = () => {
         businessName: user.businessName || '',
         businessAddress: user.businessAddress || '',
         email: user.email || '',
-        phone: user.phone_numbers || '',
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
+        phone_numbers: user.phone_numbers || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         username: user.username || '',
         imageUrl: user.imageUrl || '',
-        description: user.businessBio || '',
+        businessBio: user.businessBio || '',
       });
     }
     setIsEditing(false);
