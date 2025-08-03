@@ -6,10 +6,8 @@ import { MapPin, Navigation, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
 
-// Fix for default markers and create custom red marker
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
-// Create a custom red marker icon
 const redMarkerIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
     <svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -26,7 +24,6 @@ const redMarkerIcon = new L.Icon({
   shadowAnchor: [12, 41]
 });
 
-// Set default icon fallback
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -49,7 +46,6 @@ const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), {
   ssr: false,
 });
 
-// Map component to handle map events
 const MapComponent = ({ coordinates, businessName, businessAddress }: {
   coordinates: [number, number];
   businessName: string;
@@ -59,7 +55,6 @@ const MapComponent = ({ coordinates, businessName, businessAddress }: {
 
   React.useEffect(() => {
     if (mapRef.current) {
-      // Force map to recalculate size
       setTimeout(() => {
         mapRef.current?.invalidateSize();
       }, 100);
@@ -111,11 +106,13 @@ const MapComponent = ({ coordinates, businessName, businessAddress }: {
 interface MapCardProps {
   businessAddress?: string;
   businessName?: string;
+  className?: string;
 }
 
 const MapCard: React.FC<MapCardProps> = ({
   businessAddress,
   businessName = 'Business Location',
+  className,
 }) => {
   const [coordinates, setCoordinates] = useState<[number, number] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,7 +124,6 @@ const MapCard: React.FC<MapCardProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Use the same API endpoint as the address autocomplete
       const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
 
       if (!response.ok) {
@@ -137,12 +133,10 @@ const MapCard: React.FC<MapCardProps> = ({
       const data = await response.json();
 
       if (data.success && data.results && data.results.length > 0) {
-        // Use the first result
         const result = data.results[0];
         const lat = parseFloat(result.lat);
         const lon = parseFloat(result.lon);
         setCoordinates([lat, lon]);
-        // Force map re-render when coordinates change
         setMapKey(prev => prev + 1);
       } else {
         setError('Address not found');
@@ -164,11 +158,9 @@ const MapCard: React.FC<MapCardProps> = ({
     }
   }, [businessAddress]);
 
-  // Force map to invalidate size after render
   useEffect(() => {
     if (coordinates) {
       const timer = setTimeout(() => {
-        // Trigger a window resize event to force Leaflet to recalculate
         window.dispatchEvent(new Event('resize'));
       }, 100);
       return () => clearTimeout(timer);
@@ -215,7 +207,7 @@ const MapCard: React.FC<MapCardProps> = ({
       </h3>
       <p className="mb-4 text-sm text-red-500">{error}</p>
       <p className="text-xs text-gray-500">
-        Please check your address format and try again.
+        Periksa kembali alamat yang Anda masukkan atau coba lagi nanti.
       </p>
     </div>
   );
@@ -226,35 +218,35 @@ const MapCard: React.FC<MapCardProps> = ({
         <Navigation className="h-8 w-8 text-blue-500" />
       </div>
       <h3 className="mb-2 text-lg font-semibold text-blue-600">
-        Loading Location...
+        Memuat Lokasi...
       </h3>
       <p className="text-sm text-blue-500">
-        Finding your business location on the map.
+        Mencari lokasi bisnis Anda di peta.
       </p>
     </div>
   );
 
   return (
-    <Card className="border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl">
+    <Card className={`h-full flex flex-col border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl ${className}`}>
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center justify-between text-lg text-gray-800">
           <div className="flex items-center">
             <div className="mr-3 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 p-2">
               <MapPin className="h-4 w-4 text-white" />
             </div>
-            Business Location
+            Lokasi Bisnis
           </div>
           {businessAddress && (
             <button
               onClick={openInGoogleMaps}
               className="rounded-lg bg-blue-500 px-3 py-1 text-xs text-white transition-colors hover:bg-blue-600"
             >
-              View in Maps
+              Lihat di Peta
             </button>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow flex flex-col">
         {isLoading ? (
           <LoadingContent />
         ) : error ? (
@@ -262,7 +254,7 @@ const MapCard: React.FC<MapCardProps> = ({
         ) : !businessAddress?.trim() ? (
           <PlaceholderContent />
         ) : coordinates ? (
-          <div className="space-y-4">
+          <div className="flex-grow flex flex-col space-y-4">
             {/* Address display */}
             <div className="rounded-lg bg-gray-50 p-3">
               <p className="text-sm text-gray-700">
@@ -270,9 +262,7 @@ const MapCard: React.FC<MapCardProps> = ({
                 {businessAddress}
               </p>
             </div>
-
-            {/* Map container with proper CSS */}
-            <div className="relative">
+            <div className="relative flex-grow">
               <div 
                 key={mapKey}
                 className="h-64 w-full overflow-hidden rounded-lg border border-gray-200"

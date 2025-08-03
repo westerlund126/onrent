@@ -277,16 +277,14 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
     }
   };
 
-  // Auto-save when editing is finished (you can also trigger this manually)
   useEffect(() => {
     if (!isEditing && profileData.businessName) {
-      // Only auto-save if we have some data and just finished editing
       handleSave();
     }
   }, [isEditing]);
 
   return (
-    <Card className="border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl">
+    <Card className="h-full flex flex-col border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center justify-between text-xl text-gray-800">
           <div className="flex items-center">
@@ -305,7 +303,7 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
           </div>
         )}
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="flex-grow space-y-6">
         {/* Business Name */}
         <div className="group flex items-center space-x-4 rounded-xl p-3 transition-all duration-300 hover:bg-gray-50">
           <div className="flex-shrink-0 rounded-lg bg-gradient-to-br from-purple-500 to-violet-500 p-2">
