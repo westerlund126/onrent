@@ -1,4 +1,3 @@
-// emails/new-fitting-owner.tsx
 import {
   Body,
   Button,
@@ -39,6 +38,7 @@ export const NewFittingOwnerEmail = ({
   productNames,
   note,
   businessName,
+  dashboardUrl
 }: NewFittingOwnerEmailProps) => {
   const productList = productNames.length > 0 
     ? productNames.join(', ') 
@@ -48,22 +48,60 @@ export const NewFittingOwnerEmail = ({
     <Html>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="x-apple-disable-message-reformatting" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Permintaan Fitting Baru dari {customerName}</title>
+        <style>
+          {`
+            @media only screen and (max-width: 600px) {
+              .container {
+                width: 100% !important;
+                padding: 10px !important;
+              }
+              .card {
+                padding: 15px !important;
+              }
+              .hero-section {
+                padding: 30px 15px !important;
+              }
+              .hero-title {
+                font-size: 22px !important;
+              }
+              .hero-subtitle {
+                font-size: 14px !important;
+              }
+              .primary-button {
+                width: 100% !important;
+                padding: 14px 20px !important;
+              }
+              .detail-table td {
+                display: block !important;
+                width: 100% !important;
+                text-align: left !important;
+                padding: 6px 0 !important;
+                border: none !important;
+              }
+              .label-cell {
+                font-weight: 600 !important;
+                color: #4b5563 !important;
+                padding-bottom: 2px !important;
+              }
+              .value-cell {
+                padding-bottom: 12px !important;
+                border-bottom: 1px solid #e5e7eb !important;
+              }
+            }
+          `}
+        </style>
       </Head>
       <Preview>Permintaan fitting baru dari {customerName}</Preview>
       <Body style={main}>
         <Container style={container}>
 
           {/* Hero Section */}
-          <Section style={heroSection}>
-            <Img
-              src="https://res.cloudinary.com/dpiq28w1p/image/upload/v1754232730/logo_k67xni.png"
-              width="120"
-              height="60"
-              alt="OnRent Logo"
-              style={{ margin: 'auto' }}
-            />
-            <Heading style={heroTitle}>Permintaan Fitting Baru!</Heading>
-            <Text style={heroSubtitle}>
+          <Section style={heroSection} className="hero-section">
+            <Heading style={heroTitle} className="hero-title">Permintaan Fitting Baru!</Heading>
+            <Text style={heroSubtitle} className="hero-subtitle">
               Anda memiliki janji temu baru yang menunggu konfirmasi
             </Text>
           </Section>
@@ -71,54 +109,66 @@ export const NewFittingOwnerEmail = ({
           {/* Main Content */}
           <Section style={contentSection}>
             <Text style={greetingText}>
-              Halo {ownerName || businessName || 'Pemilik Bisnis'} !
+              Halo <strong>{ownerName || businessName || 'Pemilik Bisnis'}</strong> !
+            </Text>
+
+            <Text style={introText}>
+              Anda menerima permintaan fitting baru untuk hari <strong>{fittingDate}</strong>. Berikut detail lengkapnya:
             </Text>
 
             {/* Appointment Details */}
-            <Section style={card}>
+            <Section style={card} className="card">
               <div style={cardHeaderWithBadge}>
                 <Text style={cardTitleText}>📅 Detail Janji Temu</Text>
               </div>
               
-              <table style={detailTable}>
+              <table style={detailTable} className="detail-table">
                 <tr>
-                  <td style={labelCell}>Tanggal & Waktu</td>
-                  <td style={valueCell}>{fittingDate}</td>
+                  <td style={labelCell} className="label-cell">Tanggal & Waktu</td>
+                  <td style={valueCell} className="value-cell">{fittingDate}</td>
                 </tr>
               </table>
             </Section>
 
             {/* Customer Info */}
-            <Section style={card}>
+            <Section style={card} className="card">
               <Text style={cardTitleText}>👤 Informasi Pelanggan</Text>
               
-              <table style={detailTable}>
+              <table style={detailTable} className="detail-table">
                 <tr>
-                  <td style={labelCell}>Nama</td>
-                  <td style={valueCell}>{customerName}</td>
+                  <td style={labelCell} className="label-cell">Nama</td>
+                  <td style={valueCell} className="value-cell">{customerName}</td>
                 </tr>
                 <tr>
-                  <td style={labelCell}>Email</td>
-                  <td style={valueCell}>{customerEmail}</td>
+                  <td style={labelCell} className="label-cell">Email</td>
+                  <td style={valueCell} className="value-cell">
+                    <Link href={`mailto:${customerEmail}`} style={linkStyle}>
+                      {customerEmail}
+                    </Link>
+                  </td>
                 </tr>
                 {customerPhone && (
                   <tr>
-                    <td style={labelCell}>Telepon</td>
-                    <td style={valueCell}>{customerPhone}</td>
+                    <td style={labelCell} className="label-cell">Telepon</td>
+                    <td style={valueCell} className="value-cell">
+                      <Link href={`tel:${customerPhone}`} style={linkStyle}>
+                        {customerPhone}
+                      </Link>
+                    </td>
                   </tr>
                 )}
               </table>
             </Section>
 
             {/* Products */}
-            <Section style={card}>
+            <Section style={card} className="card">
               <Text style={cardTitleText}>👗 Produk untuk Fitting</Text>
               <Text style={productText}>{productList}</Text>
             </Section>
 
             {/* Notes (if exists) */}
             {note && (
-              <Section style={card}>
+              <Section style={card} className="card">
                 <Text style={cardTitleText}>📝 Catatan Pelanggan</Text>
                 <Text style={noteText}>{note}</Text>
               </Section>
@@ -126,19 +176,28 @@ export const NewFittingOwnerEmail = ({
 
             {/* Action Button */}
             <Section style={buttonSection}>
-              <Button style={primaryButton} href="https://onrent.live/owner/fitting/schedule">
+              <Button style={primaryButton} className="primary-button" href={dashboardUrl}>
                 Lihat di Dashboard
               </Button>
             </Section>
+
+            <Text style={footerActionText}>
+              Silakan masuk ke dashboard Anda untuk mengonfirmasi atau menolak janji temu ini.
+            </Text>
           </Section>
 
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              Silakan masuk ke dashboard Anda untuk mengonfirmasi atau menolak janji temu ini.
+              Tetap semangat dalam mengembangkan bisnis! 🟧
             </Text>
+            <Hr style={divider} />
             <Text style={footerText}>
-              Ini adalah pesan otomatis dari OnRent.
+              Salam hangat,<br />
+              <strong>Tim OnRent</strong>
+            </Text>
+            <Text style={copyrightText}>
+              © {new Date().getFullYear()} OnRent. Hak cipta dilindungi undang-undang.
             </Text>
           </Section>
         </Container>
@@ -148,143 +207,119 @@ export const NewFittingOwnerEmail = ({
 };
 
 // Responsive Styles
-const main = {
+const main: React.CSSProperties = {
   backgroundColor: '#f8f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
-  padding: '20px 10px',
-  margin: '0',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
+  padding: '0',
+  margin: '0 auto',
   width: '100%',
 };
 
-const container = {
+const container: React.CSSProperties = {
   backgroundColor: 'transparent',
   margin: '0 auto',
-  padding: '0',
+  padding: '20px',
   maxWidth: '600px',
   width: '100%',
 };
 
-const headerSection = {
-  textAlign: 'center' as const,
-  padding: '20px 0 10px',
-};
-
-const logo = {
-  margin: '0 auto',
-  display: 'block',
-};
-
-const heroSection = {
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+const heroSection: React.CSSProperties = {
+  background: 'linear-gradient(to right, #f59e0b, #f97316)',
   borderRadius: '16px',
   padding: '40px 20px',
-  textAlign: 'center' as const,
-  margin: '0 10px 20px',
+  textAlign: 'center',
+  margin: '0 0 20px',
 };
 
-const heroIcon = {
-  margin: '0 auto 20px',
-  display: 'block',
-  filter: 'brightness(0) invert(1)',
-};
-
-const heroTitle = {
+const heroTitle: React.CSSProperties = {
   color: '#ffffff',
   fontSize: '24px',
   fontWeight: 'bold',
   margin: '0 0 10px',
-  textAlign: 'center' as const,
+  textAlign: 'center',
   lineHeight: '1.3',
 };
 
-const heroSubtitle = {
-  color: '#e2e8f0',
+const heroSubtitle: React.CSSProperties = {
+  color: '#ffffff',
   fontSize: '16px',
   margin: '0',
   lineHeight: '1.4',
 };
 
-const contentSection = {
+const contentSection: React.CSSProperties = {
   backgroundColor: '#ffffff',
   borderRadius: '16px',
-  margin: '0 10px',
-  padding: '30px 20px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  margin: '0 0 20px',
+  padding: '30px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
 };
 
-const greetingText = {
+const greetingText: React.CSSProperties = {
   color: '#374151',
   fontSize: '18px',
   fontWeight: '600',
+  margin: '0 0 10px',
+};
+
+const introText: React.CSSProperties = {
+  color: '#4b5563',
+  fontSize: '15px',
+  lineHeight: '1.6',
   margin: '0 0 25px',
 };
 
-const card = {
+const card: React.CSSProperties = {
   backgroundColor: '#f8fafc',
   border: '1px solid #e2e8f0',
   borderRadius: '12px',
   padding: '20px',
-  margin: '15px 0',
+  margin: '0 0 20px',
 };
 
-const cardHeaderWithBadge = {
+const cardHeaderWithBadge: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: '15px',
-  flexWrap: 'wrap' as const,
+  flexWrap: 'wrap',
   gap: '10px',
 };
 
-const cardTitleText = {
+const cardTitleText: React.CSSProperties = {
   color: '#1f2937',
   fontSize: '16px',
   fontWeight: 'bold',
   margin: '0 0 15px',
 };
 
-const statusBadge = {
-  backgroundColor: '#fef3c7',
-  borderRadius: '20px',
-  padding: '4px 12px',
-  display: 'inline-block',
-};
-
-const statusText = {
-  color: '#92400e',
-  fontSize: '11px',
-  fontWeight: 'bold',
-  margin: '0',
-  textTransform: 'uppercase' as const,
-};
-
-const detailTable = {
+const detailTable: React.CSSProperties = {
   width: '100%',
-  borderCollapse: 'collapse' as const,
+  borderCollapse: 'collapse',
   margin: '0',
 };
 
-const labelCell = {
+const labelCell: React.CSSProperties = {
   color: '#6b7280',
   fontSize: '14px',
-  fontWeight: '500',
+  fontWeight: 500,
   padding: '8px 0',
   borderBottom: '1px solid #e5e7eb',
   width: '40%',
-  verticalAlign: 'top' as const,
+  verticalAlign: 'top',
 };
 
-const valueCell = {
+const valueCell: React.CSSProperties = {
   color: '#111827',
   fontSize: '14px',
-  fontWeight: '600',
+  fontWeight: 600,
   padding: '8px 0',
   borderBottom: '1px solid #e5e7eb',
-  textAlign: 'right' as const,
-  verticalAlign: 'top' as const,
+  textAlign: 'right',
+  verticalAlign: 'top',
 };
 
-const productText = {
+const productText: React.CSSProperties = {
   color: '#374151',
   fontSize: '14px',
   lineHeight: '1.6',
@@ -295,7 +330,7 @@ const productText = {
   border: '1px solid #d1d5db',
 };
 
-const noteText = {
+const noteText: React.CSSProperties = {
   color: '#374151',
   fontSize: '14px',
   lineHeight: '1.6',
@@ -307,19 +342,19 @@ const noteText = {
   fontStyle: 'italic',
 };
 
-const buttonSection = {
-  textAlign: 'center' as const,
+const buttonSection: React.CSSProperties = {
+  textAlign: 'center',
   margin: '30px 0 20px',
 };
 
-const primaryButton = {
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+const primaryButton: React.CSSProperties = {
+  background: 'linear-gradient(to right, #f59e0b, #f97316)',
   borderRadius: '25px',
   color: '#ffffff',
   fontSize: '16px',
   fontWeight: 'bold',
   textDecoration: 'none',
-  textAlign: 'center' as const,
+  textAlign: 'center',
   display: 'inline-block',
   padding: '12px 30px',
   border: 'none',
@@ -327,19 +362,52 @@ const primaryButton = {
   minWidth: '200px',
 };
 
-const footer = {
-  backgroundColor: '#f9fafb',
-  borderRadius: '12px',
-  margin: '20px 10px',
-  padding: '20px',
-  textAlign: 'center' as const,
+const footerActionText: React.CSSProperties = {
+  color: '#6b7280',
+  fontSize: '14px',
+  lineHeight: '1.5',
+  margin: '0 0 20px',
+  textAlign: 'center',
 };
 
-const footerText = {
+const footer: React.CSSProperties = {
+  backgroundColor: '#f9fafb',
+  borderRadius: '12px',
+  margin: '0',
+  padding: '25px',
+  textAlign: 'center',
+};
+
+const footerText: React.CSSProperties = {
   color: '#6b7280',
-  fontSize: '13px',
+  fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 8px',
+};
+
+const copyrightText: React.CSSProperties = {
+  color: '#9ca3af',
+  fontSize: '12px',
+  lineHeight: '1.5',
+  margin: '15px 0 5px',
+};
+
+const taglineText: React.CSSProperties = {
+  color: '#9ca3af',
+  fontSize: '12px',
+  lineHeight: '1.5',
+  margin: '0',
+  fontStyle: 'italic',
+};
+
+const divider: React.CSSProperties = {
+  borderTop: '1px solid #e5e7eb',
+  margin: '20px 0',
+};
+
+const linkStyle: React.CSSProperties = {
+  color: '#f97316',
+  textDecoration: 'underline',
 };
 
 export default NewFittingOwnerEmail;
