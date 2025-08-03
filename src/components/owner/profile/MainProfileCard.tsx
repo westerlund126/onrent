@@ -109,7 +109,7 @@ const MainProfileCard = ({
           <div className="mt-6 pt-6 border-t border-gray-100">
             <div className="flex items-center justify-center text-xs text-gray-400">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              <span>Active now</span>
+              <span>Online Sekarang</span>
             </div>
           </div>
         )}

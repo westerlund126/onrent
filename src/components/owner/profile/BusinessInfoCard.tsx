@@ -124,16 +124,19 @@ const AddressAutocomplete: React.FC<{
     }
   };
 
+  // Fixed handleBlur to prevent interference with suggestion clicks
   const handleBlur = (e: React.FocusEvent) => {
-  if (suggestionsRef.current?.contains(e.relatedTarget as Node)) {
-    return;
-  }
-  
-  setTimeout(() => {
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
-  }, 200);
-};
+    // Don't hide suggestions if the focus moved to a suggestion item
+    if (suggestionsRef.current?.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    
+    // Use a longer timeout to ensure click events can complete
+    setTimeout(() => {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }, 150);
+  };
 
   const handleFocus = () => {
     if (suggestions.length > 0 && value.length >= 3) {
@@ -192,7 +195,11 @@ const AddressAutocomplete: React.FC<{
               return (
                 <div
                   key={suggestion.place_id}
-                  onClick={() => handleSuggestionClick(suggestion)}
+                  // Use onMouseDown instead of onClick to trigger before onBlur
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent input from losing focus
+                    handleSuggestionClick(suggestion);
+                  }}
                   className={`cursor-pointer px-4 py-3 transition-colors ${
                     index === selectedIndex
                       ? 'bg-indigo-50 text-indigo-900'
