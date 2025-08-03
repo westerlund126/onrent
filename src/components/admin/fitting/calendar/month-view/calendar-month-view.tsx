@@ -1,5 +1,5 @@
 // CalendarMonthView.tsx
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { DayCell } from 'components/admin/fitting/calendar/month-view/day-cell';
 import {
   getCalendarCells,
@@ -17,11 +17,25 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 interface IProps {
   singleDaySchedule: IFittingSchedule[];
+  showInactiveSchedules?: boolean; // New prop to control whether to show inactive schedules
+  defaultShowInactive?: boolean; // Default value for the internal state
 }
 const WEEK_DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-export function CalendarMonthView({ singleDaySchedule }: IProps) {
+export function CalendarMonthView({ 
+  singleDaySchedule, 
+  showInactiveSchedules, // This can be controlled externally
+  defaultShowInactive = true // Default to true to show all schedules
+}: IProps) {
   const { selectedDate } = useFittingStore();
+
+  // Internal state for controlling inactive schedules visibility
+  const [internalShowInactive, setInternalShowInactive] = useState(defaultShowInactive);
+  
+  // Use external prop if provided, otherwise use internal state
+  const shouldShowInactiveSchedules = showInactiveSchedules !== undefined 
+    ? showInactiveSchedules 
+    : internalShowInactive;
 
   const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
 
@@ -32,6 +46,10 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     error,
     fetchFittingSchedules,
     fetchFittingSlots,
+    // Use the new helper functions from your store
+    getActiveSchedules,
+    getAllSchedules,
+    getInactiveSchedules,
   } = useFittingStore();
 
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate]);
@@ -41,7 +59,8 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     const dateFrom = format(monthStart, 'yyyy-MM-dd');
     const dateTo = format(monthEnd, 'yyyy-MM-dd');
 
-    fetchFittingSchedules(dateFrom, dateTo);
+    // KEY CHANGE: Pass includeInactive=true to fetch all schedules including canceled/rejected ones
+    fetchFittingSchedules(dateFrom, dateTo, true);
     fetchFittingSlots(dateFrom, dateTo);
     fetchScheduleBlocks(dateFrom, dateTo);
   }, [
@@ -64,14 +83,23 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     }));
   }, [singleDaySchedule]);
 
+  // Use the helper functions from your store to get the right schedules
+  const schedulesToShow = useMemo(() => {
+    if (showInactiveSchedules) {
+      return getAllSchedules(); // This will include both active and inactive schedules
+    } else {
+      return getActiveSchedules(); // This will only show active schedules
+    }
+  }, [showInactiveSchedules, getAllSchedules, getActiveSchedules]);
+
   const processedSchedule = useMemo(() => {
     const schedule: IFittingSchedule[] = [];
 
-    if (!Array.isArray(fittingSchedules) || !Array.isArray(fittingSlots)) {
+    if (!Array.isArray(schedulesToShow) || !Array.isArray(fittingSlots)) {
       return [];
     }
 
-    fittingSchedules.forEach((fittingSchedule) => {
+    schedulesToShow.forEach((fittingSchedule) => {
       const slot = fittingSlots.find(
         (s) => s.id === fittingSchedule.fittingSlotId,
       );
@@ -110,7 +138,7 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
     });
 
     return singleDay;
-  }, [fittingSchedules, fittingSlots]);
+  }, [schedulesToShow, fittingSlots]); // Changed dependency from fittingSchedules to schedulesToShow
 
   const processedScheduleBlocks = useMemo(() => {
     if (!Array.isArray(scheduleBlocks)) {
@@ -164,6 +192,21 @@ export function CalendarMonthView({ singleDaySchedule }: IProps) {
 
   return (
     <div>
+      {/* Optional: Add a toggle to show/hide inactive schedules */}
+      {/* You can uncomment this if you want to give users control */}
+      {/*
+      <div className="mb-4 flex items-center gap-2">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showInactiveSchedules}
+            onChange={(e) => setShowInactiveSchedules(e.target.checked)}
+          />
+          Show canceled/rejected schedules
+        </label>
+      </div>
+      */}
+
       <div className="grid grid-cols-7 divide-x">
         {WEEK_DAYS.map((day) => (
           <div key={day} className="flex items-center justify-center py-2">
