@@ -45,6 +45,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { EditRentalFormProps, SelectedVariant } from 'types/rental';
+import { toast } from 'sonner';
 
 const EditRentalForm = ({
   isOpen,
@@ -461,15 +462,18 @@ const EditRentalForm = ({
 
       if (!response.ok) {
         const errorData = await response.json();
+        toast.error("Gagal mengupdate transaksi!");
         throw new Error(errorData.error || 'Gagal mengupdate transaksi sewa');
       }
 
       setSubmitSuccess(true);
       if (onSuccess) onSuccess(await response.json());
+      toast.success("Transaksi berhasil diupdate!");
 
       setTimeout(onClose, 1500);
     } catch (error) {
       console.error('Update error:', error);
+      toast.error("Gagal mengupdate transaksi!");
       setSubmitError(
         error instanceof Error ? error.message : 'Terjadi kesalahan',
       );
@@ -814,7 +818,7 @@ const EditRentalForm = ({
                 ? 'Menyimpan...'
                 : submitSuccess
                 ? 'Berhasil!'
-                : 'Update'}
+                : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Phone, Mail, User, Building2, Search, Navigation } from 'lucide-react';
+import { MapPin, Phone, Mail, User, Building2, Search, Navigation, CreditCard } from 'lucide-react';
 
 interface ProfileData {
   businessName: string;
@@ -353,22 +353,44 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
                 )}
               </div>
             </div>
+
+            <div className="group flex items-center space-x-4 rounded-xl p-3 transition-all duration-300 hover:bg-gray-50">
+              <div className="flex-shrink-0 rounded-lg bg-gradient-to-br from-purple-500 to-violet-500 p-2">
+                <CreditCard className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="mb-2 text-sm font-semibold text-gray-800">
+                  Nomor Rekening
+                </p>
+                {isEditing ? (
+              <Input
+                value={profileData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="BCA: 12345321243"
+                className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            ) : (
+              <p className="break-all text-sm text-gray-600">
+                {profileData.description}
+              </p>
+            )}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Business Description */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           <h3 className="border-b border-gray-200 pb-2 text-base font-bold text-gray-800">
-            Deskripsi Bisnis
+            Nomor Rekening
           </h3>
           <div className="rounded-xl bg-gray-50 p-4">
             {isEditing ? (
-              <Textarea
+              <Input
                 value={profileData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Ceritakan tentang bisnis Anda..."
+                placeholder="BCA: 12345321243"
                 className="min-h-24 border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                rows={3}
               />
             ) : (
               <p className="text-sm leading-relaxed text-gray-700">
@@ -376,7 +398,7 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
               </p>
             )}
           </div>
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );
