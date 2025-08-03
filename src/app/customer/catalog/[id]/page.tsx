@@ -254,7 +254,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
                 {/* Image Thumbnails */}
                 {product.images && product.images.length > 1 && (
-                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto px-2 py-5 scrollbar-hide">
                     {product.images.map((image, index) => (
                       <button
                         key={index}

@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Product, Owner } from 'types/product';
 
-// Types for the fitting form context
 export type FittingPageType = 'owner' | 'product' | 'catalog';
 
 export interface FittingFormData {
@@ -24,23 +23,16 @@ export interface AvailableSlot {
 }
 
 interface FittingFormState {
-  // Context data
   pageType: FittingPageType;
   productId: string | null;
   ownerId: string | null;
   productData: Product | null;
   ownerData: Owner | null;
   currentUserData: any | null;
-  
-  // Form data
   formData: FittingFormData;
   selectedSlot: AvailableSlot | null;
   availableSlots: AvailableSlot[];
-  
-  // UI state
   isPhoneNumberUpdated: boolean;
-  
-  // Loading states
   isLoading: boolean;
   isSubmitting: boolean;
   loadingStates: {
@@ -50,10 +42,8 @@ interface FittingFormState {
     userData: boolean;
   };
   
-  // Error state
   error: string | null;
 
-  // Actions
   setPageContext: (pageType: FittingPageType, productId?: string, ownerId?: string) => void;
   setProductData: (product: Product | null) => void;
   setOwnerData: (owner: Owner | null) => void;
@@ -61,17 +51,14 @@ interface FittingFormState {
   setAvailableSlots: (slots: AvailableSlot[]) => void;
   setSelectedSlot: (slot: AvailableSlot | null) => void;
   
-  // Form actions
   updateFormField: <K extends keyof FittingFormData>(field: K, value: FittingFormData[K]) => void;
   setPhoneNumberUpdated: (updated: boolean) => void;
   toggleVariant: (variantId: number) => void;
   clearSelectedVariants: () => void;
   
-  // Loading actions
   setLoadingState: (key: keyof FittingFormState['loadingStates'] | 'main' | 'submitting', loading: boolean) => void;
   setError: (error: string | null) => void;
   
-  // Async actions
   fetchProductData: (productId: string) => Promise<void>;
   fetchOwnerData: (ownerId: string) => Promise<void>;
   fetchCurrentUserData: () => Promise<void>;
@@ -140,7 +127,6 @@ export const useFittingFormStore = create<FittingFormState>()(
       set((state) => {
         state.currentUserData = userData;
         
-        // Auto-populate form with user data
         if (userData) {
           if (userData.first_name || userData.last_name) {
             const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
@@ -163,12 +149,10 @@ export const useFittingFormStore = create<FittingFormState>()(
         state.selectedSlot = slot;
       }),
 
-    // Form actions
     updateFormField: (field, value) =>
       set((state) => {
         state.formData[field] = value;
         
-        // Handle phone number update tracking
         if (field === 'phoneNumber') {
           const currentPhone = state.currentUserData?.phone_numbers;
           state.isPhoneNumberUpdated = (value as string).trim() !== '' && value !== currentPhone;

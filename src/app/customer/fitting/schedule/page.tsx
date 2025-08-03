@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
-import { useFittingFormStore } from 'stores';
+import { useFittingFormStore, useScheduleStore } from 'stores';
 import {
   Calendar,
   Clock,
@@ -34,8 +34,8 @@ import { formatCurrency } from 'utils/product';
 import Image from 'next/image';
 import { SingleDatePicker } from 'components/date-time-range-picker/single-date-picker';
 import { parse } from 'date-fns';
-import { toZonedTime, format} from 'date-fns-tz';
-import { id } from 'date-fns/locale'; 
+import { toZonedTime, format } from 'date-fns-tz';
+import { id } from 'date-fns/locale';
 import ImageUpload from 'components/image-upload/image-upload';
 
 const timeZone = 'Asia/Jakarta';
@@ -69,6 +69,9 @@ const FittingSchedulePage = () => {
     reset,
   } = useFittingFormStore();
 
+  // --- [FIX] 2. Get schedule block data and fetch function from the store ---
+  const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
+
   useEffect(() => {
     const type = (searchParams.get('type') as 'owner' | 'product') || 'owner';
     const productId = searchParams.get('productId');
@@ -90,6 +93,12 @@ const FittingSchedulePage = () => {
     if (ownerId) {
       fetchOwnerData(ownerId);
       fetchAvailableSlots(ownerId);
+
+      // --- [FIX] 3. Fetch schedule blocks for the owner ---
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + 90); // Fetch for the next 90 days
+      fetchScheduleBlocks(today.toISOString(), futureDate.toISOString());
     }
     if (productId) {
       fetchProductData(productId);
@@ -111,99 +120,91 @@ const FittingSchedulePage = () => {
     fetchProductData,
     fetchCurrentUserData,
     reset,
+    // --- [FIX] Add fetchScheduleBlocks to dependency array ---
+    fetchScheduleBlocks,
   ]);
 
   useEffect(() => {
     if (error) {
       toast.error(error);
-      setError(null); 
+      setError(null);
     }
   }, [error, setError]);
 
   const availableDates = useMemo(() => {
-    console.log("🔄 2. Processing 'availableDates'...");
-  const dateMap = new Map();
-  availableSlots.forEach((slot) => {
-    const zonedDate = toZonedTime(slot.dateTime, timeZone);
+    const dateMap = new Map();
+    availableSlots.forEach((slot) => {
+      const zonedDate = toZonedTime(slot.dateTime, timeZone);
+      const dateKey = format(zonedDate, 'yyyy-MM-dd');
+      
+      if (!dateMap.has(dateKey)) {
+        const label = format(zonedDate, 'eeee, d MMMM yyyy', {
+          locale: id,
+          timeZone,
+        });
+        dateMap.set(dateKey, {
+          value: dateKey,
+          label: label,
+          slots: [],
+          date: zonedDate,
+        });
+      }
+      dateMap.get(dateKey).slots.push(slot);
+    });
+    return Array.from(dateMap.values()).sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+  }, [availableSlots]);
 
-    const dateKey = format(zonedDate, 'yyyy-MM-dd');
-    
-    if (!dateMap.has(dateKey)) {
-      const label = format(zonedDate, 'eeee, d MMMM yyyy', { 
-        locale: id, 
-        timeZone 
-      });
+  const getDateFromString = (dateString: string): Date | undefined => {
+    if (!dateString) return undefined;
+    return parse(dateString, 'yyyy-MM-dd', new Date());
+  };
 
-      dateMap.set(dateKey, {
-        value: dateKey,
-        label: label,
-        slots: [],
-        date: zonedDate,
-      });
-    }
-    dateMap.get(dateKey).slots.push(slot);
-  });
-  return Array.from(dateMap.values()).sort((a, b) => a.value.localeCompare(b.value));
-  
-}, [availableSlots]);
+  const availableDateStrings = useMemo(() => {
+    return availableDates.map((date) => date.value);
+  }, [availableDates]);
 
-console.log("Owner business bio:", ownerData?.businessBio);
+  // --- [FIX] 4. Add the function to check for blocked times ---
+  const isTimeBlockedByScheduleBlock = (startTime: Date, endTime: Date): boolean => {
+    return scheduleBlocks.some((block) => {
+      const blockStart = new Date(block.startTime);
+      const blockEnd = new Date(block.endTime);
+      // Check for overlap: (StartA < EndB) and (EndA > StartB)
+      return startTime < blockEnd && endTime > blockStart;
+    });
+  };
 
-const getDateFromString = (dateString: string): Date | undefined => {
-  if (!dateString) return undefined;
-  return parse(dateString, 'yyyy-MM-dd', new Date());
-};
+  const availableTimes = useMemo(() => {
+    const selectedDateString = formData.selectedDate;
+    if (!selectedDateString) return [];
 
-const availableDateStrings = useMemo(() => {
-  return availableDates.map(date => date.value);
-}, [availableDates]);
-const parseSlot = (slot: any): any => {
-	try {
-	  const isBooked = !!slot.fittingSchedule;
-	  console.log(
-		`🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
-	  );
-	  let dateTime: Date;
-	  if (typeof slot.dateTime === 'string') {
-		const cleanDateString = slot.dateTime.replace('Z', '');
-		dateTime = new Date(cleanDateString);
-	  } else {
-		dateTime = new Date(slot.dateTime);
-	  }
-	  return { ...slot, dateTime, isBooked };
-	} catch (error) {
-	  console.error('Failed to parse slot date:', slot.dateTime, error);
-	  return {
-		...slot,
-		dateTime: new Date(),
-		isBooked: !!slot.fittingSchedule,
-	  };
-	}
-};
-const availableTimes = useMemo(() => {
-  const selectedDateString = formData.selectedDate;
-  console.log(`🔄 3. Finding available times for date: "${selectedDateString}"`);
-  if (!selectedDateString) return [];
-  
-  const dateData = availableDates.find((date) => date.value === selectedDateString);
-  if (!dateData) return [];
-  
-  return dateData.slots
-  .map((slot) => {
-	const parsedSlot = parseSlot(slot);
-	const dateTime = parsedSlot.dateTime ? new Date(parsedSlot.dateTime) : new Date();
-    const timeString = format(dateTime, 'HH:mm');
+    const dateData = availableDates.find((date) => date.value === selectedDateString);
+    if (!dateData) return [];
 
-    const label = format(dateTime, 'HH:mm');
+    return dateData.slots
+      .map((slot) => {
+        // We can keep the parsing logic simple as it seems to work
+        const dateTime = new Date(slot.dateTime);
+        const timeString = format(dateTime, 'HH:mm');
+        const label = format(dateTime, 'HH:mm');
 
-    return {
-      value: timeString,
-      label: label,
-      slot: slot,
-    };
-  })
-  .sort((a, b) => a.value.localeCompare(b.value));
-}, [formData.selectedDate, availableDates]);
+        return {
+          value: timeString,
+          label: label,
+          slot: slot, // Keep the original slot object
+        };
+      })
+      // --- [FIX] 5. Filter out times that are blocked by schedule blocks ---
+      .filter((timeOption) => {
+        const startTime = new Date(timeOption.slot.dateTime);
+        // Assuming a 60-minute duration for the fitting session
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+        return !isTimeBlockedByScheduleBlock(startTime, endTime);
+      })
+      .sort((a, b) => a.value.localeCompare(b.value));
+  // --- [FIX] 6. Add scheduleBlocks as a dependency ---
+  }, [formData.selectedDate, availableDates, scheduleBlocks]);
 
   const availableVariants = useMemo(() => {
     if (!productData || !productData.VariantProducts) return [];
@@ -212,13 +213,12 @@ const availableTimes = useMemo(() => {
     );
   }, [productData]);
 
-
- const handleDateChange = (date: Date | undefined) => {
-  const dateString = date ? format(date, 'yyyy-MM-dd') : '';
-  updateFormField('selectedDate', dateString);
-  updateFormField('selectedTime', ''); 
-  setSelectedSlot(null);
-};
+  const handleDateChange = (date: Date | undefined) => {
+    const dateString = date ? format(date, 'yyyy-MM-dd') : '';
+    updateFormField('selectedDate', dateString);
+    updateFormField('selectedTime', '');
+    setSelectedSlot(null);
+  };
 
   const handleTimeChange = (timeValue: string) => {
     updateFormField('selectedTime', timeValue);
@@ -258,11 +258,10 @@ const availableTimes = useMemo(() => {
     }
   };
 
-  // --- Loading State ---
-  const isLoading = 
-    loadingStates.owner || 
-    loadingStates.product || 
-    loadingStates.slots || 
+  const isLoading =
+    loadingStates.owner ||
+    loadingStates.product ||
+    loadingStates.slots ||
     loadingStates.userData;
 
   if (!isUserLoaded || isLoading) {
@@ -276,7 +275,6 @@ const availableTimes = useMemo(() => {
     );
   }
 
-  // --- Render JSX ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

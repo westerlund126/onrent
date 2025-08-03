@@ -117,9 +117,6 @@ export function ClientContainer({ view }: IProps) {
         {view === 'month' && (
           <CalendarMonthView singleDaySchedule={singleDaySchedule} />
         )}
-        {view === 'week' && (
-          <CalendarWeekView />
-        )}
       </DndProviderWrapper>
     </div>
   );
