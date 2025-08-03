@@ -322,83 +322,76 @@ export const useFittingStore = create<FittingState>()(
     },
 
     updateFittingSchedule: async (scheduleId, updates) => {
-      set((state) => {
-        state.scheduleLoadingStates[scheduleId] = true;
-        state.error = null;
-      });
+  set((state) => {
+    state.scheduleLoadingStates[scheduleId] = true;
+    state.error = null;
+  });
 
-      try {
-        const response = await fetch(`/api/fitting/schedule/${scheduleId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
+  try {
+    const response = await fetch(`/api/fitting/schedule/${scheduleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to update schedule');
-        }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update schedule');
+    }
 
+    const updatedSchedule = await response.json();
+    
+    set((state) => {
+      const index = state.fittingSchedules.findIndex(
+        (s) => s.id === scheduleId,
+      );
+      
+      if (index !== -1) {
+        const base = new Date(
+          updatedSchedule.fittingSlot?.dateTime ?? null,
+        );
+        const duration = updatedSchedule.duration ?? 60;
+
+        // Update the schedule in place instead of removing it
+        state.fittingSchedules[index] = {
+          ...state.fittingSchedules[index], // Keep existing fields
+          ...updatedSchedule, // Overwrite with new data
+          startTime: base,
+          endTime: new Date(base.getTime() + duration * 60 * 1000),
+          title: `${
+            updatedSchedule.user?.first_name || 'Unknown'
+          } - Fitting`,
+          color: updatedSchedule.fittingType?.color || 'blue',
+          userImageUrl: updatedSchedule.user?.imageUrl,
+        };
+
+        // If the schedule was canceled or rejected, free up the slot
         if (updates.status === 'CANCELED' || updates.status === 'REJECTED') {
-          set((state) => {
-            const scheduleToRemove = state.fittingSchedules.find(
-              (s) => s.id === scheduleId,
-            );
-
-            state.fittingSchedules = state.fittingSchedules.filter(
-              (s) => s.id !== scheduleId,
-            );
-
-            if (scheduleToRemove) {
-              const slotIndex = state.fittingSlots.findIndex(
-                (slot) => slot.id === scheduleToRemove.fittingSlotId,
-              );
-              if (slotIndex > -1) {
-                state.fittingSlots[slotIndex].isBooked = false;
-              }
-            }
-          });
-        } else {
-          const updatedSchedule = await response.json();
-          set((state) => {
-            const index = state.fittingSchedules.findIndex(
-              (s) => s.id === scheduleId,
-            );
-            if (index !== -1) {
-              const base = new Date(
-                updatedSchedule.fittingSlot?.dateTime ?? null,
-              );
-              const duration = updatedSchedule.duration ?? 60;
-
-              state.fittingSchedules[index] = {
-                ...state.fittingSchedules[index], // Keep existing fields
-                ...updatedSchedule, // Overwrite with new data
-                startTime: base,
-                endTime: new Date(base.getTime() + duration * 60 * 1000),
-                title: `${
-                  updatedSchedule.user?.first_name || 'Unknown'
-                } - Fitting`,
-                color: updatedSchedule.fittingType?.color || 'blue',
-                userImageUrl: updatedSchedule.user?.imageUrl,
-              };
-            }
-          });
+          const scheduleToUpdate = state.fittingSchedules[index];
+          const slotIndex = state.fittingSlots.findIndex(
+            (slot) => slot.id === scheduleToUpdate.fittingSlotId,
+          );
+          if (slotIndex > -1) {
+            state.fittingSlots[slotIndex].isBooked = false;
+          }
         }
-      } catch (error) {
-        console.error('Failed to update fitting schedule:', error);
-        set((state) => {
-          state.error =
-            error instanceof Error
-              ? error.message
-              : 'Failed to update schedule';
-        });
-        throw error;
-      } finally {
-        set((state) => {
-          state.scheduleLoadingStates[scheduleId] = false;
-        });
       }
-    },
+    });
+  } catch (error) {
+    console.error('Failed to update fitting schedule:', error);
+    set((state) => {
+      state.error =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update schedule';
+    });
+    throw error;
+  } finally {
+    set((state) => {
+      state.scheduleLoadingStates[scheduleId] = false;
+    });
+  }
+},
 
     cancelFittingSchedule: async (scheduleId) => {
       return get().updateFittingSchedule(scheduleId, {

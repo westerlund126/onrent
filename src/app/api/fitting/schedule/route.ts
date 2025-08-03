@@ -9,7 +9,6 @@ import { id } from 'date-fns/locale';
 const prisma = new PrismaClient();
 const emailService = new EmailService();
 
-// Helper function to format dates in Indonesian
 const formatFittingDate = (date: Date) => {
   return format(date, "EEEE, d MMMM yyyy 'pukul' HH:mm", { locale: id });
 };
@@ -299,6 +298,8 @@ export async function GET(request: NextRequest) {
     const ownerIdParam = searchParams.get('ownerId');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
+    const status = searchParams.get('status');
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     let whereClause: any = {};
 
@@ -331,10 +332,16 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    if (status) {
+      whereClause.status = status;
+    } else if (includeInactive) {
+    } else {
+      whereClause.isActive = true; 
+    }
+
     const schedules = await prisma.fittingSchedule.findMany({
       where: {
         ...whereClause,
-        isActive: true,
       },
       include: {
         user: {

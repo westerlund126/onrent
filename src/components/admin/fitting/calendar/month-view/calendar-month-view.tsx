@@ -23,7 +23,6 @@ const WEEK_DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 export function CalendarMonthView({ singleDaySchedule }: IProps) {
   const { selectedDate } = useFittingStore();
 
-  // Add schedule store
   const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
 
   const {

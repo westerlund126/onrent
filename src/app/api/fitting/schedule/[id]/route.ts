@@ -1,10 +1,8 @@
 // app/api/fitting/schedule/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-// import { PrismaClient } from '@prisma/client';
 import prisma from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 
-// const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,

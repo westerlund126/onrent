@@ -431,19 +431,6 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Manual Save Button (optional) */}
-        {isEditing && (
-          <div className="flex justify-end pt-4">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || isLoading}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving || isLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
