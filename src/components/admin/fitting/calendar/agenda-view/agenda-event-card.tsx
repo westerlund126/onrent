@@ -1,6 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
+import { useState } from 'react';
 import { cva } from 'class-variance-authority';
 import { Clock, Text, User, Check, X } from 'lucide-react';
 import { EventDetailsDialog } from 'components/admin/fitting/calendar/dialogs/event-details-dialog';
@@ -8,6 +9,17 @@ import type { ICalendarEvent, IFittingSchedule, TEventColor } from 'types/fittin
 import type { VariantProps } from 'class-variance-authority';
 import { useSettingsStore, useFittingStore } from 'stores';
 import { useUser } from '@clerk/nextjs';
+import {
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 const agendaEventCardVariants = cva(
   'flex select-none items-center justify-between gap-3 rounded-md border p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
@@ -65,6 +77,10 @@ export function AgendaEventCard({
     scheduleLoadingStates,
   } = useFittingStore();
   const { user } = useUser();
+  const [dialogState, setDialogState] = useState<{
+  open: boolean;
+  action: 'approve' | 'reject' | null;
+}>({ open: false, action: null });
 
   if (schedule.type !== 'fitting') {
     return null; 
@@ -182,14 +198,14 @@ const endDate = schedule.endTime;
       {showActionButtons && (
         <div className="flex flex-shrink-0 items-center gap-2">
           <button
-            onClick={handleApprove}
+            onClick={() => setDialogState({ open: true, action: 'approve' })}
             disabled={isLoading}
             className="flex items-center justify-center gap-1.5 rounded-md bg-green-100 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
           >
             <Check className="size-4" /> Konfirmasi
           </button>
           <button
-            onClick={handleReject}
+            onClick={() => setDialogState({ open: true, action: 'reject' })}
             disabled={isLoading}
             className="flex items-center justify-center gap-1.5 rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
           >
@@ -197,6 +213,44 @@ const endDate = schedule.endTime;
           </button>
         </div>
       )}
+      <AlertDialog
+  open={dialogState.open}
+  onOpenChange={(open) => {
+    if (!open) setDialogState({ open: false, action: null });
+  }}
+>
+  <AlertDialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
+  <AlertDialogContent className="bg-white dark:bg-neutral-900">
+    <AlertDialogHeader>
+      <AlertDialogTitle>
+        {dialogState.action === 'approve'
+          ? 'Konfirmasi Jadwal Fitting'
+          : 'Tolak Jadwal Fitting'}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {dialogState.action === 'approve'
+          ? 'Apakah Anda yakin ingin mengonfirmasi jadwal fitting ini?'
+          : 'Apakah Anda yakin ingin menolak jadwal fitting ini?'}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Batal</AlertDialogCancel>
+      <AlertDialogAction
+        onClick={() => {
+          if (dialogState.action === 'approve') handleApprove();
+          if (dialogState.action === 'reject') handleReject();
+          setDialogState({ open: false, action: null });
+        }}
+        disabled={isLoading}
+      >
+        {dialogState.action === 'approve' ? 'Konfirmasi' : 'Tolak'}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
+
+    
   );
 }
