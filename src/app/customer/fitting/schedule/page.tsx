@@ -649,7 +649,7 @@ const FittingSchedulePage = () => {
                 </Card>
              )}
 
-            {/* Fitting Guidelines (unchanged) */}
+            {/* Fitting Guidelines */}
             <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
               <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                 <CardTitle className="text-lg">Panduan Fitting</CardTitle>

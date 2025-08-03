@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Heart, Share2, Package, Info, Sparkles, User, MessageCircle, ArrowLeft, X, ZoomIn } from 'lucide-react';
@@ -35,6 +35,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const { isInWishlist, toggleWishlist, loading: wishlistLoading } = useWishlist(productId);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -79,6 +80,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
       fetchRelatedProducts();
     }
   }, [productId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        handleCloseModal();
+      }
+    };
+
+    if (isImageModalOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isImageModalOpen]);
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);
@@ -254,7 +271,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
                 {/* Image Thumbnails */}
                 {product.images && product.images.length > 1 && (
-                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto px-2 py-5 scrollbar-hide">
+                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-2 scrollbar-hide">
                     {product.images.map((image, index) => (
                       <button
                         key={index}
@@ -546,31 +563,31 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
       {/* Full Screen Image Modal */}
       {isImageModalOpen && product.images && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div ref={modalRef} className="relative flex h-full w-full max-w-4xl items-center justify-center">
             <button
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all duration-300"
+              className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 transition-all duration-300 hover:bg-white/20"
             >
               <X className="h-6 w-6 text-white" />
             </button>
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="relative flex h-full w-full items-center justify-center">
               <Image
                 src={product.images[selectedImageIndex]}
                 alt={product.name}
                 width={1200}
                 height={1200}
-                className="max-w-full max-h-full object-contain"
+                className="max-h-full max-w-full object-contain"
                 sizes="100vw"
               />
             </div>
             {product.images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 bg-black/50 rounded-full px-4 py-2">
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 transform space-x-2 rounded-full bg-black/50 px-4 py-2">
                 {product.images.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    className={`h-3 w-3 rounded-full transition-all duration-300 ${
                       selectedImageIndex === index ? 'bg-orange-500' : 'bg-white/50 hover:bg-white/70'
                     }`}
                   />

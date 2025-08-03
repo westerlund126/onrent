@@ -19,10 +19,15 @@ export const HeroSection = () => {
             <span> Pakaian dengan desain terbaru! </span>
           </Badge>
 
-          <div className="max-w-screen-md mx-auto text-center text-4xl md:text-6xl font-bold">
-            <h1>
-              On-Rent
-            </h1>
+          <div className="max-w-screen-md mx-auto text-center">
+            <Image
+              src="/public/img/logo-1.png"
+              alt="On-Rent Logo"
+              width={400}
+              height={200}
+              className="mx-auto"
+              priority
+            />
           </div>
 
           <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground">
