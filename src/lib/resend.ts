@@ -2,10 +2,14 @@
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
 import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail } from 'components/emails';
+import { JSX } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class EmailService {
+  sendEmail(arg0: { to: string; subject: string; react: JSX.Element; }) {
+    throw new Error('Method not implemented.');
+  }
   private fromEmail = process.env.FROM_EMAIL || 'noreply@onrent.live';
 
   // Notify owner when a new fitting is scheduled
