@@ -9,7 +9,6 @@ import MainProfileCard from 'components/owner/profile/MainProfileCard';
 import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';
 import MapCard from 'components/owner/profile/MapCard'; 
-import BusinessStatsCard from 'components/owner/profile/BusinessStatsCard';
 import { toast } from 'sonner';
 
 interface ProfileData {

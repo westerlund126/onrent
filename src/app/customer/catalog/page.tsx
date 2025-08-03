@@ -15,8 +15,7 @@ const EMPTY_FILTERS: FilterState = {
   selectedPriceRange: null,
 };
 
-const ITEMS_PER_PAGE = 12; // Adjust as needed
-
+const ITEMS_PER_PAGE = 12; 
 const Catalog = () => {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category'); 
