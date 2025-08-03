@@ -39,85 +39,106 @@ export const NewFittingOwnerEmail = ({
   productNames,
   note,
   businessName,
-
 }: NewFittingOwnerEmailProps) => {
   const productList = productNames.length > 0 
     ? productNames.join(', ') 
-    : 'No specific products selected';
+    : 'Tidak ada produk spesifik dipilih';
 
   return (
     <Html>
-      <Head />
-      <Preview>New fitting appointment request from {customerName}</Preview>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </Head>
+      <Preview>Permintaan fitting baru dari {customerName}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Section style={header}>
-            <Heading style={h1}>🎉 New Fitting Appointment Request</Heading>
-            <Text style={text}>
-              Hello {ownerName || businessName || 'Business Owner'},
+
+          {/* Hero Section */}
+          <Section style={heroSection}>
+            <Img
+              src="https://res.cloudinary.com/dpiq28w1p/image/upload/v1754232730/logo_k67xni.png"
+              width="120"
+              height="60"
+              alt="OnRent Logo"
+              style={{ margin: 'auto' }}
+            />
+            <Heading style={heroTitle}>Permintaan Fitting Baru!</Heading>
+            <Text style={heroSubtitle}>
+              Anda memiliki janji temu baru yang menunggu konfirmasi
             </Text>
           </Section>
 
-          <Section style={content}>
-            <Text style={text}>
-              You have received a new fitting appointment request that requires your confirmation.
+          {/* Main Content */}
+          <Section style={contentSection}>
+            <Text style={greetingText}>
+              Halo {ownerName || businessName || 'Pemilik Bisnis'} !
             </Text>
 
-            <Section style={highlightBox}>
-              <Heading as="h3" style={h3}>📅 Appointment Details</Heading>
-              <Text style={infoText}>
-                <strong>Fitting ID:</strong> #{fittingId}
-              </Text>
-              <Text style={infoText}>
-                <strong>Date & Time:</strong> {fittingDate}
-              </Text>
-              <Text style={infoText}>
-                <strong>Status:</strong> <span style={pendingStatus}>Pending Confirmation</span>
-              </Text>
+            {/* Appointment Details */}
+            <Section style={card}>
+              <div style={cardHeaderWithBadge}>
+                <Text style={cardTitleText}>📅 Detail Janji Temu</Text>
+              </div>
+              
+              <table style={detailTable}>
+                <tr>
+                  <td style={labelCell}>Tanggal & Waktu</td>
+                  <td style={valueCell}>{fittingDate}</td>
+                </tr>
+              </table>
             </Section>
 
-            <Section>
-              <Heading as="h3" style={h3}>👤 Customer Information</Heading>
-              <Text style={infoText}>
-                <strong>Name:</strong> {customerName}
-              </Text>
-              <Text style={infoText}>
-                <strong>Email:</strong> {customerEmail}
-              </Text>
-              {customerPhone && (
-                <Text style={infoText}>
-                  <strong>Phone:</strong> {customerPhone}
-                </Text>
-              )}
+            {/* Customer Info */}
+            <Section style={card}>
+              <Text style={cardTitleText}>👤 Informasi Pelanggan</Text>
+              
+              <table style={detailTable}>
+                <tr>
+                  <td style={labelCell}>Nama</td>
+                  <td style={valueCell}>{customerName}</td>
+                </tr>
+                <tr>
+                  <td style={labelCell}>Email</td>
+                  <td style={valueCell}>{customerEmail}</td>
+                </tr>
+                {customerPhone && (
+                  <tr>
+                    <td style={labelCell}>Telepon</td>
+                    <td style={valueCell}>{customerPhone}</td>
+                  </tr>
+                )}
+              </table>
             </Section>
 
-            <Section>
-              <Heading as="h3" style={h3}>👗 Products for Fitting</Heading>
-              <Text style={infoText}>{productList}</Text>
+            {/* Products */}
+            <Section style={card}>
+              <Text style={cardTitleText}>👗 Produk untuk Fitting</Text>
+              <Text style={productText}>{productList}</Text>
             </Section>
 
+            {/* Notes (if exists) */}
             {note && (
-              <Section>
-                <Heading as="h3" style={h3}>📝 Customer Notes</Heading>
-                <Text style={infoText}>{note}</Text>
+              <Section style={card}>
+                <Text style={cardTitleText}>📝 Catatan Pelanggan</Text>
+                <Text style={noteText}>{note}</Text>
               </Section>
             )}
 
-            <Section style={buttonContainer}>
-              <Button style={button} href={"https://onrent.live/owner/fitting/schedule"}>
-                View in Dashboard
+            {/* Action Button */}
+            <Section style={buttonSection}>
+              <Button style={primaryButton} href="https://onrent.live/owner/fitting/schedule">
+                Lihat di Dashboard
               </Button>
             </Section>
           </Section>
 
-          <Hr style={hr} />
-
+          {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              Please log in to your dashboard to confirm or reject this appointment.
+              Silakan masuk ke dashboard Anda untuk mengonfirmasi atau menolak janji temu ini.
             </Text>
             <Text style={footerText}>
-              This is an automated message from your dress rental system.
+              Ini adalah pesan otomatis dari OnRent.
             </Text>
           </Section>
         </Container>
@@ -126,108 +147,199 @@ export const NewFittingOwnerEmail = ({
   );
 };
 
+// Responsive Styles
 const main = {
-  backgroundColor: '#f6f9fc',
+  backgroundColor: '#f8f9fc',
   fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  padding: '20px 10px',
+  margin: '0',
+  width: '100%',
 };
 
 const container = {
+  backgroundColor: 'transparent',
+  margin: '0 auto',
+  padding: '0',
+  maxWidth: '600px',
+  width: '100%',
+};
+
+const headerSection = {
+  textAlign: 'center' as const,
+  padding: '20px 0 10px',
+};
+
+const logo = {
+  margin: '0 auto',
+  display: 'block',
+};
+
+const heroSection = {
+  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  borderRadius: '16px',
+  padding: '40px 20px',
+  textAlign: 'center' as const,
+  margin: '0 10px 20px',
+};
+
+const heroIcon = {
+  margin: '0 auto 20px',
+  display: 'block',
+  filter: 'brightness(0) invert(1)',
+};
+
+const heroTitle = {
+  color: '#ffffff',
+  fontSize: '24px',
+  fontWeight: 'bold',
+  margin: '0 0 10px',
+  textAlign: 'center' as const,
+  lineHeight: '1.3',
+};
+
+const heroSubtitle = {
+  color: '#e2e8f0',
+  fontSize: '16px',
+  margin: '0',
+  lineHeight: '1.4',
+};
+
+const contentSection = {
   backgroundColor: '#ffffff',
-  border: '1px solid #f0f0f0',
-  borderRadius: '8px',
-  margin: '40px auto',
-  padding: '20px',
-  width: '465px',
+  borderRadius: '16px',
+  margin: '0 10px',
+  padding: '30px 20px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
 };
 
-const header = {
-  backgroundColor: '#f8f9fa',
-  borderRadius: '8px',
-  marginBottom: '20px',
-  padding: '20px',
+const greetingText = {
+  color: '#374151',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0 0 25px',
 };
 
-const content = {
+const card = {
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: '12px',
   padding: '20px',
-};
-
-const highlightBox = {
-  backgroundColor: '#fff3cd',
-  borderRadius: '4px',
-  padding: '15px',
   margin: '15px 0',
 };
 
-const h1 = {
-  color: '#333',
-  fontSize: '24px',
+const cardHeaderWithBadge = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '15px',
+  flexWrap: 'wrap' as const,
+  gap: '10px',
+};
+
+const cardTitleText = {
+  color: '#1f2937',
+  fontSize: '16px',
   fontWeight: 'bold',
   margin: '0 0 15px',
-  textAlign: 'left' as const,
 };
 
-const h3 = {
-  color: '#333',
-  fontSize: '18px',
+const statusBadge = {
+  backgroundColor: '#fef3c7',
+  borderRadius: '20px',
+  padding: '4px 12px',
+  display: 'inline-block',
+};
+
+const statusText = {
+  color: '#92400e',
+  fontSize: '11px',
   fontWeight: 'bold',
-  margin: '20px 0 10px',
+  margin: '0',
+  textTransform: 'uppercase' as const,
 };
 
-const text = {
-  color: '#333',
-  fontSize: '16px',
-  lineHeight: '1.6',
-  margin: '0 0 10px',
+const detailTable = {
+  width: '100%',
+  borderCollapse: 'collapse' as const,
+  margin: '0',
 };
 
-const infoText = {
-  color: '#333',
+const labelCell = {
+  color: '#6b7280',
+  fontSize: '14px',
+  fontWeight: '500',
+  padding: '8px 0',
+  borderBottom: '1px solid #e5e7eb',
+  width: '40%',
+  verticalAlign: 'top' as const,
+};
+
+const valueCell = {
+  color: '#111827',
+  fontSize: '14px',
+  fontWeight: '600',
+  padding: '8px 0',
+  borderBottom: '1px solid #e5e7eb',
+  textAlign: 'right' as const,
+  verticalAlign: 'top' as const,
+};
+
+const productText = {
+  color: '#374151',
   fontSize: '14px',
   lineHeight: '1.6',
-  margin: '8px 0',
+  margin: '0',
+  padding: '15px',
+  backgroundColor: '#ffffff',
+  borderRadius: '8px',
+  border: '1px solid #d1d5db',
 };
 
-const pendingStatus = {
-  backgroundColor: '#fff3cd',
-  color: '#856404',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontSize: '12px',
-  fontWeight: 'bold',
+const noteText = {
+  color: '#374151',
+  fontSize: '14px',
+  lineHeight: '1.6',
+  margin: '0',
+  padding: '15px',
+  backgroundColor: '#fffbeb',
+  borderRadius: '8px',
+  border: '1px solid #fbbf24',
+  fontStyle: 'italic',
 };
 
-const buttonContainer = {
+const buttonSection = {
   textAlign: 'center' as const,
-  margin: '30px 0',
+  margin: '30px 0 20px',
 };
 
-const button = {
-  backgroundColor: '#007bff',
-  borderRadius: '4px',
-  color: '#fff',
+const primaryButton = {
+  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  borderRadius: '25px',
+  color: '#ffffff',
   fontSize: '16px',
   fontWeight: 'bold',
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'inline-block',
-  padding: '12px 24px',
-};
-
-const hr = {
+  padding: '12px 30px',
   border: 'none',
-  borderTop: '1px solid #eaeaea',
-  margin: '26px 0',
-  width: '100%',
+  cursor: 'pointer',
+  minWidth: '200px',
 };
 
 const footer = {
-  color: '#6c757d',
-  fontSize: '12px',
+  backgroundColor: '#f9fafb',
+  borderRadius: '12px',
+  margin: '20px 10px',
+  padding: '20px',
   textAlign: 'center' as const,
 };
 
 const footerText = {
-  margin: '0 0 10px',
+  color: '#6b7280',
+  fontSize: '13px',
+  lineHeight: '1.5',
+  margin: '0 0 8px',
 };
 
 export default NewFittingOwnerEmail;
