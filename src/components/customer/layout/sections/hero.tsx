@@ -21,7 +21,7 @@ export const HeroSection = () => {
 
           <div className="max-w-screen-md mx-auto text-center">
             <Image
-              src="/public/img/logo-1.png"
+              src={"/img/logo-1.png"}
               alt="On-Rent Logo"
               width={400}
               height={200}
