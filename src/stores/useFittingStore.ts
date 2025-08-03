@@ -23,7 +23,7 @@ interface FittingState {
   setError: (error: string | null) => void;
   setScheduleLoading: (scheduleId: number, loading: boolean) => void;
 
-  fetchFittingSchedules: (dateFrom?: string, dateTo?: string) => Promise<void>;
+  fetchFittingSchedules: (dateFrom?: string, dateTo?: string, includeInactive?: boolean) => Promise<void>;
   fetchFittingSlots: (dateFrom?: string, dateTo?: string) => Promise<void>;
   createFittingSchedule: (scheduleData: {
     fittingSlotId: number;
@@ -53,6 +53,13 @@ interface FittingState {
       allowUpdateWhenBooked?: boolean;
     },
   ) => Promise<void>;
+
+  // Helper functions for filtering schedules
+  getActiveSchedules: () => IFittingSchedule[];
+  getAllSchedules: () => IFittingSchedule[];
+  getSchedulesByStatus: (status: string) => IFittingSchedule[];
+  getSchedulesByStatuses: (statuses: string[]) => IFittingSchedule[];
+  getInactiveSchedules: () => IFittingSchedule[];
 }
 
 export const useFittingStore = create<FittingState>()(
@@ -102,7 +109,7 @@ export const useFittingStore = create<FittingState>()(
         state.scheduleLoadingStates[scheduleId] = loading;
       }),
 
-    fetchFittingSchedules: async (dateFrom, dateTo) => {
+    fetchFittingSchedules: async (dateFrom, dateTo, includeInactive = false) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -112,6 +119,7 @@ export const useFittingStore = create<FittingState>()(
         const params = new URLSearchParams();
         if (dateFrom) params.append('dateFrom', dateFrom);
         if (dateTo) params.append('dateTo', dateTo);
+        if (includeInactive) params.append('includeInactive', 'true');
 
         const url = `/api/fitting/schedule${
           params.toString() ? `?${params.toString()}` : ''
@@ -283,10 +291,7 @@ export const useFittingStore = create<FittingState>()(
         const response = await fetch('/api/fitting/schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...scheduleData,
-            isActive: true, // Ensure active flag
-          }),
+          body: JSON.stringify(requestData),
         });
 
         if (!response.ok) {
@@ -296,8 +301,23 @@ export const useFittingStore = create<FittingState>()(
 
         const { schedule: newSchedule, message } = await response.json();
 
+        // Process the new schedule to match the expected format
+        const base = new Date(newSchedule.fittingSlot?.dateTime ?? null);
+        const duration = newSchedule.duration ?? 60;
+
+        const processedSchedule = {
+          ...newSchedule,
+          startTime: base,
+          endTime: new Date(base.getTime() + duration * 60 * 1000),
+          title: `${newSchedule.user?.first_name || 'Unknown'} - ${
+            newSchedule.fittingType?.name || 'Fitting'
+          }`,
+          color: newSchedule.fittingType?.color || 'blue',
+          userImageUrl: newSchedule.user?.imageUrl,
+        };
+
         set((state) => {
-          state.fittingSchedules.push(newSchedule);
+          state.fittingSchedules.push(processedSchedule);
           const slotIndex = state.fittingSlots.findIndex(
             (slot) => slot.id === scheduleData.fittingSlotId,
           );
@@ -307,7 +327,7 @@ export const useFittingStore = create<FittingState>()(
           state.isLoading = false;
         });
 
-        return newSchedule;
+        return processedSchedule;
       } catch (error) {
         console.error('Failed to create fitting schedule:', error);
         set((state) => {
@@ -339,51 +359,44 @@ export const useFittingStore = create<FittingState>()(
           throw new Error(errorData.error || 'Failed to update schedule');
         }
 
-        if (updates.status === 'CANCELED' || updates.status === 'REJECTED') {
-          set((state) => {
-            const scheduleToRemove = state.fittingSchedules.find(
-              (s) => s.id === scheduleId,
+        const updatedSchedule = await response.json();
+        
+        set((state) => {
+          const index = state.fittingSchedules.findIndex(
+            (s) => s.id === scheduleId,
+          );
+          
+          if (index !== -1) {
+            const base = new Date(
+              updatedSchedule.fittingSlot?.dateTime ?? null,
             );
+            const duration = updatedSchedule.duration ?? 60;
 
-            state.fittingSchedules = state.fittingSchedules.filter(
-              (s) => s.id !== scheduleId,
-            );
+            // Update the schedule in place instead of removing it
+            state.fittingSchedules[index] = {
+              ...state.fittingSchedules[index], // Keep existing fields
+              ...updatedSchedule, // Overwrite with new data
+              startTime: base,
+              endTime: new Date(base.getTime() + duration * 60 * 1000),
+              title: `${
+                updatedSchedule.user?.first_name || 'Unknown'
+              } - ${updatedSchedule.fittingType?.name || 'Fitting'}`,
+              color: updatedSchedule.fittingType?.color || 'blue',
+              userImageUrl: updatedSchedule.user?.imageUrl,
+            };
 
-            if (scheduleToRemove) {
+            // If the schedule was canceled or rejected, free up the slot
+            if (updates.status === 'CANCELED' || updates.status === 'REJECTED') {
+              const scheduleToUpdate = state.fittingSchedules[index];
               const slotIndex = state.fittingSlots.findIndex(
-                (slot) => slot.id === scheduleToRemove.fittingSlotId,
+                (slot) => slot.id === scheduleToUpdate.fittingSlotId,
               );
               if (slotIndex > -1) {
                 state.fittingSlots[slotIndex].isBooked = false;
               }
             }
-          });
-        } else {
-          const updatedSchedule = await response.json();
-          set((state) => {
-            const index = state.fittingSchedules.findIndex(
-              (s) => s.id === scheduleId,
-            );
-            if (index !== -1) {
-              const base = new Date(
-                updatedSchedule.fittingSlot?.dateTime ?? null,
-              );
-              const duration = updatedSchedule.duration ?? 60;
-
-              state.fittingSchedules[index] = {
-                ...state.fittingSchedules[index], // Keep existing fields
-                ...updatedSchedule, // Overwrite with new data
-                startTime: base,
-                endTime: new Date(base.getTime() + duration * 60 * 1000),
-                title: `${
-                  updatedSchedule.user?.first_name || 'Unknown'
-                } - Fitting`,
-                color: updatedSchedule.fittingType?.color || 'blue',
-                userImageUrl: updatedSchedule.user?.imageUrl,
-              };
-            }
-          });
-        }
+          }
+        });
       } catch (error) {
         console.error('Failed to update fitting schedule:', error);
         set((state) => {
@@ -498,6 +511,29 @@ export const useFittingStore = create<FittingState>()(
           state.isLoading = false;
         });
       }
+    },
+
+    // Helper functions for filtering schedules
+    getActiveSchedules: () => {
+      return get().fittingSchedules.filter(schedule => schedule.isActive !== false);
+    },
+
+    getAllSchedules: () => {
+      return get().fittingSchedules;
+    },
+
+    getSchedulesByStatus: (status) => {
+      return get().fittingSchedules.filter(schedule => schedule.status === status);
+    },
+
+    getSchedulesByStatuses: (statuses) => {
+      return get().fittingSchedules.filter(schedule => 
+        statuses.includes(schedule.status)
+      );
+    },
+
+    getInactiveSchedules: () => {
+      return get().fittingSchedules.filter(schedule => schedule.isActive === false);
     },
   })),
 );

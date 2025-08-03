@@ -139,10 +139,10 @@ const MapCard: React.FC<MapCardProps> = ({
         setCoordinates([lat, lon]);
         setMapKey(prev => prev + 1);
       } else {
-        setError('Address not found');
+        setError('Alamat tidak ditemukan');
       }
     } catch (err) {
-      setError('Unable to locate address');
+      setError('Tidak dapat menemukan alamat');
       console.error('Geocoding error:', err);
     } finally {
       setIsLoading(false);
@@ -188,11 +188,10 @@ const MapCard: React.FC<MapCardProps> = ({
         <MapPin className="h-8 w-8 text-gray-400" />
       </div>
       <h3 className="mb-2 text-lg font-semibold text-gray-600">
-        No Address Added
+        Alamat Bisnis Tidak Tersedia
       </h3>
       <p className="text-sm text-gray-500">
-        Add your business address in the profile section to display the location
-        map.
+        Tambahkan alamat bisnis Anda di bagian profil untuk menampilkan peta lokasi.
       </p>
     </div>
   );
@@ -203,7 +202,7 @@ const MapCard: React.FC<MapCardProps> = ({
         <AlertCircle className="h-8 w-8 text-red-500" />
       </div>
       <h3 className="mb-2 text-lg font-semibold text-red-600">
-        Location Error
+        Kesalahan Lokasi
       </h3>
       <p className="mb-4 text-sm text-red-500">{error}</p>
       <p className="text-xs text-gray-500">
@@ -262,7 +261,7 @@ const MapCard: React.FC<MapCardProps> = ({
                 {businessAddress}
               </p>
             </div>
-            <div className="relative flex-grow">
+            <div className="relative flex-grow pt-15">
               <div 
                 key={mapKey}
                 className="h-64 w-full overflow-hidden rounded-lg border border-gray-200"

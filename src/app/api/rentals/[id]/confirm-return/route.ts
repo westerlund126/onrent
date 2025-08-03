@@ -20,7 +20,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid rental ID' }, { status: 400 });
     }
 
-    // First, get the owner and validate access
     const owner = await prisma.user.findUnique({
       where: { clerkUserId: userId },
       select: { id: true },
