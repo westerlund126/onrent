@@ -332,11 +332,12 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    if (!includeInactive && !status) {
+      whereClause.isActive = true;
+    }
+
     if (status) {
       whereClause.status = status;
-    } else if (includeInactive) {
-    } else {
-      whereClause.isActive = true; 
     }
 
     const schedules = await prisma.fittingSchedule.findMany({
