@@ -151,21 +151,36 @@ const TransactionDetailPage = () => {
   );
 
   const handleConfirmReturn = async () => {
-    if (!rental) return;
-    try {
-      await confirmReturn(rental.id);
-      setConfirmReturnDialogOpen(false);
-      toast.success("Pengembalian berhasil dikonfirmasi.");
+  if (!rental) return;
+  
+  try {
+    await confirmReturn(rental.id);
+    setConfirmReturnDialogOpen(false);
+    toast.success("Pengembalian berhasil dikonfirmasi.");
+    
+    setTimeout(async () => {
       await loadData();
-    } catch (error) {
-      console.error('Failed to confirm return:', error);
-      toast.error(
-        `Gagal mengonfirmasi pengembalian: ${
-          error instanceof Error ? error.message : 'Tolong coba kembali.'
-        }`,
-      );
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Failed to confirm return:', error);
+    
+    let errorMessage = 'Tolong coba kembali.';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Operasi mungkin sedang diproses. Silakan refresh halaman untuk melihat status terbaru.';
+      } else if (error.message.includes('already been processed')) {
+        errorMessage = 'Pengembalian sudah diproses sebelumnya.';
+        setTimeout(() => loadData(), 1000);
+      } else {
+        errorMessage = error.message;
+      }
     }
-  };
+    
+    toast.error(`Gagal mengonfirmasi pengembalian: ${errorMessage}`);
+  }
+};
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('id-ID', {

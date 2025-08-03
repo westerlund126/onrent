@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/onesignal'; // 1. Import OneSignalService
+import { OneSignalService } from 'lib/onesignal';
 
 export async function POST(
   request: NextRequest,
@@ -32,7 +32,6 @@ export async function POST(
       );
     }
 
-    // Find the rental to validate ownership and status
     const rental = await prisma.rental.findFirst({
       where: {
         id: rentalId,
@@ -85,78 +84,100 @@ export async function POST(
       );
     }
 
-    const updatedRental = await prisma.$transaction(async (tx) => {
-      await tx.tracking.create({
-        data: {
-          rentalId: rentalId,
-          status: 'RETURNED',
-        },
-      });
+    const updatedRental = await prisma.$transaction(
+      async (tx) => {
+        await tx.tracking.create({
+          data: {
+            rentalId: rentalId,
+            status: 'RETURNED',
+          },
+        });
 
-      // Refetch the rental with all necessary data for the notification
-      return await tx.rental.findFirst({
-        where: { id: rentalId },
-        include: {
-          user: { // The customer
-            select: {
-              first_name: true,
-              last_name: true,
+        return await tx.rental.findFirst({
+          where: { id: rentalId },
+          include: {
+            user: { // The customer
+              select: {
+                first_name: true,
+                last_name: true,
+              },
             },
-          },
-          owner: { // The owner
-            select: {
-              clerkUserId: true, // 2. Get owner's Clerk ID for notification
+            owner: { // The owner
+              select: {
+                clerkUserId: true,
+              },
             },
-          },
-          rentalItems: {
-            include: {
-              variantProduct: {
-                select: {
-                  products: {
-                    select: {
-                      name: true,
+            rentalItems: {
+              include: {
+                variantProduct: {
+                  select: {
+                    products: {
+                      select: {
+                        name: true,
+                      },
                     },
                   },
                 },
               },
             },
           },
-        },
-      });
-    });
+        });
+      },
+      {
+        maxWait: 5000, // 5 seconds
+        timeout: 10000, // 10 seconds
+      }
+    );
 
     if (!updatedRental) {
-        throw new Error("Failed to update and retrieve rental details.");
+      throw new Error("Failed to update and retrieve rental details.");
     }
 
-    // 3. Send the notification to the owner
     if (updatedRental.owner.clerkUserId) {
-      try {
-        const oneSignalService = new OneSignalService();
-        const customerName = `${updatedRental.user.first_name} ${updatedRental.user.last_name || ''}`.trim();
-        const productNames = updatedRental.rentalItems.map(item => item.variantProduct.products.name);
-        
-        await oneSignalService.notifyOwnerReturnRequest({
-          ownerExternalId: updatedRental.owner.clerkUserId,
-          customerName: customerName,
-          rentalCode: updatedRental.rentalCode,
-          productNames: productNames,
-          rentalId: updatedRental.id,
-        });
-      } catch (notificationError) {
-        // Log the error but don't fail the API request
-        console.error("[Notification] Failed to send return request notification:", notificationError);
-      }
+      setImmediate(async () => {
+        try {
+          const oneSignalService = new OneSignalService();
+          const customerName = `${updatedRental.user.first_name} ${updatedRental.user.last_name || ''}`.trim();
+          const productNames = updatedRental.rentalItems.map(item => item.variantProduct.products.name);
+          
+          await oneSignalService.notifyOwnerReturnRequest({
+            ownerExternalId: updatedRental.owner.clerkUserId!,
+            customerName: customerName,
+            rentalCode: updatedRental.rentalCode,
+            productNames: productNames,
+            rentalId: updatedRental.id,
+          });
+          
+          console.log(`[Notification] Return request notification sent for rental ${updatedRental.id}`);
+        } catch (notificationError) {
+          console.error("[Notification] Failed to send return request notification:", notificationError);
+        }
+      });
     }
 
     return NextResponse.json({
       success: true,
       message:
         'Return initiated successfully. Please wait for owner confirmation.',
-      data: updatedRental, // You might want to return a cleaner object
+      data: updatedRental,
     });
   } catch (error: any) {
     console.error('Customer return error:', error);
+    
+    if (error.code === 'P2034') {
+      return NextResponse.json(
+        { error: 'Transaction timeout. Please try again.' },
+        { status: 408 },
+      );
+    }
+    
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Return request already exists.' },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 },

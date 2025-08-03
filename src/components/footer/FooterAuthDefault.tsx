@@ -5,44 +5,6 @@ export default function Footer() {
       <p className="mb-6 text-center text-sm text-gray-600 md:text-base lg:mb-0">
         ©{new Date().getFullYear()} ONRENT. All Rights Reserved.
       </p>
-      <ul className="flex flex-wrap items-center sm:flex-nowrap">
-        <li className="mr-12">
-          <a
-            target="blank"
-            href="mailto:hello@simmmple.com"
-            className="text-sm text-gray-600 hover:text-gray-600 md:text-base lg:text-white lg:hover:text-white"
-          >
-            Support
-          </a>
-        </li>
-        <li className="mr-12">
-          <a
-            target="blank"
-            href="https://simmmple.com/licenses"
-            className="text-sm text-gray-600 hover:text-gray-600 md:text-base lg:text-white lg:hover:text-white"
-          >
-            License
-          </a>
-        </li>
-        <li className="mr-12">
-          <a
-            target="blank"
-            href="https://simmmple.com/terms-of-service"
-            className="text-sm text-gray-600 hover:text-gray-600 md:text-base lg:text-white lg:hover:text-white"
-          >
-            Terms of Use
-          </a>
-        </li>
-        <li>
-          <a
-            target="blank"
-            href="https://blog.horizon-ui.com/"
-            className="text-sm text-gray-600 hover:text-gray-600 md:text-base lg:text-white lg:hover:text-white"
-          >
-            Blog
-          </a>
-        </li>
-      </ul>
     </div>
   );
 }

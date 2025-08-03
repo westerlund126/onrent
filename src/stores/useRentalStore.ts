@@ -290,7 +290,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
     }
   },
 
-  // NEW: Customer initiates return
   initiateReturn: async (rentalId: number) => {
     const { setReturnInitiateLoading, loadRentals } = get();
 
@@ -311,7 +310,6 @@ export const useRentalStore = create<RentalState>((set, get) => ({
 
       const result: ApiResponse<Rental> = await response.json();
 
-      // Update the rental in state with new tracking status
       set((state) => ({
         rentals: state.rentals.map((rental) =>
           rental.id === rentalId
@@ -330,59 +328,81 @@ export const useRentalStore = create<RentalState>((set, get) => ({
       console.error('Failed to initiate return:', err);
       alert(`${errorMessage}. Please try again.`);
 
-      // Refresh data on error to ensure UI is in sync
       await loadRentals();
     } finally {
       setReturnInitiateLoading(null);
     }
   },
 
-  // NEW: Owner confirms return
   confirmReturn: async (rentalId: number) => {
-    const { setReturnConfirmLoading, loadRentals } = get();
+  const { setReturnConfirmLoading, loadRentals } = get();
 
-    try {
-      setReturnConfirmLoading(rentalId);
+  try {
+    setReturnConfirmLoading(rentalId);
 
-      const response = await fetch(`/api/rentals/${rentalId}/confirm-return`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      if (!response.ok) {
-        const errorData: ApiResponse = await response.json();
-        throw new Error(errorData.error || 'Failed to confirm return');
+    const response = await fetch(`/api/rentals/${rentalId}/confirm-return`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData: ApiResponse = await response.json();
+      
+      // Handle specific error cases
+      if (response.status === 408) {
+        throw new Error('Request timeout. The operation may still be processing. Please refresh the page.');
       }
-
-      const result: ApiResponse<Rental> = await response.json();
-
-      // Update the rental in state with completed status
-      set((state) => ({
-        rentals: state.rentals.map((rental) =>
-          rental.id === rentalId
-            ? {
-                ...rental,
-                status: result.data?.status || rental.status,
-                Tracking: result.data?.Tracking || rental.Tracking,
-              }
-            : rental,
-        ),
-      }));
-
-      console.log('Return confirmed successfully');
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to confirm return';
-      console.error('Failed to confirm return:', err);
-      alert(`${errorMessage}. Please try again.`);
-
-      await loadRentals();
-    } finally {
-      setReturnConfirmLoading(null);
+      
+      if (response.status === 409) {
+        throw new Error('Return has already been processed.');
+      }
+      
+      throw new Error(errorData.error || 'Failed to confirm return');
     }
-  },
+
+    const result: ApiResponse<Rental> = await response.json();
+
+    // Update the rental in state with completed status
+    set((state) => ({
+      rentals: state.rentals.map((rental) =>
+        rental.id === rentalId
+          ? {
+              ...rental,
+              status: result.data?.status || rental.status,
+              Tracking: result.data?.Tracking || rental.Tracking,
+            }
+          : rental,
+      ),
+    }));
+
+    console.log('Return confirmed successfully');
+  } catch (err) {
+    let errorMessage = 'Failed to confirm return';
+    
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timeout. Please check if the operation completed and refresh the page.';
+      } else {
+        errorMessage = err.message;
+      }
+    }
+    
+    console.error('Failed to confirm return:', err);
+    alert(`${errorMessage}. Please try again.`);
+
+    await loadRentals();
+  } finally {
+    setReturnConfirmLoading(null);
+  }
+},
 
   refreshData: async () => {
     const { loadRentals } = get();
