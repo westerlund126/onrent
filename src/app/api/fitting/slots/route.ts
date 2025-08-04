@@ -1,4 +1,4 @@
-// app/api/fitting/slots/route.ts - COMPLETE FIXED VERSION
+// app/api/fitting/slots/route.ts - CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -48,13 +48,19 @@ export async function GET(request: NextRequest) {
       }
       ownerId = parsedOwnerId;
     }
+
+    // 🔍 DEBUG: Verify ownerId parsing
+    console.log('🔍 Owner ID Verification:', {
+      ownerIdParam,
+      ownerIdParamType: typeof ownerIdParam,
+      parsedOwnerId: ownerId,
+      parsedOwnerIdType: typeof ownerId,
+      callerRole: caller.role,
+    });
+
+    // =================== THE FIX: SIMPLIFIED APPROACH ===================
     
-    // ... (Your validation logic for ownerExists can remain here) ...
-
-    // =================== FIX STARTS HERE ===================
-    // Build where clauses using a more robust method
-
-    // 1. Define the slot where clause
+    // 1. Build the slot where clause (this part was correct)
     const slotWhereClause: any = {
       ownerId,
     };
@@ -62,46 +68,43 @@ export async function GET(request: NextRequest) {
       slotWhereClause.isBooked = false;
     }
 
-    // 2. Define the block where clause conditions in an array
-    const blockWhereConditions: any[] = [{ ownerId }];
-
-    // 3. Add date filters to both clauses
+    // Add date filters to slots if provided
     if (dateFrom && dateTo) {
       const parsedDateFrom = new Date(dateFrom);
       const parsedDateTo = new Date(dateTo);
 
       if (isNaN(parsedDateFrom.getTime()) || isNaN(parsedDateTo.getTime())) {
         return NextResponse.json(
-            { error: 'Invalid date format' },
-            { status: 400 },
+          { error: 'Invalid date format' },
+          { status: 400 },
         );
       }
 
-      // Add date range to slots
       slotWhereClause.dateTime = {
         gte: parsedDateFrom,
         lte: parsedDateTo,
       };
-
-      // Add overlapping date range to blocks.
-      // A block overlaps if it starts before the range ends AND ends after the range starts.
-      blockWhereConditions.push({ startTime: { lt: parsedDateTo } });
-      blockWhereConditions.push({ endTime: { gt: parsedDateFrom } });
     }
 
-    // 4. Construct the final block where clause
-    const finalBlockWhereClause = { AND: blockWhereConditions };
+    // 2. For schedule blocks: Fetch ALL blocks for this owner
+    // We'll do the date filtering in memory after fetching
+    const scheduleBlockWhereClause = {
+      ownerId, // Only filter by owner - get ALL blocks for this owner
+    };
 
-    // 🔍 DEBUG: Log the final, corrected where clauses
-    console.log('🔍 API Final Where Clauses:', {
+    // 🔍 DEBUG: Log the where clauses
+    console.log('🔍 API Where Clauses:', {
+      ownerId,
+      callerRole: caller.role,
       slotWhereClause: JSON.stringify(slotWhereClause, null, 2),
-      blockWhereClause: JSON.stringify(finalBlockWhereClause, null, 2),
+      scheduleBlockWhereClause: JSON.stringify(scheduleBlockWhereClause, null, 2),
+      dateRange: dateFrom && dateTo ? { from: dateFrom, to: dateTo } : 'No date range'
     });
-    // =================== FIX ENDS HERE ===================
 
-    const [slots, scheduleBlocks] = await Promise.all([
+    // 3. Fetch both slots and ALL schedule blocks for the owner
+    const [slots, allScheduleBlocks] = await Promise.all([
       prisma.fittingSlot.findMany({
-        where: slotWhereClause, // Use the new slot clause
+        where: slotWhereClause,
         include: {
           owner: {
             select: {
@@ -132,24 +135,96 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.scheduleBlock.findMany({
-        where: finalBlockWhereClause, // Use the new, corrected block clause
+        where: scheduleBlockWhereClause, // Fetch ALL blocks for this owner
+        orderBy: {
+          startTime: 'asc',
+        },
       }),
     ]);
 
-    // ... (The rest of your file remains the same, including the filtering logic) ...
+    // 🔍 DEBUG: Log what we retrieved
+    console.log('🔍 Retrieved Data:', {
+      totalSlots: slots.length,
+      totalScheduleBlocks: allScheduleBlocks.length,
+      requestedOwnerId: ownerId,
+      requestedOwnerIdType: typeof ownerId,
+      scheduleBlocks: allScheduleBlocks.map(block => ({
+        id: block.id,
+        ownerId: block.ownerId,
+        description: block.description,
+        startTime: block.startTime.toISOString(),
+        endTime: block.endTime.toISOString(),
+        startLocal: block.startTime.toLocaleString(),
+        endLocal: block.endTime.toLocaleString(),
+      })),
+      sampleSlots: slots.slice(0, 3).map(slot => ({
+        id: slot.id,
+        ownerId: slot.ownerId,
+        dateTime: slot.dateTime,
+        isBooked: slot.isBooked,
+      }))
+    });
 
-    // Filter out slots that conflict with schedule blocks
+    // 🔍 DEBUG: Check for the specific 9 AM slot issue
+    const nineAmSlot = slots.find(slot => slot.dateTime instanceof Date && slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('🔍 FOUND 9 AM SLOT in raw results:', {
+        slot: nineAmSlot,
+        slotOwnerId: nineAmSlot.ownerId,
+        requestedOwnerId: ownerId,
+        ownerIdMatch: nineAmSlot.ownerId === ownerId
+      });
+    }
+
+    // 4. Filter out slots that conflict with schedule blocks
+    const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    
     const filteredSlots = slots.filter((slot) => {
-      const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
       const slotStartTime = new Date(slot.dateTime);
       const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
-      const isBlocked = scheduleBlocks.some((block) => {
+      // Check if this slot conflicts with ANY schedule block
+      const conflictingBlock = allScheduleBlocks.find((block) => {
+        // A slot conflicts with a block if they overlap
         const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+        
+        if (overlaps) {
+          console.log('🚫 BLOCKING SLOT:', {
+            slotId: slot.id,
+            slotTime: slotStartTime.toISOString(),
+            slotTimeLocal: slotStartTime.toLocaleString(),
+            blockId: block.id,
+            blockDescription: block.description,
+            blockStart: block.startTime.toISOString(),
+            blockEnd: block.endTime.toISOString(),
+            blockStartLocal: block.startTime.toLocaleString(),
+            blockEndLocal: block.endTime.toLocaleString(),
+          });
+        }
+        
         return overlaps;
       });
-      
+
+      const isBlocked = !!conflictingBlock;
       return !isBlocked; // Return slots that are NOT blocked
+    });
+
+    // 🔍 DEBUG: Show filtering results
+    console.log('🔍 Filtering Results:', {
+      originalSlotCount: slots.length,
+      filteredSlotCount: filteredSlots.length,
+      blockedSlotCount: slots.length - filteredSlots.length,
+      blockedSlots: slots.filter(slot => {
+        const slotStartTime = new Date(slot.dateTime);
+        const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
+        return allScheduleBlocks.some(block => 
+          slotStartTime < block.endTime && slotEndTime > block.startTime
+        );
+      }).map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        localTime: new Date(slot.dateTime).toLocaleString(),
+      }))
     });
 
     return NextResponse.json(filteredSlots);
@@ -224,7 +299,7 @@ export async function POST(request: NextRequest) {
     const slotStartTime = slotDateTime;
     const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
-    // DEBUG: First get ALL schedule blocks for this owner
+    // Get ALL schedule blocks for this owner (same approach as GET)
     const allBlocks = await prisma.scheduleBlock.findMany({
       where: {
         ownerId: caller.id,
@@ -251,14 +326,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Now check for conflicts with detailed logging
-    const conflictingBlocks = await prisma.scheduleBlock.findMany({
-      where: {
-        ownerId: caller.id,
-        AND: [
-          { startTime: { lt: slotEndTime } },
-          { endTime: { gt: slotStartTime } },
-        ],
-      },
+    const conflictingBlocks = allBlocks.filter(block => {
+      const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+      return overlaps;
     });
 
     console.log(
