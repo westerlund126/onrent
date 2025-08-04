@@ -30,7 +30,7 @@ export const HeroSection = () => {
             />
           </div>
 
-          <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground">
+          <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground md:text-lg">
             {`Tampil memukau di setiap acara tanpa boros! Sewa gaun, kebaya, hingga tuxedo terbaik dengan mudah.`}
           </p>
 

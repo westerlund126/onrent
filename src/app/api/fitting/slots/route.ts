@@ -31,6 +31,20 @@ export async function GET(request: NextRequest) {
     const ownerId =
       caller.role === 'OWNER' ? caller.id : parseInt(ownerIdParam!);
 
+    // 🔍 DEBUG: Log request details
+    console.log('🔍 API /fitting/slots GET - Request Analysis:', {
+      callerRole: caller.role,
+      callerId: caller.id,
+      ownerIdParam,
+      ownerIdParamType: typeof ownerIdParam,
+      finalOwnerId: ownerId,
+      finalOwnerIdType: typeof ownerId,
+      dateFrom,
+      dateTo,
+      availableOnly,
+      requestUrl: request.url
+    });
+
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Owner ID is required' },
@@ -75,6 +89,12 @@ export async function GET(request: NextRequest) {
       slotWhereClause.isBooked = false;
     }
 
+    // 🔍 DEBUG: Log where clauses
+    console.log('🔍 API Where Clauses:', {
+      slotWhereClause: JSON.stringify(slotWhereClause, null, 2),
+      blockWhereClause: JSON.stringify(blockWhereClause, null, 2)
+    });
+
     const [slots, scheduleBlocks] = await Promise.all([
       prisma.fittingSlot.findMany({
         where: slotWhereClause,
@@ -112,7 +132,40 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+    // 🔍 DEBUG: Log raw database results
+    console.log('🔍 API Raw Database Results:', {
+      totalSlots: slots.length,
+      totalScheduleBlocks: scheduleBlocks.length,
+      firstFewSlots: slots.slice(0, 3).map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        isBooked: slot.isBooked,
+        ownerId: slot.ownerId
+      })),
+      allScheduleBlocks: scheduleBlocks.map(block => ({
+        id: block.id,
+        ownerId: block.ownerId,
+        startTime: block.startTime.toISOString(),
+        endTime: block.endTime.toISOString(),
+        description: block.description,
+        startTimeLocal: block.startTime.toLocaleString(),
+        endTimeLocal: block.endTime.toLocaleString()
+      }))
+    });
+
+    // 🔍 DEBUG: Look for the specific 9 AM slot
+    const nineAmSlot = slots.find(slot => slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('🔍 Found 9 AM slot in database:', {
+        id: nineAmSlot.id,
+        dateTime: nineAmSlot.dateTime.toISOString(),
+        isBooked: nineAmSlot.isBooked,
+        ownerId: nineAmSlot.ownerId
+      });
+    }
+
     if (scheduleBlocks.length === 0) {
+      console.log('⚠️ NO SCHEDULE BLOCKS found - returning all slots unfiltered');
       return NextResponse.json(slots);
     }
 
@@ -123,12 +176,40 @@ export async function GET(request: NextRequest) {
         slotStartTime.getTime() + FITTING_DURATION_MS,
       );
 
-      const isBlocked = scheduleBlocks.some(
-        (block) =>
-          slotStartTime < block.endTime && slotEndTime > block.startTime,
-      );
+      const isBlocked = scheduleBlocks.some((block) => {
+        const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+        
+        // 🔍 DEBUG: Log each overlap check
+        if (slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z') {
+          console.log('🔍 Checking 9 AM slot against block:', {
+            slotStart: slotStartTime.toISOString(),
+            slotEnd: slotEndTime.toISOString(),
+            blockStart: block.startTime.toISOString(),
+            blockEnd: block.endTime.toISOString(),
+            blockDescription: block.description,
+            overlaps,
+            slotStartLessThanBlockEnd: slotStartTime < block.endTime,
+            slotEndGreaterThanBlockStart: slotEndTime > block.startTime
+          });
+        }
+        
+        return overlaps;
+      });
+
+      // 🔍 DEBUG: Log if 9 AM slot gets filtered
+      if (slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z') {
+        console.log(isBlocked ? '✅ 9 AM slot BLOCKED (correct)' : '❌ 9 AM slot NOT BLOCKED (problem!)');
+      }
 
       return !isBlocked;
+    });
+
+    // 🔍 DEBUG: Final filtering results
+    console.log('🔍 API Filtering Results:', {
+      originalSlotsCount: slots.length,
+      filteredSlotsCount: filteredSlots.length,
+      slotsRemoved: slots.length - filteredSlots.length,
+      nineAmSlotInFiltered: filteredSlots.some(slot => slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z')
     });
 
     return NextResponse.json(filteredSlots);
