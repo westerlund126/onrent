@@ -282,90 +282,74 @@ export const useFittingFormStore = create<FittingFormState>()(
       set((state) => {
         state.loadingStates.slots = true;
         state.error = null;
-      });
+  });
 
-      try {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + 60);
+  try {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 60);
 
-        const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
-        
-        // 🔍 DEBUG: Log the exact URL and parameters
-        console.log('🔍 CUSTOMER fetchAvailableSlots DEBUG:', {
-          url,
-          ownerId,
-          ownerIdType: typeof ownerId,
-          dateFrom: startDate.toISOString(),
-          dateTo: endDate.toISOString(),
-          timezoneOffset: new Date().getTimezoneOffset() / 60
-        });
+    // 🔧 FIX: Make the customer API call match the working owner API call
+    // Remove ownerId parameter since the API should determine it from auth
+    // Remove availableOnly since we want the same filtering as owner interface
+    const url = `/api/fitting/slots?dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}`;
+    
+    // 🔍 DEBUG: Log the exact URL and parameters  
+    console.log('🔍 CUSTOMER fetchAvailableSlots FIXED:', {
+      url,
+      originalOwnerId: ownerId,
+      originalOwnerIdType: typeof ownerId,
+      dateFrom: startDate.toISOString(),
+      dateTo: endDate.toISOString(),
+      note: 'Now matching owner interface - no ownerId, no availableOnly'
+    });
 
-        const response = await fetch(url, {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ API Error Response:', errorText);
-          throw new Error('Failed to fetch available slots');
-        }
-        
-        const slots = await response.json();
-        
-        // 🔍 DEBUG: Detailed slot analysis
-        console.log('🔍 CUSTOMER API Response Analysis:', {
-          totalSlots: slots.length,
-          firstFewSlots: slots.slice(0, 5).map(slot => ({
-            id: slot.id,
-            dateTime: slot.dateTime,
-            utcHour: new Date(slot.dateTime).getUTCHours(),
-            localHour: new Date(slot.dateTime).getHours(),
-            localString: new Date(slot.dateTime).toLocaleString(),
-            isBooked: slot.isBooked
-          }))
-        });
-
-        // 🔍 DEBUG: Find specific problem slots
-        const morningSlots = slots.filter(slot => {
-          const date = new Date(slot.dateTime);
-          const utcHour = date.getUTCHours();
-          return utcHour >= 9 && utcHour <= 10;
-        });
-        
-        console.log('🔍 CUSTOMER Morning Slots (9-10 AM UTC):', {
-          count: morningSlots.length,
-          slots: morningSlots.map(slot => ({
-            id: slot.id,
-            dateTime: slot.dateTime,
-            localTime: new Date(slot.dateTime).toLocaleString()
-          }))
-        });
-
-        // 🔍 DEBUG: Check for the specific 9 AM slot
-        const nineAmSlot = slots.find(slot => slot.dateTime === '2025-08-04T09:00:00.000Z');
-        if (nineAmSlot) {
-          console.log('❌ PROBLEM FOUND: 9 AM slot is present in customer response!', {
-            slot: nineAmSlot,
-            shouldBeBlocked: true
-          });
-        }
-
-        set((state) => {
-          state.availableSlots = slots;
-          state.loadingStates.slots = false;
-        });
-      } catch (error) {
-        console.error('Error fetching available slots:', error);
-        set((state) => {
-          state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
-          state.loadingStates.slots = false;
-        });
+    const response = await fetch(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
       }
-    },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error('Failed to fetch available slots');
+    }
+    
+    const slots = await response.json();
+    
+    // 🔍 DEBUG: Check if the 9 AM slot is now properly filtered
+    console.log('🔍 CUSTOMER API Response (FIXED):', {
+      totalSlots: slots.length,
+      firstFewSlots: slots.slice(0, 5).map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        localString: new Date(slot.dateTime).toLocaleString(),
+        isBooked: slot.isBooked
+      }))
+    });
+
+    // 🔍 DEBUG: Check for the specific 9 AM slot
+    const nineAmSlot = slots.find(slot => slot.dateTime === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('❌ STILL PROBLEM: 9 AM slot found in customer response (should not be there):', nineAmSlot);
+    } else {
+      console.log('✅ SUCCESS: 9 AM slot properly filtered out from customer response!');
+    }
+
+    set((state) => {
+      state.availableSlots = slots;
+      state.loadingStates.slots = false;
+    });
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    set((state) => {
+      state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
+      state.loadingStates.slots = false;
+    });
+  }
+},
 
     submitFittingSchedule: async () => {
       const state = get();
