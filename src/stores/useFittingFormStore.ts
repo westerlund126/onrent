@@ -278,38 +278,67 @@ export const useFittingFormStore = create<FittingFormState>()(
       }
     },
 
-    fetchAvailableSlots: async (ownerId) => {
-      set((state) => {
-        state.loadingStates.slots = true;
-        state.error = null;
-      });
+    // Enhanced version of fetchAvailableSlots with debugging
+fetchAvailableSlots: async (ownerId) => {
+  set((state) => {
+    state.loadingStates.slots = true;
+    state.error = null;
+  });
 
-      try {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + 60);
+  try {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 60);
 
-const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch available slots');
-        }
-        
-        const slots = await response.json();
-        
-        set((state) => {
-          state.availableSlots = slots;
-          state.loadingStates.slots = false;
-        });
-      } catch (error) {
-        console.error('Error fetching available slots:', error);
-        set((state) => {
-          state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
-          state.loadingStates.slots = false;
-        });
+    const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
+    
+    // 🔍 Debug: Log the exact URL being called
+    console.log('🔍 Customer fetchAvailableSlots URL:', url);
+    console.log('🔍 Customer fetchAvailableSlots parameters:', {
+      ownerId,
+      dateFrom: startDate.toISOString(),
+      dateTo: endDate.toISOString(),
+      availableOnly: true
+    });
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
-    },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
+    }
+    
+    const slots = await response.json();
+    
+    console.log('🔍 Customer API Response - Raw slots count:', slots.length);
+    console.log('🔍 Customer API Response - First few slots:', slots.slice(0, 3));
+    
+    const slotsInMorning = slots.filter(slot => {
+      const hour = new Date(slot.dateTime).getHours();
+      return hour >= 9 && hour <= 10;
+    });
+    console.log('🔍 Customer slots between 9-10 AM:', slotsInMorning.length);
+    
+    set((state) => {
+      state.availableSlots = slots;
+      state.loadingStates.slots = false;
+    });
+  } catch (error) {
+    console.error('❌ Error fetching available slots:', error);
+    set((state) => {
+      state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
+      state.loadingStates.slots = false;
+    });
+  }
+},
 
     submitFittingSchedule: async () => {
       const state = get();

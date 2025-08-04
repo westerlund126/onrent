@@ -251,7 +251,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3">
-                          <ZoomIn className="h-6 w-6 text-orange-600" />
+                          <ZoomIn className="h-6 w-6 text-primary-600" />
                         </div>
                       </div>
                     </div>
@@ -271,7 +271,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
                 {/* Image Thumbnails */}
                 {product.images && product.images.length > 1 && (
-                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto px-2 py-2 scrollbar-hide">
                     {product.images.map((image, index) => (
                       <button
                         key={index}
@@ -301,14 +301,14 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                     <div className="flex-1 min-w-0">
-                      <Badge variant="secondary" className="mb-2 md:mb-3 text-xs md:text-sm px-2 md:px-3 py-1 bg-orange-100 text-orange-700 border-orange-200">
+                      <Badge variant="secondary" className="mb-2 md:mb-3 text-xs md:text-sm px-2 md:px-3 py-1 bg-primary-100 text-primary-700 border-primary-200">
                         <Sparkles className="w-3 h-3 mr-1" />
                         {CATEGORY_LABELS[product.category as CategoryType] || product.category}
                       </Badge>
                       <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent break-words">
                         {product.name}
                       </h1>
-                      <p className="mt-2 md:mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-orange-600">
+                      <p className="mt-2 md:mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-primary-600">
                         {selectedVariant ? formatCurrency(selectedVariant.price) : 'Select variant'}
                       </p>
                     </div>
@@ -395,7 +395,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                             }}
                             className={`h-9 md:h-10 text-sm border-2 transition-all duration-300 ${
                               isSelected 
-                                ? 'bg-orange-600 hover:bg-orange-700 border-orange-600' 
+                                ? 'bg-primary-600 hover:bg-primary-700 border-primary-600' 
                                 : hasAvailable 
                                   ? 'border-orange-200 hover:bg-orange-50 hover:border-orange-300 hover:scale-105' 
                                   : 'opacity-50 border-gray-200'
@@ -414,7 +414,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   <Button
                     onClick={handleBookingSchedule}
                     disabled={!selectedVariant || !isVariantAvailable(selectedVariant)}
-                    className="w-full h-12 md:h-14 text-sm md:text-lg transition-all duration-300 hover:scale-105 rounded-xl md:rounded-2xl shadow-xl bg-orange-600 hover:bg-orange-700"
+                    className="w-full h-12 md:h-14 text-sm md:text-lg transition-all duration-300 hover:scale-105 rounded-xl md:rounded-2xl shadow-xl bg-primary-600 hover:bg-primary-500"
                     size="lg"
                   >
                     {!selectedVariant
