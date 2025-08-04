@@ -2,7 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { EmailService } from 'lib/resend';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
+const emailService = new EmailService();
+const formatFittingDate = (date: Date) => {
+  return format(date, "EEEE, d MMMM yyyy 'pukul' HH:mm", { locale: id });
+};
 
 export async function GET(
   request: NextRequest,
@@ -128,6 +135,84 @@ export async function PATCH(
     const scheduleId = parseInt(resolvedParams.id);
     const updates = await request.json();
 
+    // First, get the schedule data for email sending
+    const scheduleForEmail = await prisma.fittingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            username: true,
+            email: true,
+            phone_numbers: true,
+          },
+        },
+        fittingSlot: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                clerkUserId: true,
+                businessName: true,
+                businessAddress: true,
+                phone_numbers: true,
+                businessBio: true,
+                email: true,
+                first_name: true,
+                last_name: true,
+              },
+            },
+          },
+        },
+        FittingProduct: {
+          include: {
+            variantProduct: {
+              select: {
+                id: true,
+                size: true,
+                color: true,
+                sku: true,
+                products: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!scheduleForEmail) {
+      return NextResponse.json(
+        { error: 'Fitting schedule not found' },
+        { status: 404 },
+      );
+    }
+
+    const canUpdate =
+      caller.role === 'ADMIN' ||
+      scheduleForEmail.userId === caller.id ||
+      (caller.role === 'OWNER' && scheduleForEmail.ownerId === caller.id);
+
+    if (!canUpdate) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Check if this is a status change that requires email
+    const isConfirming = 
+      updates.status === 'CONFIRMED' && 
+      scheduleForEmail.status !== 'CONFIRMED';
+
+    const isRejecting = 
+      updates.status === 'REJECTED' && 
+      scheduleForEmail.status !== 'REJECTED';
+      
+    // Perform database transaction with increased timeout
     const updatedSchedule = await prisma.$transaction(async (tx) => {
       const schedule = await tx.fittingSchedule.findUnique({
         where: { id: scheduleId },
@@ -135,15 +220,6 @@ export async function PATCH(
 
       if (!schedule) {
         throw new Error('Fitting schedule not found');
-      }
-
-      const canUpdate =
-        caller.role === 'ADMIN' ||
-        schedule.userId === caller.id ||
-        (caller.role === 'OWNER' && schedule.ownerId === caller.id);
-
-      if (!canUpdate) {
-        throw new Error('Access denied');
       }
 
       const isCancelingOrRejecting =
@@ -173,17 +249,51 @@ export async function PATCH(
             ...(updates.status && { status: updates.status }),
             ...(updates.note !== undefined && { note: updates.note }),
           },
-          include: {
-            user: true,
-            fittingSlot: { include: { owner: true } },
-            FittingProduct: {
-              include: { variantProduct: { include: { products: true } } },
-            },
-          },
         });
         return newSchedule;
       }
+    }, {
+      timeout: 10000, // Increase timeout to 10 seconds
     });
+
+    // Send emails AFTER the transaction is complete
+    if ((isConfirming || isRejecting) && caller.role === 'OWNER') {
+      try {
+        const formattedFittingDate = formatFittingDate(scheduleForEmail.fittingSlot.dateTime);
+        const customerName = `${scheduleForEmail.user.first_name || ''} ${scheduleForEmail.user.last_name || ''}`.trim() || scheduleForEmail.user.username || 'Customer';
+        const ownerName = scheduleForEmail.fittingSlot.owner.businessName || `${scheduleForEmail.fittingSlot.owner.first_name} ${scheduleForEmail.fittingSlot.owner.last_name || ''}`.trim();
+
+        if (isConfirming) {
+          const productNames = scheduleForEmail.FittingProduct.map(fp => fp.variantProduct.products.name);
+          
+          await emailService.notifyCustomerFittingConfirmed({
+            customerEmail: scheduleForEmail.user.email,
+            customerName,
+            ownerName,
+            businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
+            businessAddress: scheduleForEmail.fittingSlot.owner.businessAddress || undefined,
+            ownerPhone: scheduleForEmail.fittingSlot.owner.phone_numbers || undefined,
+            fittingDate: formattedFittingDate,
+            fittingId: scheduleForEmail.id,
+            productNames,
+            note: updates.note || scheduleForEmail.note || undefined,
+          });
+        } else if (isRejecting) {
+          await emailService.notifyCustomerFittingRejected({
+            customerEmail: scheduleForEmail.user.email,
+            customerName,
+            ownerName,
+            businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
+            fittingDate: formattedFittingDate,
+            fittingId: scheduleForEmail.id,
+            rejectionReason: updates.note || undefined,
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return NextResponse.json(updatedSchedule);
   } catch (error: any) {
