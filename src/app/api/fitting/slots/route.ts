@@ -1,4 +1,4 @@
-// app/api/fitting/slots/route.ts
+// app/api/fitting/slots/route.ts - COMPLETE FIXED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -28,8 +28,42 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const availableOnly = searchParams.get('availableOnly') === 'true';
 
-    const ownerId =
-      caller.role === 'OWNER' ? caller.id : parseInt(ownerIdParam!);
+    // 🔧 FIXED: Robust ownerId handling for both owner and customer
+    let ownerId: number;
+
+    if (caller.role === 'OWNER') {
+      // Owner can optionally specify ownerId, but defaults to their own ID
+      if (ownerIdParam) {
+        const parsedOwnerId = parseInt(ownerIdParam);
+        if (isNaN(parsedOwnerId)) {
+          return NextResponse.json(
+            { error: 'Invalid Owner ID - must be a number' },
+            { status: 400 }
+          );
+        }
+        ownerId = parsedOwnerId;
+      } else {
+        ownerId = caller.id; // Use owner's own ID
+      }
+    } else {
+      // Customer MUST specify ownerId
+      if (!ownerIdParam) {
+        return NextResponse.json(
+          { error: 'Owner ID is required for customer requests' },
+          { status: 400 }
+        );
+      }
+      
+      const parsedOwnerId = parseInt(ownerIdParam);
+      if (isNaN(parsedOwnerId)) {
+        return NextResponse.json(
+          { error: 'Invalid Owner ID - must be a number' },
+          { status: 400 }
+        );
+      }
+      
+      ownerId = parsedOwnerId;
+    }
 
     // 🔍 DEBUG: Log request details
     console.log('🔍 API /fitting/slots GET - Request Analysis:', {
@@ -39,19 +73,40 @@ export async function GET(request: NextRequest) {
       ownerIdParamType: typeof ownerIdParam,
       finalOwnerId: ownerId,
       finalOwnerIdType: typeof ownerId,
+      ownerIdValid: !isNaN(ownerId),
       dateFrom,
       dateTo,
       availableOnly,
       requestUrl: request.url
     });
 
-    if (!ownerId) {
+    // Validate ownerId exists and is actually an owner
+    const ownerExists = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { id: true, role: true, businessName: true }
+    });
+
+    if (!ownerExists) {
       return NextResponse.json(
-        { error: 'Owner ID is required' },
-        { status: 400 },
+        { error: `Owner with ID ${ownerId} not found` },
+        { status: 404 }
       );
     }
 
+    if (ownerExists.role !== 'OWNER') {
+      return NextResponse.json(
+        { error: `User ${ownerId} is not an owner (role: ${ownerExists.role})` },
+        { status: 400 }
+      );
+    }
+
+    console.log('✅ Owner validation passed:', {
+      ownerId,
+      ownerRole: ownerExists.role,
+      businessName: ownerExists.businessName
+    });
+
+    // Build where clauses
     let slotWhereClause: any = { ownerId };
     let blockWhereClause: any = { ownerId };
 
@@ -82,7 +137,10 @@ export async function GET(request: NextRequest) {
         slotWhereClause.dateTime.lte = parsedDateTo.toISOString();
         blockTimeFilter.push({ startTime: { lt: parsedDateTo } });
       }
-      blockWhereClause.AND = blockTimeFilter;
+      
+      if (blockTimeFilter.length > 0) {
+        blockWhereClause.AND = blockTimeFilter;
+      }
     }
 
     if (availableOnly) {
@@ -136,6 +194,8 @@ export async function GET(request: NextRequest) {
     console.log('🔍 API Raw Database Results:', {
       totalSlots: slots.length,
       totalScheduleBlocks: scheduleBlocks.length,
+      callerInfo: `${caller.role} (ID: ${caller.id})`,
+      targetOwnerId: ownerId,
       firstFewSlots: slots.slice(0, 3).map(slot => ({
         id: slot.id,
         dateTime: slot.dateTime,
@@ -164,22 +224,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // If no schedule blocks found, return all slots (no filtering needed)
     if (scheduleBlocks.length === 0) {
       console.log('⚠️ NO SCHEDULE BLOCKS found - returning all slots unfiltered');
       return NextResponse.json(slots);
     }
 
+    // Filter out slots that conflict with schedule blocks
     const filteredSlots = slots.filter((slot) => {
-      const FITTING_DURATION_MS = 60 * 60 * 1000;
+      const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
       const slotStartTime = new Date(slot.dateTime);
-      const slotEndTime = new Date(
-        slotStartTime.getTime() + FITTING_DURATION_MS,
-      );
+      const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
       const isBlocked = scheduleBlocks.some((block) => {
         const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
         
-        // 🔍 DEBUG: Log each overlap check
+        // 🔍 DEBUG: Log each overlap check for 9 AM slot
         if (slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z') {
           console.log('🔍 Checking 9 AM slot against block:', {
             slotStart: slotStartTime.toISOString(),
@@ -188,8 +248,10 @@ export async function GET(request: NextRequest) {
             blockEnd: block.endTime.toISOString(),
             blockDescription: block.description,
             overlaps,
-            slotStartLessThanBlockEnd: slotStartTime < block.endTime,
-            slotEndGreaterThanBlockStart: slotEndTime > block.startTime
+            calculation: {
+              slotStartLessThanBlockEnd: slotStartTime < block.endTime,
+              slotEndGreaterThanBlockStart: slotEndTime > block.startTime
+            }
           });
         }
         
@@ -201,7 +263,7 @@ export async function GET(request: NextRequest) {
         console.log(isBlocked ? '✅ 9 AM slot BLOCKED (correct)' : '❌ 9 AM slot NOT BLOCKED (problem!)');
       }
 
-      return !isBlocked;
+      return !isBlocked; // Return slots that are NOT blocked
     });
 
     // 🔍 DEBUG: Final filtering results
@@ -209,12 +271,14 @@ export async function GET(request: NextRequest) {
       originalSlotsCount: slots.length,
       filteredSlotsCount: filteredSlots.length,
       slotsRemoved: slots.length - filteredSlots.length,
-      nineAmSlotInFiltered: filteredSlots.some(slot => slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z')
+      nineAmSlotInFiltered: filteredSlots.some(slot => slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z'),
+      requestedBy: `${caller.role} ${caller.id}`,
+      forOwner: ownerId
     });
 
     return NextResponse.json(filteredSlots);
   } catch (error: any) {
-    console.error('Error fetching fitting slots:', error);
+    console.error('💥 Error in /api/fitting/slots:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },
@@ -395,7 +459,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(slot);
   } catch (error: any) {
-    console.error('Error creating fitting slot:', error);
+    console.error('💥 Error creating fitting slot:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },
