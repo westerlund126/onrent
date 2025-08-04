@@ -116,35 +116,46 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
   }, [fittingSlots, getAvailableSlots]);
 
   const availableTimes = useMemo(() => {
-    if (!selectedDate) return [];
+  if (!selectedDate) return [];
 
-    const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
-    const availableSlots = getAvailableSlots();
+  const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+  const availableSlots = getAvailableSlots();
 
-    const slotsForDate = availableSlots.filter((slot) => {
-      const slotDateString = format(slot.dateTime, 'yyyy-MM-dd');
-      return slotDateString === selectedDateString;
-    });
+  const slotsForDate = availableSlots.filter((slot) => {
+    const slotDate = new Date(slot.dateTime);
+    const slotDateString = format(slotDate, 'yyyy-MM-dd');
+    return slotDateString === selectedDateString;
+  });
 
-    return slotsForDate
-      .map((slot) => {
-        const dateTime = slot.dateTime ? new Date(slot.dateTime) : new Date();
-        const label = format(dateTime, 'HH:mm');
+  return slotsForDate
+    .map((slot) => {
+      const dateTime = new Date(slot.dateTime);
+      
+      const localHour = dateTime.getHours();
+      const localMinute = dateTime.getMinutes();
+      const label = `${localHour.toString().padStart(2, '0')}:${localMinute.toString().padStart(2, '0')}`;
+      
+      const utcDateTimeString = `${selectedDateString}T${localHour.toString().padStart(2, '0')}:${localMinute.toString().padStart(2, '0')}:00.000Z`;
+      
+      console.log('Slot dateTime:', dateTime.toISOString());
+      console.log('Local time extracted:', `${localHour}:${localMinute}`);
+      console.log('Generated UTC string:', utcDateTimeString);
+      console.log('Label:', label);
 
-        return {
-          value: dateTime.toISOString(),
-          label: label,
-          slot: slot,
-        };
-      })
-      .filter((timeOption) => {
-        const startTime = new Date(timeOption.value);
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+      return {
+        value: utcDateTimeString,
+        label: label,
+        slot: slot,
+      };
+    })
+    .filter((timeOption) => {
+      const startTime = new Date(timeOption.value);
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
-        return !isTimeBlockedByScheduleBlock(startTime, endTime);
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [selectedDate, getAvailableSlots, scheduleBlocks]);
+      return !isTimeBlockedByScheduleBlock(startTime, endTime);
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+}, [selectedDate, getAvailableSlots, scheduleBlocks]);
 
   const availableEndTimes = useMemo(() => {
     if (!selectedStartTime) return [];
@@ -165,25 +176,29 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
   }, [selectedStartTime, availableTimes, scheduleBlocks]);
 
   const onSubmit = async (values: TEventFormData) => {
-    try {
-      const scheduleBlockData = {
-        startTime: values.startTime,
-        endTime: values.endTime,
-        description: values.description,
-      };
+  try {
+    console.log('Form values before submit:', values);
+    console.log('Start time will be stored as:', values.startTime);
+    console.log('End time will be stored as:', values.endTime);
+    
+    const scheduleBlockData = {
+      startTime: values.startTime, 
+      endTime: values.endTime,    
+      description: values.description,
+    };
 
-      await addScheduleBlock(scheduleBlockData);
-      onClose();
-      form.reset({
-        description: '',
-        startTime: '',
-        endTime: '',
-      });
-      setSelectedDate(undefined);
-    } catch (error) {
-      console.error('Failed to create schedule block:', error);
-    }
-  };
+    await addScheduleBlock(scheduleBlockData);
+    onClose();
+    form.reset({
+      description: '',
+      startTime: '',
+      endTime: '',
+    });
+    setSelectedDate(undefined);
+  } catch (error) {
+    console.error('Failed to create schedule block:', error);
+  }
+};
 
   const handleDialogClose = () => {
     onClose();
