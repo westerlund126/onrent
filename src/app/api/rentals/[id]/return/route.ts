@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { OneSignalService } from 'lib/onesignal';
+import { EmailService } from 'lib/resend'; 
 
+const emailService = new EmailService(); 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -94,34 +95,39 @@ export async function POST(
         });
 
         return await tx.rental.findFirst({
-          where: { id: rentalId },
-          include: {
-            user: { // The customer
-              select: {
-                first_name: true,
-                last_name: true,
-              },
+        where: { id: rentalId },
+        include: {
+          user: {
+            select: {
+              first_name: true,
+              last_name: true,
+              username: true,
             },
-            owner: { // The owner
-              select: {
-                clerkUserId: true,
-              },
+          },
+          owner: {
+            select: {
+              clerkUserId: true,
+              email: true, // <-- Added
+              first_name: true, // <-- Added
+              last_name: true, // <-- Added
+              businessName: true, // <-- Added
             },
-            rentalItems: {
-              include: {
-                variantProduct: {
-                  select: {
-                    products: {
-                      select: {
-                        name: true,
-                      },
+          },
+          rentalItems: {
+            include: {
+              variantProduct: {
+                select: {
+                  products: {
+                    select: {
+                      name: true,
                     },
                   },
                 },
               },
             },
           },
-        });
+        },
+      });
       },
       {
         maxWait: 5000, // 5 seconds
@@ -133,24 +139,28 @@ export async function POST(
       throw new Error("Failed to update and retrieve rental details.");
     }
 
-    if (updatedRental.owner.clerkUserId) {
+    if (updatedRental.owner.clerkUserId && updatedRental.owner.email) {
+      // Use setImmediate to avoid blocking the API response
       setImmediate(async () => {
         try {
-          const oneSignalService = new OneSignalService();
-          const customerName = `${updatedRental.user.first_name} ${updatedRental.user.last_name || ''}`.trim();
+          const customerName = `${updatedRental.user.first_name || ''} ${updatedRental.user.last_name || ''}`.trim() || updatedRental.user.username;
+          const ownerName = updatedRental.owner.businessName || `${updatedRental.owner.first_name || ''} ${updatedRental.owner.last_name || ''}`.trim();
           const productNames = updatedRental.rentalItems.map(item => item.variantProduct.products.name);
-          
-          await oneSignalService.notifyOwnerReturnRequest({
-            ownerExternalId: updatedRental.owner.clerkUserId!,
-            customerName: customerName,
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/rentals/${updatedRental.id}`;
+
+          // Send Email Notification
+          await emailService.notifyOwnerReturnRequest({
+            ownerEmail: updatedRental.owner.email!,
+            ownerName,
+            customerName,
             rentalCode: updatedRental.rentalCode,
-            productNames: productNames,
-            rentalId: updatedRental.id,
+            productNames,
+            dashboardUrl,
           });
-          
-          console.log(`[Notification] Return request notification sent for rental ${updatedRental.id}`);
+          console.log(`[Email] Return request email sent for rental ${updatedRental.id}`);
+
         } catch (notificationError) {
-          console.error("[Notification] Failed to send return request notification:", notificationError);
+          console.error("[Notification] Failed to send notifications:", notificationError);
         }
       });
     }

@@ -1,7 +1,7 @@
 // lib/resend.ts
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
-import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail, NewRentalCustomerEmail } from 'components/emails';
+import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail, NewRentalCustomerEmail, ReturnRequestOwnerEmail } from 'components/emails';
 import { JSX } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -240,6 +240,53 @@ export class EmailService {
       return { success: true, data };
     } catch (error) {
       console.error('Failed to send new rental customer email:', error);
+      throw error;
+    }
+  }
+
+  async notifyOwnerReturnRequest({
+    ownerEmail,
+    ownerName,
+    customerName,
+    rentalCode,
+    productNames,
+    dashboardUrl,
+  }: {
+    ownerEmail: string;
+    ownerName: string;
+    customerName: string;
+    rentalCode: string;
+    productNames: string[];
+    dashboardUrl: string;
+  }) {
+    try {
+      const subject = `Barang Dikembalikan - Konfirmasi Diperlukan untuk Rental #${rentalCode}`;
+      
+      const emailHtml = await render(
+        ReturnRequestOwnerEmail({
+          ownerName,
+          customerName,
+          rentalCode,
+          productNames,
+          dashboardUrl,
+        })
+      );
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [ownerEmail],
+        subject,
+        html: emailHtml,
+      });
+
+      if (error) {
+        console.error('Error sending owner return request email:', error);
+        throw error;
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Failed to send owner return request email:', error);
       throw error;
     }
   }
