@@ -49,6 +49,15 @@ export async function GET(request: NextRequest) {
       ownerId = parsedOwnerId;
     }
 
+    // 🔍 DEBUG: Verify ownerId parsing
+    console.log('🔍 Owner ID Verification:', {
+      ownerIdParam,
+      ownerIdParamType: typeof ownerIdParam,
+      parsedOwnerId: ownerId,
+      parsedOwnerIdType: typeof ownerId,
+      callerRole: caller.role,
+    });
+
     // =================== THE FIX: SIMPLIFIED APPROACH ===================
     
     // 1. Build the slot where clause (this part was correct)
@@ -137,8 +146,11 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Retrieved Data:', {
       totalSlots: slots.length,
       totalScheduleBlocks: allScheduleBlocks.length,
+      requestedOwnerId: ownerId,
+      requestedOwnerIdType: typeof ownerId,
       scheduleBlocks: allScheduleBlocks.map(block => ({
         id: block.id,
+        ownerId: block.ownerId,
         description: block.description,
         startTime: block.startTime.toISOString(),
         endTime: block.endTime.toISOString(),
@@ -147,10 +159,22 @@ export async function GET(request: NextRequest) {
       })),
       sampleSlots: slots.slice(0, 3).map(slot => ({
         id: slot.id,
+        ownerId: slot.ownerId,
         dateTime: slot.dateTime,
         isBooked: slot.isBooked,
       }))
     });
+
+    // 🔍 DEBUG: Check for the specific 9 AM slot issue
+    const nineAmSlot = slots.find(slot => slot.dateTime instanceof Date && slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('🔍 FOUND 9 AM SLOT in raw results:', {
+        slot: nineAmSlot,
+        slotOwnerId: nineAmSlot.ownerId,
+        requestedOwnerId: ownerId,
+        ownerIdMatch: nineAmSlot.ownerId === ownerId
+      });
+    }
 
     // 4. Filter out slots that conflict with schedule blocks
     const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour

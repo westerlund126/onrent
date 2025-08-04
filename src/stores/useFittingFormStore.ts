@@ -289,14 +289,22 @@ export const useFittingFormStore = create<FittingFormState>()(
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + 60);
 
-    // 🔧 KEEP the ownerId parameter but ensure it's properly passed
-    const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
+    // 🔧 FIX: Ensure ownerId is a number, not a string
+    const ownerIdNumber = typeof ownerId === 'string' ? parseInt(ownerId) : ownerId;
+    
+    if (isNaN(ownerIdNumber)) {
+      throw new Error(`Invalid ownerId: ${ownerId}`);
+    }
+
+    const url = `/api/fitting/slots?ownerId=${ownerIdNumber}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
     
     // 🔍 DEBUG: Log the exact URL and parameters
     console.log('🔍 CUSTOMER fetchAvailableSlots DEBUG:', {
       url,
-      ownerId,
-      ownerIdType: typeof ownerId,
+      originalOwnerId: ownerId,
+      originalOwnerIdType: typeof ownerId,
+      ownerIdNumber,
+      ownerIdNumberType: typeof ownerIdNumber,
       dateFrom: startDate.toISOString(),
       dateTo: endDate.toISOString(),
       timezoneOffset: new Date().getTimezoneOffset() / 60
@@ -320,15 +328,17 @@ export const useFittingFormStore = create<FittingFormState>()(
     // 🔍 DEBUG: Detailed slot analysis
     console.log('🔍 CUSTOMER API Response Analysis:', {
       totalSlots: slots.length,
-      requestedOwnerId: ownerId,
+      requestedOwnerId: ownerIdNumber,
+      requestedOwnerIdType: typeof ownerIdNumber,
       firstFewSlots: slots.slice(0, 5).map(slot => ({
         id: slot.id,
+        ownerId: slot.ownerId,
+        ownerIdType: typeof slot.ownerId,
         dateTime: slot.dateTime,
         utcHour: new Date(slot.dateTime).getUTCHours(),
         localHour: new Date(slot.dateTime).getHours(),
         localString: new Date(slot.dateTime).toLocaleString(),
         isBooked: slot.isBooked,
-        slotOwnerId: slot.ownerId
       }))
     });
 
@@ -343,6 +353,7 @@ export const useFittingFormStore = create<FittingFormState>()(
       count: morningSlots.length,
       slots: morningSlots.map(slot => ({
         id: slot.id,
+        ownerId: slot.ownerId,
         dateTime: slot.dateTime,
         localTime: new Date(slot.dateTime).toLocaleString()
       }))
@@ -355,7 +366,10 @@ export const useFittingFormStore = create<FittingFormState>()(
         slot: nineAmSlot,
         shouldBeBlocked: true,
         slotOwnerId: nineAmSlot.ownerId,
-        requestedOwnerId: ownerId
+        slotOwnerIdType: typeof nineAmSlot.ownerId,
+        requestedOwnerId: ownerIdNumber,
+        requestedOwnerIdType: typeof ownerIdNumber,
+        ownerIdMatch: nineAmSlot.ownerId === ownerIdNumber
       });
     } else {
       console.log('✅ SUCCESS: 9 AM slot properly filtered out from customer response!');
