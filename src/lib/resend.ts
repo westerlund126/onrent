@@ -1,7 +1,7 @@
 // lib/resend.ts
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
-import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail, NewRentalCustomerEmail, ReturnRequestOwnerEmail } from 'components/emails';
+import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail, NewRentalCustomerEmail, ReturnRequestOwnerEmail, FittingCanceledOwnerEmail, } from 'components/emails';
 import { JSX } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -181,6 +181,66 @@ export class EmailService {
       return { success: true, data };
     } catch (error) {
       console.error('Failed to send customer rejection email:', error);
+      throw error;
+    }
+  }
+
+   async notifyOwnerFittingCanceled({
+    ownerEmail,
+    ownerName,
+    customerName,
+    customerEmail,
+    customerPhone,
+    fittingDate,
+    fittingId,
+    productNames,
+    cancellationReason,
+    businessName,
+  }: {
+    ownerEmail: string;
+    ownerName: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone?: string;
+    fittingDate: string;
+    fittingId: number;
+    productNames: string[];
+    cancellationReason?: string;
+    businessName?: string;
+  }) {
+    try {
+      const subject = `❌ Fitting Appointment Canceled - ${customerName}`;
+      
+      const emailHtml = await render(
+        FittingCanceledOwnerEmail({
+          ownerName,
+          customerName,
+          customerEmail,
+          customerPhone,
+          fittingDate,
+          fittingId,
+          productNames,
+          cancellationReason,
+          businessName,
+          dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/owner/fitting/schedule`,
+        })
+      );
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [ownerEmail],
+        subject,
+        html: emailHtml,
+      });
+
+      if (error) {
+        console.error('Error sending owner cancellation notification email:', error);
+        throw error;
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Failed to send owner cancellation notification email:', error);
       throw error;
     }
   }

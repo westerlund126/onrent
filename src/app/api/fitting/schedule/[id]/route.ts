@@ -211,6 +211,11 @@ export async function PATCH(
     const isRejecting = 
       updates.status === 'REJECTED' && 
       scheduleForEmail.status !== 'REJECTED';
+
+    const isCancelingByCustomer = 
+      updates.status === 'CANCELED' && 
+      scheduleForEmail.status !== 'CANCELED' &&
+      scheduleForEmail.userId === caller.id;
       
     // Perform database transaction with increased timeout
     const updatedSchedule = await prisma.$transaction(async (tx) => {
@@ -257,43 +262,62 @@ export async function PATCH(
     });
 
     // Send emails AFTER the transaction is complete
-    if ((isConfirming || isRejecting) && caller.role === 'OWNER') {
-      try {
-        const formattedFittingDate = formatFittingDate(scheduleForEmail.fittingSlot.dateTime);
-        const customerName = `${scheduleForEmail.user.first_name || ''} ${scheduleForEmail.user.last_name || ''}`.trim() || scheduleForEmail.user.username || 'Customer';
-        const ownerName = scheduleForEmail.fittingSlot.owner.businessName || `${scheduleForEmail.fittingSlot.owner.first_name} ${scheduleForEmail.fittingSlot.owner.last_name || ''}`.trim();
 
-        if (isConfirming) {
-          const productNames = scheduleForEmail.FittingProduct.map(fp => fp.variantProduct.products.name);
-          
-          await emailService.notifyCustomerFittingConfirmed({
-            customerEmail: scheduleForEmail.user.email,
-            customerName,
-            ownerName,
-            businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
-            businessAddress: scheduleForEmail.fittingSlot.owner.businessAddress || undefined,
-            ownerPhone: scheduleForEmail.fittingSlot.owner.phone_numbers || undefined,
-            fittingDate: formattedFittingDate,
-            fittingId: scheduleForEmail.id,
-            productNames,
-            note: updates.note || scheduleForEmail.note || undefined,
-          });
-        } else if (isRejecting) {
-          await emailService.notifyCustomerFittingRejected({
-            customerEmail: scheduleForEmail.user.email,
-            customerName,
-            ownerName,
-            businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
-            fittingDate: formattedFittingDate,
-            fittingId: scheduleForEmail.id,
-            rejectionReason: updates.note || undefined,
-          });
-        }
-      } catch (emailError) {
-        console.error('Failed to send email notification:', emailError);
-        // Don't fail the request if email fails
-      }
+     const formattedFittingDate = formatFittingDate(scheduleForEmail.fittingSlot.dateTime);
+    const customerName = `${scheduleForEmail.user.first_name || ''} ${scheduleForEmail.user.last_name || ''}`.trim() || scheduleForEmail.user.username || 'Customer';
+    const ownerName = scheduleForEmail.fittingSlot.owner.businessName || `${scheduleForEmail.fittingSlot.owner.first_name} ${scheduleForEmail.fittingSlot.owner.last_name || ''}`.trim();
+    const productNames = scheduleForEmail.FittingProduct.map(fp => fp.variantProduct.products.name);
+
+    if ((isConfirming || isRejecting) && caller.role === 'OWNER') {
+  try {
+    if (isConfirming) {
+      await emailService.notifyCustomerFittingConfirmed({
+        customerEmail: scheduleForEmail.user.email,
+        customerName,
+        ownerName,
+        businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
+        businessAddress: scheduleForEmail.fittingSlot.owner.businessAddress || undefined,
+        ownerPhone: scheduleForEmail.fittingSlot.owner.phone_numbers || undefined,
+        fittingDate: formattedFittingDate,
+        fittingId: scheduleForEmail.id,
+        productNames,
+        note: updates.note || scheduleForEmail.note || undefined,
+      });
+    } else if (isRejecting) {
+      await emailService.notifyCustomerFittingRejected({
+        customerEmail: scheduleForEmail.user.email,
+        customerName,
+        ownerName,
+        businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
+        fittingDate: formattedFittingDate,
+        fittingId: scheduleForEmail.id,
+        rejectionReason: updates.note || undefined,
+      });
     }
+  } catch (emailError) {
+    console.error('Failed to send owner-initiated email notification:', emailError);
+  }
+}
+
+
+    if (isCancelingByCustomer) {
+  try {
+    await emailService.notifyOwnerFittingCanceled({
+      ownerEmail: scheduleForEmail.fittingSlot.owner.email,
+      ownerName,
+      customerName,
+      customerEmail: scheduleForEmail.user.email,
+      customerPhone: scheduleForEmail.user.phone_numbers || undefined,
+      fittingDate: formattedFittingDate,
+      fittingId: scheduleForEmail.id,
+      productNames,
+      cancellationReason: updates.note || undefined,
+      businessName: scheduleForEmail.fittingSlot.owner.businessName || undefined,
+    });
+  } catch (emailError) {
+    console.error('Failed to send customer-cancellation email notification:', emailError);
+  }
+}
 
     return NextResponse.json(updatedSchedule);
   } catch (error: any) {

@@ -43,7 +43,7 @@ export const FittingCanceledOwnerEmail = ({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="x-apple-disable-message-reformatting" />
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title>Fitting Appointment Canceled</title>
+        <title>Janji Temu Fitting Dibatalkan</title>
         <style>
           {`
             @media only screen and (max-width: 600px) {
@@ -87,36 +87,36 @@ export const FittingCanceledOwnerEmail = ({
           `}
         </style>
       </Head>
-      <Preview>Customer {customerName} has canceled their fitting appointment</Preview>
+      <Preview>Pelanggan {customerName} telah membatalkan janji temu fitting mereka</Preview>
       <Body style={main}>
         <Container style={container}>
 
           {/* Hero Section */}
           <Section style={heroSection} className="hero-section">
-            <Heading style={heroTitle} className="hero-title">❌ Fitting Appointment Canceled</Heading>
+            <Heading style={heroTitle} className="hero-title">❌ Janji Temu Fitting Dibatalkan</Heading>
             <Text style={heroSubtitle} className="hero-subtitle">
-              A customer has canceled their fitting appointment
+              Seorang pelanggan telah membatalkan janji temu fitting mereka
             </Text>
           </Section>
 
           {/* Main Content */}
           <Section style={contentSection}>
             <Text style={greetingText}>
-              Hello <strong>{ownerName}</strong>,
+              Halo <strong>{ownerName}</strong>,
             </Text>
 
             <Text style={introText}>
-              We're writing to inform you that a customer has canceled their fitting appointment. 
-              The slot is now available for other customers to book.
+              Kami ingin menginformasikan bahwa seorang pelanggan telah membatalkan janji temu fitting mereka. 
+              Slot waktu tersebut sekarang tersedia untuk pelanggan lain untuk melakukan booking.
             </Text>
 
             {/* Customer Information */}
             <Section style={card} className="card">
-              <Text style={cardTitleText}>👤 Customer Information</Text>
+              <Text style={cardTitleText}>👤 Informasi Pelanggan</Text>
               
               <table style={detailTable} className="detail-table">
                 <tr>
-                  <td style={labelCell} className="label-cell">Name</td>
+                  <td style={labelCell} className="label-cell">Nama</td>
                   <td style={valueCell} className="value-cell">{customerName}</td>
                 </tr>
                 <tr>
@@ -125,7 +125,7 @@ export const FittingCanceledOwnerEmail = ({
                 </tr>
                 {customerPhone && (
                   <tr>
-                    <td style={labelCell} className="label-cell">Phone</td>
+                    <td style={labelCell} className="label-cell">Telepon</td>
                     <td style={valueCell} className="value-cell">{customerPhone}</td>
                   </tr>
                 )}
@@ -134,88 +134,93 @@ export const FittingCanceledOwnerEmail = ({
 
             {/* Appointment Details */}
             <Section style={card} className="card">
-              <Text style={cardTitleText}>📅 Canceled Appointment Details</Text>
+              <Text style={cardTitleText}>📅 Detail Janji Temu yang Dibatalkan</Text>
               
               <table style={detailTable} className="detail-table">
                 <tr>
-                  <td style={labelCell} className="label-cell">Fitting ID</td>
-                  <td style={valueCell} className="value-cell">#{fittingId}</td>
-                </tr>
-                <tr>
-                  <td style={labelCell} className="label-cell">Scheduled Date & Time</td>
+                  <td style={labelCell} className="label-cell">Tanggal & Waktu Terjadwal</td>
                   <td style={valueCell} className="value-cell">{fittingDate}</td>
                 </tr>
                 {businessName && (
                   <tr>
-                    <td style={labelCell} className="label-cell">Business</td>
+                    <td style={labelCell} className="label-cell">Bisnis</td>
                     <td style={valueCell} className="value-cell">{businessName}</td>
                   </tr>
                 )}
                 <tr>
                   <td style={labelCell} className="label-cell">Status</td>
                   <td style={valueCell} className="value-cell">
-                    <span style={canceledBadge}>Canceled by Customer</span>
+                    <span style={canceledBadge}>Dibatalkan oleh Pelanggan</span>
                   </td>
                 </tr>
               </table>
             </Section>
 
             {/* Products */}
-            <Section style={card} className="card">
-              <Text style={cardTitleText}>🛍️ Products ({productNames.length} item{productNames.length !== 1 ? 's' : ''})</Text>
+             <Section style={card} className="card">
+              <Text style={cardTitleText}>
+                🛍️ {productNames.length > 0 ? `Produk (${productNames.length} item${productNames.length !== 1 ? '' : ''})` : 'Jenis Fitting'}
+              </Text>
               <div style={productList}>
-                {productNames.map((productName, index) => (
-                  <div key={index} style={productItem}>
+                {productNames.length > 0 ? (
+                  productNames.map((productName, index) => (
+                    <div key={index} style={productItem}>
+                      <span style={productBullet}>•</span>
+                      <span style={productNameStyle}>{productName}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={productItem}>
                     <span style={productBullet}>•</span>
-                    <span style={productName}>{productName}</span>
+                    <span style={productNameStyle}>Fitting Reguler</span>
                   </div>
-                ))}
+                )}
               </div>
             </Section>
 
             {/* Cancellation Reason (if provided) */}
             {cancellationReason && (
               <Section style={reasonCard} className="card">
-                <Text style={cardTitleText}>📝 Cancellation Reason</Text>
+                <Text style={cardTitleText}>📝 Alasan Pembatalan</Text>
                 <Text style={reasonText}>{cancellationReason}</Text>
               </Section>
             )}
 
             {/* Impact Notice */}
             <Section style={noticeCard} className="card">
-              <Text style={cardTitleText}>ℹ️ What happens next?</Text>
+              <Text style={cardTitleText}>ℹ️ Apa yang terjadi selanjutnya?</Text>
               <ul style={noticeList}>
-                <li style={noticeItem}>The fitting slot is now available for new bookings</li>
-                <li style={noticeItem}>No further action is required from you</li>
-                <li style={noticeItem}>You can view all your appointments in the dashboard</li>
-                <li style={noticeItem}>Consider reaching out to the customer if you'd like to offer alternative dates</li>
+                <li style={noticeItem}>Slot fitting sekarang tersedia untuk booking baru</li>
+                <li style={noticeItem}>Tidak ada tindakan lebih lanjut yang diperlukan dari Anda</li>
+                <li style={noticeItem}>Anda dapat melihat semua janji temu di dashboard</li>
+                <li style={noticeItem}>Pertimbangkan untuk menghubungi pelanggan jika Anda ingin menawarkan tanggal alternatif</li>
               </ul>
             </Section>
 
             {/* Action Button */}
             <Section style={buttonSection}>
               <Button style={primaryButton} className="primary-button" href={dashboardUrl}>
-                View Dashboard
+                Lihat Dashboard
               </Button>
             </Section>
 
             <Text style={footerActionText}>
-              Thank you for providing fitting services through OnRent!
+              Terima kasih telah menyediakan layanan fitting melalui OnRent!
             </Text>
           </Section>
 
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              Keep up the great work! More customers are waiting to try your products. 🟧
+              Tetap semangat! Masih banyak pelanggan yang menunggu untuk mencoba produk Anda. 🟧
             </Text>
             <Hr style={divider} />
             <Text style={footerText}>
-              Best regards,<br />
-              <strong>OnRent Team</strong>
+              Salam hangat,<br />
+              <strong>Tim OnRent</strong>
             </Text>
             <Text style={copyrightText}>
-              © {new Date().getFullYear()} OnRent. All rights reserved.
+              © {new Date().getFullYear()} OnRent. Hak cipta dilindungi undang-undang.
             </Text>
           </Section>
         </Container>
@@ -370,11 +375,12 @@ const productBullet: React.CSSProperties = {
   fontWeight: 'bold',
 };
 
-const productName: React.CSSProperties = {
+const productNameStyle: React.CSSProperties = {
   color: '#374151',
   fontSize: '14px',
   lineHeight: '1.5',
 };
+
 
 const reasonText: React.CSSProperties = {
   color: '#374151',
@@ -406,7 +412,7 @@ const buttonSection: React.CSSProperties = {
 };
 
 const primaryButton: React.CSSProperties = {
-  background: 'linear-gradient(to right, #f59e0b, #f97316)',
+  background: 'linear-gradient(to right, #ef4444, #dc2626)',
   borderRadius: '25px',
   color: '#ffffff',
   fontSize: '16px',
