@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Heart, Share2, Package, Info, Sparkles, User, MessageCircle, ArrowLeft, X, ZoomIn } from 'lucide-react';
@@ -35,6 +35,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const { isInWishlist, toggleWishlist, loading: wishlistLoading } = useWishlist(productId);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -79,6 +80,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
       fetchRelatedProducts();
     }
   }, [productId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        handleCloseModal();
+      }
+    };
+
+    if (isImageModalOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isImageModalOpen]);
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);
@@ -234,7 +251,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3">
-                          <ZoomIn className="h-6 w-6 text-orange-600" />
+                          <ZoomIn className="h-6 w-6 text-primary-600" />
                         </div>
                       </div>
                     </div>
@@ -254,7 +271,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
                 {/* Image Thumbnails */}
                 {product.images && product.images.length > 1 && (
-                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex space-x-2 md:space-x-3 overflow-x-auto px-2 py-2 scrollbar-hide">
                     {product.images.map((image, index) => (
                       <button
                         key={index}
@@ -284,14 +301,14 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                     <div className="flex-1 min-w-0">
-                      <Badge variant="secondary" className="mb-2 md:mb-3 text-xs md:text-sm px-2 md:px-3 py-1 bg-orange-100 text-orange-700 border-orange-200">
+                      <Badge variant="secondary" className="mb-2 md:mb-3 text-xs md:text-sm px-2 md:px-3 py-1 bg-primary-100 text-primary-700 border-primary-200">
                         <Sparkles className="w-3 h-3 mr-1" />
                         {CATEGORY_LABELS[product.category as CategoryType] || product.category}
                       </Badge>
                       <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent break-words">
                         {product.name}
                       </h1>
-                      <p className="mt-2 md:mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-orange-600">
+                      <p className="mt-2 md:mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-primary-600">
                         {selectedVariant ? formatCurrency(selectedVariant.price) : 'Select variant'}
                       </p>
                     </div>
@@ -378,7 +395,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                             }}
                             className={`h-9 md:h-10 text-sm border-2 transition-all duration-300 ${
                               isSelected 
-                                ? 'bg-orange-600 hover:bg-orange-700 border-orange-600' 
+                                ? 'bg-primary-600 hover:bg-primary-700 border-primary-600' 
                                 : hasAvailable 
                                   ? 'border-orange-200 hover:bg-orange-50 hover:border-orange-300 hover:scale-105' 
                                   : 'opacity-50 border-gray-200'
@@ -397,7 +414,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   <Button
                     onClick={handleBookingSchedule}
                     disabled={!selectedVariant || !isVariantAvailable(selectedVariant)}
-                    className="w-full h-12 md:h-14 text-sm md:text-lg transition-all duration-300 hover:scale-105 rounded-xl md:rounded-2xl shadow-xl bg-orange-600 hover:bg-orange-700"
+                    className="w-full h-12 md:h-14 text-sm md:text-lg transition-all duration-300 hover:scale-105 rounded-xl md:rounded-2xl shadow-xl bg-primary-600 hover:bg-primary-500"
                     size="lg"
                   >
                     {!selectedVariant
@@ -546,31 +563,31 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
       {/* Full Screen Image Modal */}
       {isImageModalOpen && product.images && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div ref={modalRef} className="relative flex h-full w-full max-w-4xl items-center justify-center">
             <button
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all duration-300"
+              className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 transition-all duration-300 hover:bg-white/20"
             >
               <X className="h-6 w-6 text-white" />
             </button>
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="relative flex h-full w-full items-center justify-center">
               <Image
                 src={product.images[selectedImageIndex]}
                 alt={product.name}
                 width={1200}
                 height={1200}
-                className="max-w-full max-h-full object-contain"
+                className="max-h-full max-w-full object-contain"
                 sizes="100vw"
               />
             </div>
             {product.images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 bg-black/50 rounded-full px-4 py-2">
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 transform space-x-2 rounded-full bg-black/50 px-4 py-2">
                 {product.images.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    className={`h-3 w-3 rounded-full transition-all duration-300 ${
                       selectedImageIndex === index ? 'bg-orange-500' : 'bg-white/50 hover:bg-white/70'
                     }`}
                   />

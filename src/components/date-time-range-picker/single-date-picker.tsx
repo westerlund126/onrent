@@ -50,14 +50,6 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
-  console.log('🗓️ SingleDatePicker render:', {
-    value,
-    availableDatesLength: availableDates.length,
-    availableDates: availableDates.slice(0, 5),
-    disabled,
-    isOpen,
-  });
-
   const handleDateSelect = React.useCallback(
     (date: Date | undefined) => {
       console.log('📅 Date selected in picker:', date);
@@ -68,7 +60,6 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
   );
 
   const handleOpenChange = React.useCallback((open: boolean) => {
-    console.log('🔄 Popover open change:', open);
     setIsOpen(open);
   }, []);
 
@@ -80,10 +71,6 @@ export const SingleDatePicker: React.FC<SingleDatePickerProps> = ({
 
       const dateString = dateToString(date);
       const isDisabled = !availableDates.includes(dateString);
-
-      if (!isDisabled) {
-        console.log('✅ Date enabled:', dateString);
-      }
 
       return isDisabled;
     },

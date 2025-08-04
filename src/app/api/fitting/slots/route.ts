@@ -1,4 +1,4 @@
-// app/api/fitting/slots/route.ts
+// app/api/fitting/slots/route.ts - COMPLETE FIXED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -28,56 +28,80 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const availableOnly = searchParams.get('availableOnly') === 'true';
 
-    const ownerId =
-      caller.role === 'OWNER' ? caller.id : parseInt(ownerIdParam!);
+    let ownerId: number;
 
-    if (!ownerId) {
-      return NextResponse.json(
-        { error: 'Owner ID is required' },
-        { status: 400 },
-      );
-    }
-
-    let slotWhereClause: any = { ownerId };
-    let blockWhereClause: any = { ownerId };
-
-    if (dateFrom || dateTo) {
-      slotWhereClause.dateTime = {};
-
-      const blockTimeFilter = [];
-      if (dateFrom) {
-        const parsedDateFrom = new Date(dateFrom);
-        if (isNaN(parsedDateFrom.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid dateFrom' },
-            { status: 400 },
-          );
-        }
-        slotWhereClause.dateTime.gte = parsedDateFrom.toISOString();
-        blockTimeFilter.push({ endTime: { gt: parsedDateFrom } });
+    if (caller.role === 'OWNER') {
+      ownerId = caller.id;
+    } else {
+      if (!ownerIdParam) {
+        return NextResponse.json(
+          { error: 'Owner ID is required for customer requests' },
+          { status: 400 }
+        );
       }
-
-      if (dateTo) {
-        const parsedDateTo = new Date(dateTo);
-        if (isNaN(parsedDateTo.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid dateTo' },
-            { status: 400 },
-          );
-        }
-        slotWhereClause.dateTime.lte = parsedDateTo.toISOString();
-        blockTimeFilter.push({ startTime: { lt: parsedDateTo } });
+      const parsedOwnerId = parseInt(ownerIdParam);
+      if (isNaN(parsedOwnerId)) {
+        return NextResponse.json(
+          { error: 'Invalid Owner ID - must be a number' },
+          { status: 400 }
+        );
       }
-      blockWhereClause.AND = blockTimeFilter;
+      ownerId = parsedOwnerId;
     }
+    
+    // ... (Your validation logic for ownerExists can remain here) ...
 
+    // =================== FIX STARTS HERE ===================
+    // Build where clauses using a more robust method
+
+    // 1. Define the slot where clause
+    const slotWhereClause: any = {
+      ownerId,
+    };
     if (availableOnly) {
       slotWhereClause.isBooked = false;
     }
 
+    // 2. Define the block where clause conditions in an array
+    const blockWhereConditions: any[] = [{ ownerId }];
+
+    // 3. Add date filters to both clauses
+    if (dateFrom && dateTo) {
+      const parsedDateFrom = new Date(dateFrom);
+      const parsedDateTo = new Date(dateTo);
+
+      if (isNaN(parsedDateFrom.getTime()) || isNaN(parsedDateTo.getTime())) {
+        return NextResponse.json(
+            { error: 'Invalid date format' },
+            { status: 400 },
+        );
+      }
+
+      // Add date range to slots
+      slotWhereClause.dateTime = {
+        gte: parsedDateFrom,
+        lte: parsedDateTo,
+      };
+
+      // Add overlapping date range to blocks.
+      // A block overlaps if it starts before the range ends AND ends after the range starts.
+      blockWhereConditions.push({ startTime: { lt: parsedDateTo } });
+      blockWhereConditions.push({ endTime: { gt: parsedDateFrom } });
+    }
+
+    // 4. Construct the final block where clause
+    const finalBlockWhereClause = { AND: blockWhereConditions };
+
+    // 🔍 DEBUG: Log the final, corrected where clauses
+    console.log('🔍 API Final Where Clauses:', {
+      slotWhereClause: JSON.stringify(slotWhereClause, null, 2),
+      blockWhereClause: JSON.stringify(finalBlockWhereClause, null, 2),
+    });
+    // =================== FIX ENDS HERE ===================
+
     const [slots, scheduleBlocks] = await Promise.all([
       prisma.fittingSlot.findMany({
-        where: slotWhereClause,
+        where: slotWhereClause, // Use the new slot clause
         include: {
           owner: {
             select: {
@@ -108,32 +132,30 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.scheduleBlock.findMany({
-        where: blockWhereClause,
+        where: finalBlockWhereClause, // Use the new, corrected block clause
       }),
     ]);
 
-    if (scheduleBlocks.length === 0) {
-      return NextResponse.json(slots);
-    }
+    // ... (The rest of your file remains the same, including the filtering logic) ...
 
+    // Filter out slots that conflict with schedule blocks
     const filteredSlots = slots.filter((slot) => {
-      const FITTING_DURATION_MS = 60 * 60 * 1000;
+      const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
       const slotStartTime = new Date(slot.dateTime);
-      const slotEndTime = new Date(
-        slotStartTime.getTime() + FITTING_DURATION_MS,
-      );
+      const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
-      const isBlocked = scheduleBlocks.some(
-        (block) =>
-          slotStartTime < block.endTime && slotEndTime > block.startTime,
-      );
-
-      return !isBlocked;
+      const isBlocked = scheduleBlocks.some((block) => {
+        const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+        return overlaps;
+      });
+      
+      return !isBlocked; // Return slots that are NOT blocked
     });
 
     return NextResponse.json(filteredSlots);
+
   } catch (error: any) {
-    console.error('Error fetching fitting slots:', error);
+    console.error('💥 Error in /api/fitting/slots:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },
@@ -314,7 +336,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(slot);
   } catch (error: any) {
-    console.error('Error creating fitting slot:', error);
+    console.error('💥 Error creating fitting slot:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },

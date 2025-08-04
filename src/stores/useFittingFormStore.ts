@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Product, Owner } from 'types/product';
 
-// Types for the fitting form context
 export type FittingPageType = 'owner' | 'product' | 'catalog';
 
 export interface FittingFormData {
@@ -24,23 +23,16 @@ export interface AvailableSlot {
 }
 
 interface FittingFormState {
-  // Context data
   pageType: FittingPageType;
   productId: string | null;
   ownerId: string | null;
   productData: Product | null;
   ownerData: Owner | null;
   currentUserData: any | null;
-  
-  // Form data
   formData: FittingFormData;
   selectedSlot: AvailableSlot | null;
   availableSlots: AvailableSlot[];
-  
-  // UI state
   isPhoneNumberUpdated: boolean;
-  
-  // Loading states
   isLoading: boolean;
   isSubmitting: boolean;
   loadingStates: {
@@ -50,10 +42,8 @@ interface FittingFormState {
     userData: boolean;
   };
   
-  // Error state
   error: string | null;
 
-  // Actions
   setPageContext: (pageType: FittingPageType, productId?: string, ownerId?: string) => void;
   setProductData: (product: Product | null) => void;
   setOwnerData: (owner: Owner | null) => void;
@@ -61,17 +51,14 @@ interface FittingFormState {
   setAvailableSlots: (slots: AvailableSlot[]) => void;
   setSelectedSlot: (slot: AvailableSlot | null) => void;
   
-  // Form actions
   updateFormField: <K extends keyof FittingFormData>(field: K, value: FittingFormData[K]) => void;
   setPhoneNumberUpdated: (updated: boolean) => void;
   toggleVariant: (variantId: number) => void;
   clearSelectedVariants: () => void;
   
-  // Loading actions
   setLoadingState: (key: keyof FittingFormState['loadingStates'] | 'main' | 'submitting', loading: boolean) => void;
   setError: (error: string | null) => void;
   
-  // Async actions
   fetchProductData: (productId: string) => Promise<void>;
   fetchOwnerData: (ownerId: string) => Promise<void>;
   fetchCurrentUserData: () => Promise<void>;
@@ -140,7 +127,6 @@ export const useFittingFormStore = create<FittingFormState>()(
       set((state) => {
         state.currentUserData = userData;
         
-        // Auto-populate form with user data
         if (userData) {
           if (userData.first_name || userData.last_name) {
             const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
@@ -163,12 +149,10 @@ export const useFittingFormStore = create<FittingFormState>()(
         state.selectedSlot = slot;
       }),
 
-    // Form actions
     updateFormField: (field, value) =>
       set((state) => {
         state.formData[field] = value;
         
-        // Handle phone number update tracking
         if (field === 'phoneNumber') {
           const currentPhone = state.currentUserData?.phone_numbers;
           state.isPhoneNumberUpdated = (value as string).trim() !== '' && value !== currentPhone;
@@ -295,37 +279,100 @@ export const useFittingFormStore = create<FittingFormState>()(
     },
 
     fetchAvailableSlots: async (ownerId) => {
-      set((state) => {
-        state.loadingStates.slots = true;
-        state.error = null;
-      });
+  set((state) => {
+    state.loadingStates.slots = true;
+    state.error = null;
+  });
 
-      try {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + 60);
+  try {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 60);
 
-const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch available slots');
-        }
-        
-        const slots = await response.json();
-        
-        set((state) => {
-          state.availableSlots = slots;
-          state.loadingStates.slots = false;
-        });
-      } catch (error) {
-        console.error('Error fetching available slots:', error);
-        set((state) => {
-          state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
-          state.loadingStates.slots = false;
-        });
+    // 🔧 KEEP the ownerId parameter but ensure it's properly passed
+    const url = `/api/fitting/slots?ownerId=${ownerId}&dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}&availableOnly=true`;
+    
+    // 🔍 DEBUG: Log the exact URL and parameters
+    console.log('🔍 CUSTOMER fetchAvailableSlots DEBUG:', {
+      url,
+      ownerId,
+      ownerIdType: typeof ownerId,
+      dateFrom: startDate.toISOString(),
+      dateTo: endDate.toISOString(),
+      timezoneOffset: new Date().getTimezoneOffset() / 60
+    });
+
+    const response = await fetch(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
       }
-    },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`Failed to fetch available slots: ${response.status} ${response.statusText}`);
+    }
+    
+    const slots = await response.json();
+    
+    // 🔍 DEBUG: Detailed slot analysis
+    console.log('🔍 CUSTOMER API Response Analysis:', {
+      totalSlots: slots.length,
+      requestedOwnerId: ownerId,
+      firstFewSlots: slots.slice(0, 5).map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        utcHour: new Date(slot.dateTime).getUTCHours(),
+        localHour: new Date(slot.dateTime).getHours(),
+        localString: new Date(slot.dateTime).toLocaleString(),
+        isBooked: slot.isBooked,
+        slotOwnerId: slot.ownerId
+      }))
+    });
+
+    // 🔍 DEBUG: Find specific problem slots
+    const morningSlots = slots.filter(slot => {
+      const date = new Date(slot.dateTime);
+      const utcHour = date.getUTCHours();
+      return utcHour >= 9 && utcHour <= 10;
+    });
+    
+    console.log('🔍 CUSTOMER Morning Slots (9-10 AM UTC):', {
+      count: morningSlots.length,
+      slots: morningSlots.map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        localTime: new Date(slot.dateTime).toLocaleString()
+      }))
+    });
+
+    // 🔍 DEBUG: Check for the specific 9 AM slot
+    const nineAmSlot = slots.find(slot => slot.dateTime === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('❌ PROBLEM FOUND: 9 AM slot is present in customer response!', {
+        slot: nineAmSlot,
+        shouldBeBlocked: true,
+        slotOwnerId: nineAmSlot.ownerId,
+        requestedOwnerId: ownerId
+      });
+    } else {
+      console.log('✅ SUCCESS: 9 AM slot properly filtered out from customer response!');
+    }
+
+    set((state) => {
+      state.availableSlots = slots;
+      state.loadingStates.slots = false;
+    });
+  } catch (error) {
+    console.error('💥 Error fetching available slots:', error);
+    set((state) => {
+      state.error = error instanceof Error ? error.message : 'Failed to fetch slots';
+      state.loadingStates.slots = false;
+    });
+  }
+},
 
     submitFittingSchedule: async () => {
       const state = get();
