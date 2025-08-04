@@ -1,18 +1,20 @@
 // lib/resend.ts
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
-import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail } from 'components/emails';
+import { FittingConfirmedEmail, FittingRejectedEmail, NewFittingOwnerEmail, NewRentalCustomerEmail } from 'components/emails';
 import { JSX } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
+interface ProductDetail {
+  name: string;
+  variant: string;
+}
 export class EmailService {
   sendEmail(arg0: { to: string; subject: string; react: JSX.Element; }) {
     throw new Error('Method not implemented.');
   }
   private fromEmail = process.env.FROM_EMAIL || 'noreply@onrent.live';
 
-  // Notify owner when a new fitting is scheduled
   async notifyOwnerNewFitting({
     ownerEmail,
     ownerName,
@@ -73,7 +75,6 @@ export class EmailService {
     }
   }
 
-  // Notify customer when fitting is confirmed
   async notifyCustomerFittingConfirmed({
     customerEmail,
     customerName,
@@ -133,7 +134,6 @@ export class EmailService {
     }
   }
 
-  // Notify customer when fitting is rejected
   async notifyCustomerFittingRejected({
     customerEmail,
     customerName,
@@ -181,6 +181,65 @@ export class EmailService {
       return { success: true, data };
     } catch (error) {
       console.error('Failed to send customer rejection email:', error);
+      throw error;
+    }
+  }
+
+  async notifyCustomerNewRental({
+    customerEmail,
+    customerName,
+    ownerName,
+    businessName,
+    rentalCode,
+    startDate,
+    endDate,
+    productDetails,
+    rentalUrl,
+    additionalInfo,
+  }: {
+    customerEmail: string;
+    customerName: string;
+    ownerName: string;
+    businessName?: string;
+    rentalCode: string;
+    startDate: string;
+    endDate: string;
+    productDetails: ProductDetail[];
+    rentalUrl: string;
+    additionalInfo?: string;
+  }) {
+    try {
+      const subject = `✅ Rental Anda Dikonfirmasi - #${rentalCode}`;
+      
+      const emailHtml = await render(
+        NewRentalCustomerEmail({
+          customerName,
+          ownerName,
+          businessName,
+          rentalCode,
+          startDate,
+          endDate,
+          productDetails,
+          rentalUrl,
+          additionalInfo,
+        })
+      );
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [customerEmail],
+        subject,
+        html: emailHtml,
+      });
+
+      if (error) {
+        console.error('Error sending new rental customer email:', error);
+        throw error;
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Failed to send new rental customer email:', error);
       throw error;
     }
   }

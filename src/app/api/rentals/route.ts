@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { generateRentalCode } from 'utils/rental-code';
 import { auth } from '@clerk/nextjs/server';
+import { format } from 'date-fns/format';
+import { EmailService } from 'lib/resend';
+import { id as localeId } from 'date-fns/locale';
+
+const emailService = new EmailService();
+
+const formatRentalDate = (date: Date) => {
+  return format(date, "EEEE, d MMMM yyyy", { locale: localeId });
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -181,10 +190,7 @@ export async function POST(request: NextRequest) {
       !endDate
     ) {
       return NextResponse.json(
-        {
-          error:
-            'Missing required fields: customerId, variantIds, startDate, endDate',
-        },
+        { error: 'Missing required fields' },
         { status: 400 },
       );
     }
@@ -279,18 +285,40 @@ export async function POST(request: NextRequest) {
             },
           },
           include: {
-            user: { select: { id: true, username: true } },
-            owner: { select: { id: true, username: true } },
+            user: { 
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                first_name: true,
+                last_name: true,
+              }
+            },
+            owner: {
+              select: {
+                id: true,
+                username: true,
+                businessName: true,
+                first_name: true,
+                last_name: true,
+              }
+            },
             rentalItems: {
               include: {
                 variantProduct: {
-                  include: {
-                    products: true,
-                  },
-                },
-              },
-            },
-          },
+                  select: {
+                    size: true,
+                    color: true,
+                    products: {
+                      select: {
+                        name: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         });
 
         for (const variant of variantData) {
@@ -311,6 +339,34 @@ export async function POST(request: NextRequest) {
       },
       { timeout: 15_000 },
     );
+
+    if (rental) {
+      try {
+        const customerName = `${rental.user.first_name || ''} ${rental.user.last_name || ''}`.trim() || rental.user.username;
+        const ownerName = `${rental.owner.first_name || ''} ${rental.owner.last_name || ''}`.trim() || rental.owner.username;
+        
+        const productDetails = rental.rentalItems.map(item => ({
+          name: item.variantProduct.products.name,
+          variant: `${item.variantProduct.size} - ${item.variantProduct.color}`
+        }));
+
+        await emailService.notifyCustomerNewRental({
+          customerEmail: rental.user.email,
+          customerName,
+          ownerName,
+          businessName: rental.owner.businessName || undefined,
+          rentalCode: rental.rentalCode,
+          startDate: formatRentalDate(rental.startDate),
+          endDate: formatRentalDate(rental.endDate),
+          productDetails,
+          rentalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/rentals/${rental.id}`,
+          additionalInfo: rental.additionalInfo || undefined,
+        });
+
+      } catch (emailError) {
+        console.error('Failed to send new rental notification email:', emailError);
+      }
+    }
 
     return NextResponse.json(
       {
