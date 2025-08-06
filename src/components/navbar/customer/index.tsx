@@ -3,7 +3,6 @@ import Dropdown from 'components/dropdown';
 import { FiAlignJustify, FiSearch } from 'react-icons/fi';
 import NavLink from 'components/link/NavLink';
 import Logo from '/public/img/logo.png';
-import { IoMdNotificationsOutline } from 'react-icons/io';
 import { UserButton } from '@clerk/nextjs';
 import SearchComponent from 'components/search/Search';
 
@@ -21,7 +20,6 @@ const NavbarCustomer = (props: {
   }, []);
 
   const navLinks = [
-    { href: "/customer/default", text: "Beranda" },
     { href: "/customer/catalog", text: "Katalog" },
     { href: "/customer/activities", text: "Aktivitas" },
     { href: "/customer/wishlist", text: "Favorit" },
@@ -35,7 +33,6 @@ const NavbarCustomer = (props: {
           <img src={Logo.src} alt="Logo" className="h-12 w-auto" />
         </NavLink>
         
-        {/* Desktop Navigation Links - Hidden on mobile */}
         <div className="hidden xl:flex items-center space-x-8">
           {navLinks.map((link) => (
             <NavLink
@@ -51,7 +48,6 @@ const NavbarCustomer = (props: {
 
       <div className="flex items-center gap-4">
 
-        {/* Desktop Search Bar - Hidden on mobile */}
         <div className="hidden sm:flex">
           <SearchComponent />
         </div>
