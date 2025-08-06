@@ -17,7 +17,8 @@ export default async function AdminDefaultPage() {
     where: { clerkUserId: userId },
     select: { 
       role: true, 
-      name: true,
+      first_name: true,
+      last_name: true,
       email: true 
     },
   });
@@ -71,7 +72,7 @@ export default async function AdminDefaultPage() {
 
             {/* Main greeting */}
             <h1 className="text-5xl font-bold text-gray-800 mb-4">
-              Good {timeOfDay}, {user.name || 'Admin'}!
+              Good {timeOfDay}, {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : 'Admin'}!
               <Sparkles className="inline h-10 w-10 ml-3 text-yellow-500" />
             </h1>
 
