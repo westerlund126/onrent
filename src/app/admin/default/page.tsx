@@ -15,11 +15,11 @@ export default async function AdminDefaultPage() {
 
   const user = await prisma.user.findUnique({
     where: { clerkUserId: userId },
-    select: { 
-      role: true, 
+    select: {
+      role: true,
       first_name: true,
       last_name: true,
-      email: true 
+      email: true,
     },
   });
 
@@ -37,66 +37,63 @@ export default async function AdminDefaultPage() {
   ];
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-  
-  const currentHour = new Date().getHours();
-  const timeOfDay = currentHour < 12 ? 'morning' : currentHour < 17 ? 'afternoon' : 'evening';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 flex items-center justify-center p-6">
       <div className="max-w-2xl mx-auto text-center">
-        
+
         {/* Floating decorative elements */}
         <div className="absolute top-20 left-20 opacity-20">
-          <Star className="h-6 w-6 text-purple-400 animate-pulse" />
+          <Star className="h-6 w-6 text-orange-300 animate-pulse" />
         </div>
         <div className="absolute top-40 right-32 opacity-30">
-          <Sparkles className="h-8 w-8 text-pink-400 animate-bounce" />
+          <Sparkles className="h-8 w-8 text-yellow-400 animate-bounce" />
         </div>
         <div className="absolute bottom-32 left-16 opacity-25">
-          <Heart className="h-5 w-5 text-red-400 animate-pulse" />
+          <Heart className="h-5 w-5 text-rose-400 animate-pulse" />
         </div>
         <div className="absolute bottom-20 right-20 opacity-20">
-          <Coffee className="h-6 w-6 text-amber-400 animate-pulse" />
+          <Coffee className="h-6 w-6 text-amber-500 animate-pulse" />
         </div>
 
         {/* Main greeting card */}
         <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
           <CardContent className="p-12">
-            
+
             {/* Crown icon */}
             <div className="mb-6">
-              <div className="inline-flex p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg">
+              <div className="inline-flex p-4 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-full shadow-lg">
                 <Crown className="h-12 w-12 text-white" />
               </div>
             </div>
 
             {/* Main greeting */}
             <h1 className="text-5xl font-bold text-gray-800 mb-4">
-              Good {timeOfDay}, {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : 'Admin'}!
+              Halo, {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : 'Admin'}!
               <Sparkles className="inline h-10 w-10 ml-3 text-yellow-500" />
             </h1>
 
             {/* Random greeting message */}
-            <p className="text-xl text-gray-600 mb-6 font-medium">
+            <p className="text-xl text-gray-700 mb-6 font-medium">
               {randomGreeting}
             </p>
 
             {/* Admin badge */}
             <div className="flex justify-center mb-8">
-              <Badge 
-                variant="secondary" 
-                className="px-4 py-2 text-sm bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-purple-200"
+              <Badge
+                variant="secondary"
+                className="px-4 py-2 text-sm bg-gradient-to-r from-amber-100 to-yellow-100 text-orange-700 border-amber-200"
               >
                 <Crown className="h-4 w-4 mr-2" />
-                ADMIN ACCESS
+                AKSES ADMIN
               </Badge>
             </div>
 
             {/* Decorative quote */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border-l-4 border-purple-400">
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6 border-l-4 border-orange-400">
               <p className="text-gray-700 italic text-lg">
-                "With great admin power comes great responsibility... 
-                and really good coffee!" ☕
+                "Dengan kekuatan admin datang tanggung jawab besar... 
+                dan kopi yang luar biasa!" ☕
               </p>
             </div>
 
@@ -106,7 +103,7 @@ export default async function AdminDefaultPage() {
         {/* Fun footer message */}
         <div className="mt-8">
           <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
-            You're doing amazing! Keep being awesome 
+            Kamu luar biasa! Terus semangat ya! 
             <Heart className="h-4 w-4 text-red-400" />
             <Sparkles className="h-4 w-4 text-yellow-400" />
           </p>
@@ -115,12 +112,12 @@ export default async function AdminDefaultPage() {
         {/* Extra floating sparkles */}
         <div className="absolute top-1/4 left-1/4 opacity-10">
           <div className="animate-spin">
-            <Sparkles className="h-4 w-4 text-blue-400" />
+            <Sparkles className="h-4 w-4 text-yellow-400" />
           </div>
         </div>
         <div className="absolute bottom-1/4 right-1/4 opacity-15">
           <div className="animate-bounce" style={{ animationDelay: '1s' }}>
-            <Star className="h-3 w-3 text-purple-400" />
+            <Star className="h-3 w-3 text-orange-400" />
           </div>
         </div>
       </div>
