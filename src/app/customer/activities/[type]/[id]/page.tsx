@@ -53,7 +53,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { formatDateTime, formatCurrency, formatDate } from 'utils/rental';
 import { useRentalStore } from 'stores/useRentalStore';
-
 import {
   ActivityDetail,
   RentalDetail,
@@ -298,19 +297,9 @@ const CustomerActivityDetailPage = () => {
 const getFittingSchedule = () => {
     if (!isFitting) return null;
     const fitting = activity as FittingDetail;    
-    const dateObj = new Date(fitting.fittingSlot.dateTime);
     
-    const utcTime = dateObj.getUTCHours().toString().padStart(2, '0') + ':' + 
-                   dateObj.getUTCMinutes().toString().padStart(2, '0');
-    
-
-    const utcDate = dateObj.getUTCDate().toString().padStart(2, '0') + '/' +
-                   (dateObj.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
-                   dateObj.getUTCFullYear();
-       
     return {
-      date: utcDate, 
-      time: utcTime,
+      dateTime: fitting.fittingSlot.dateTime, // Keep the original ISO string
       duration: fitting.fittingSlot.duration,
     };
 };
@@ -356,7 +345,7 @@ const getFittingSchedule = () => {
                 {isFitting && (
                   <>
                     <span className="text-gray-600">
-                      Jadwal: {formatDate(fittingSchedule?.date || '')}
+                      Jadwal: {formatDate(fittingSchedule?.dateTime || '')}
                     </span>
                     {getFittingStatusBadge((activity as FittingDetail).status)}
                   </>
@@ -675,7 +664,7 @@ const getFittingSchedule = () => {
                     <div>
                       <span className="text-sm text-gray-600">Tanggal & Waktu</span>
                       <p className="font-medium">
-                        {fittingSchedule.date}, {fittingSchedule.time}
+                        {fittingSchedule.dateTime}, {fittingSchedule.duration} menit
                       </p>
                     </div>
                     <div>

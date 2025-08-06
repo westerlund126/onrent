@@ -107,21 +107,23 @@ export async function POST(
           owner: {
             select: {
               clerkUserId: true,
-              email: true, // <-- Added
-              first_name: true, // <-- Added
-              last_name: true, // <-- Added
-              businessName: true, // <-- Added
+              email: true,
+              first_name: true,
+              last_name: true,
+              businessName: true,
             },
           },
           rentalItems: {
             include: {
               variantProduct: {
                 select: {
-                  products: {
-                    select: {
-                      name: true,
+                  size: true,
+                    color: true,
+                    products: {
+                      select: {
+                        name: true,
+                      },
                     },
-                  },
                 },
               },
             },
@@ -130,8 +132,8 @@ export async function POST(
       });
       },
       {
-        maxWait: 5000, // 5 seconds
-        timeout: 10000, // 10 seconds
+        maxWait: 5000, 
+        timeout: 10000, 
       }
     );
 
@@ -140,15 +142,16 @@ export async function POST(
     }
 
     if (updatedRental.owner.clerkUserId && updatedRental.owner.email) {
-      // Use setImmediate to avoid blocking the API response
       setImmediate(async () => {
         try {
           const customerName = `${updatedRental.user.first_name || ''} ${updatedRental.user.last_name || ''}`.trim() || updatedRental.user.username;
           const ownerName = updatedRental.owner.businessName || `${updatedRental.owner.first_name || ''} ${updatedRental.owner.last_name || ''}`.trim();
-          const productNames = updatedRental.rentalItems.map(item => item.variantProduct.products.name);
+          const productNames = updatedRental.rentalItems.map(item => {
+            const variant = item.variantProduct;
+            return `${variant.products.name} (${variant.size}-${variant.color})`;
+          });
           const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/rentals/${updatedRental.id}`;
 
-          // Send Email Notification
           await emailService.notifyOwnerReturnRequest({
             ownerEmail: updatedRental.owner.email!,
             ownerName,

@@ -103,9 +103,7 @@ export async function GET(request) {
       take: limit
     });
 
-    // Transform rentals to activity format
     const rentalActivities = rentals.map(rental => {
-      // Calculate total price from rental items
       const totalPrice = rental.rentalItems.reduce((total, item) => {
         return total + (item.variantProduct?.price || 0);
       }, 0);

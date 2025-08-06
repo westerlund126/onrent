@@ -291,7 +291,6 @@ export async function PATCH(
         }
       } catch (emailError) {
         console.error('Failed to send email notification:', emailError);
-        // Don't fail the request if email fails
       }
     }
 

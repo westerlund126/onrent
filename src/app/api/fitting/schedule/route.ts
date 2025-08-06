@@ -241,7 +241,6 @@ export async function POST(request: NextRequest) {
             completeSchedule.fittingSlot.owner.last_name || ''
           }`.trim();
 
-        // Send email to owner
         await emailService.notifyOwnerNewFitting({
           ownerEmail: completeSchedule.fittingSlot.owner.email,
           ownerName,

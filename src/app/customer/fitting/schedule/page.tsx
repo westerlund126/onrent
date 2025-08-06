@@ -160,9 +160,6 @@ const availableDateStrings = useMemo(() => {
 const parseSlot = (slot: any): any => {
 	try {
 	  const isBooked = !!slot.fittingSchedule;
-	  console.log(
-		`🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
-	  );
 	  let dateTime: Date;
 	  if (typeof slot.dateTime === 'string') {
 		const cleanDateString = slot.dateTime.replace('Z', '');
@@ -258,7 +255,6 @@ const availableTimes = useMemo(() => {
     }
   };
 
-  // --- Loading State ---
   const isLoading = 
     loadingStates.owner || 
     loadingStates.product || 
