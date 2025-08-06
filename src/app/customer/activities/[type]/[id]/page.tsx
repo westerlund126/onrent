@@ -294,16 +294,40 @@ const CustomerActivityDetailPage = () => {
       })()
     : null;
 
-const getFittingSchedule = () => {
-    if (!isFitting) return null;
-    const fitting = activity as FittingDetail;    
-    
-    return {
-      dateTime: fitting.fittingSlot.dateTime, // Keep the original ISO string
-      duration: fitting.fittingSlot.duration,
-    };
+const formatDateTime = (isoString: string) => {
+  const date = new Date(isoString);
+  const dateStr = date.toISOString().split('T')[0];
+  const timeStr = date.toTimeString().split(' ')[0].slice(0, 5);
+  return `${dateStr} ${timeStr}`;
 };
-  const fittingSchedule = getFittingSchedule();
+
+const formatDateTimeIntl = (isoString: string) => {
+  const date = new Date(isoString);
+  const dateFormatter = new Intl.DateTimeFormat('en-CA');
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
+  });
+  
+  return `${dateFormatter.format(date)} ${timeFormatter.format(date)}`;
+};
+
+const formatDateTimeSimple = (isoString: string) => {
+  return isoString.replace('T', ' ').replace('.000Z', '').slice(0, 16);
+};
+
+const getFittingSchedule = () => {
+  if (!isFitting) return null;
+  const fitting = activity as FittingDetail;
+  
+  return {
+    dateTime: formatDateTime(fitting.fittingSlot.dateTime), 
+    duration: fitting.fittingSlot.duration,
+  };
+};
+
+const fittingSchedule = getFittingSchedule();
 
   const fittingHasProducts = isFitting && (activity as FittingDetail).FittingProduct?.length > 0;
 
@@ -664,7 +688,7 @@ const getFittingSchedule = () => {
                     <div>
                       <span className="text-sm text-gray-600">Tanggal & Waktu</span>
                       <p className="font-medium">
-                        {fittingSchedule.dateTime}, {fittingSchedule.duration} menit
+                        {fittingSchedule.dateTime}
                       </p>
                     </div>
                     <div>
