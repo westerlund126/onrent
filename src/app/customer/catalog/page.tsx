@@ -162,7 +162,6 @@ const Catalog = () => {
 
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5 lg:grid-cols-4">
-      {/* Filter Card */}
       <div className="col-span-1 h-full w-full rounded-xl">
         <FilterCard 
           products={allProducts} 
@@ -171,7 +170,6 @@ const Catalog = () => {
         />
       </div>
 
-      {/* Main Content */}
       <div className="col-span-1 lg:col-span-3 h-fit w-full">
         <div className="hidden md:block">
           <Banner />
@@ -190,7 +188,6 @@ const Catalog = () => {
             </p>
           </div>
           
-          {/* Page info */}
           {totalPages > 1 && (
             <div className="mt-2 md:mt-0">
               <p className="text-sm text-gray-500">
@@ -212,7 +209,7 @@ const Catalog = () => {
               ))}
             </div>
 
-            {/* Pagination */}
+  
             {renderPagination()}
           </>
         ) : (

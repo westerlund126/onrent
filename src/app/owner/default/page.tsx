@@ -142,13 +142,11 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Charts Section */}
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <DailyTraffic />
             <MiniCalendar />
           </div>
 
-          {/* Activity Table Section */}
           <div>
             <ComplexTable tableData={rentalData} />
           </div>

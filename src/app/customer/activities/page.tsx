@@ -1,4 +1,3 @@
-// components/CustomerActivityPage.js
 "use client";
 import { Calendar, Package, Eye, AlertCircle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -47,7 +46,6 @@ const CustomerActivityPage = () => {
     router.push(`/customer/activities/${activity.type}/${activity.id}`);
   };
 
-  // Error State
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">

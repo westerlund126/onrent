@@ -334,7 +334,6 @@ const fittingSchedule = getFittingSchedule();
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
         <div className="mb-6">
           <div className="mb-4 flex items-center gap-4">
             <Button
@@ -448,11 +447,8 @@ const fittingSchedule = getFittingSchedule();
           </div>
         </div>
 
-        {/* Main content grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left column */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Items/Products Card - Show for rentals and fittings with products */}
             {(isRental || fittingHasProducts) && (
               <Card>
                 <CardHeader>
@@ -552,7 +548,7 @@ const fittingSchedule = getFittingSchedule();
               </Card>
             )}
 
-            {/* Regular fitting without products */}
+            
             {isFitting && !fittingHasProducts && (
               <Card>
                 <CardHeader>
@@ -601,7 +597,7 @@ const fittingSchedule = getFittingSchedule();
     </Card>
   )}
 
-            {/* Transaction Summary - Only for rentals */}
+            
             {isRental && (
               <Card>
                 <CardHeader>
@@ -626,9 +622,8 @@ const fittingSchedule = getFittingSchedule();
             )}
           </div>
 
-          {/* Right column */}
+          
           <div className="space-y-6">
-            {/* Owner Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -658,7 +653,7 @@ const fittingSchedule = getFittingSchedule();
               </CardContent>
             </Card>
 
-            {/* Schedule Information Card */}
+          
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -712,7 +707,6 @@ const fittingSchedule = getFittingSchedule();
           </div>
         </div>
 
-        {/* Transaction History Timeline - Only for rentals */}
         {isRental && (
           <Card className="mt-6">
             <CardHeader>
