@@ -272,7 +272,7 @@ const CustomerActivityPage = () => {
   const canReviewRental = (activity: any) => {
     return (
       activity.type === 'rental' && 
-      activity.status === 'SELESAI' && 
+      (activity.status === 'SELESAI' || activity.status === 'Selesai') && 
       !activity.hasReview
     );
   };
@@ -352,9 +352,10 @@ const CustomerActivityPage = () => {
           ) : (
             <div className="space-y-4">
               {activities.map((activity) => {
+                const statusKey = activity.status.toUpperCase();
                 let statusConfig;
-                if (activity.type === 'rental' && isValidRentalStatus(activity.status)) {
-                  statusConfig = getStatusBadgeConfig(activity.status);
+                if (activity.type === 'rental' && isValidRentalStatus(statusKey)) {
+                  statusConfig = getStatusBadgeConfig(statusKey as RentalStatus);
                 } else if (activity.type === 'fitting' && isValidFittingStatus(activity.status)) {
                   statusConfig = getFittingStatusConfig(activity.status);
                 } else {
