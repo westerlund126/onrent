@@ -235,46 +235,21 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     }
   };
 
-
- const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  const { name, value } = e.target;
-
-  if ((name === 'startDate' || name === 'endDate') && value.length === 10 && !isNaN(new Date(value).getTime())) {
-    const inputDate = new Date(value);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (name === 'startDate' && inputDate < today) {
-      const correctedValue = today.toISOString().split('T')[0];
-      setFormData(prev => ({ ...prev, startDate: correctedValue }));
-      toast.warning("Tanggal mulai diubah ke hari ini karena tidak boleh di masa lalu");
-      return; 
-    }
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
 
     if (name === 'endDate' && formData.startDate) {
-      const startDate = new Date(formData.startDate);
-      if (inputDate <= startDate) {
-        const nextDay = new Date(startDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const correctedValue = nextDay.toISOString().split('T')[0];
-        setFormData(prev => ({ ...prev, endDate: correctedValue }));
-        toast.warning("Tanggal selesai diubah ke hari setelah tanggal mulai");
-        return; 
-      }
+      const isValid = new Date(value) >= new Date(formData.startDate);
+      (e.target as HTMLInputElement).setCustomValidity(
+        isValid ? '' : 'Tanggal selesai harus setelah tanggal mulai',
+      );
     }
-  }
 
-  if (name === 'endDate' && formData.startDate) {
-    const isValid = new Date(value) >= new Date(formData.startDate);
-    (e.target as HTMLInputElement).setCustomValidity(
-      isValid ? '' : 'Tanggal selesai harus setelah tanggal mulai',
-    );
-  }
-
-  setFormData((prev) => ({ ...prev, [name]: value }));
-  if (submitError) setSubmitError('');
-};
-
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (submitError) setSubmitError('');
+  };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -639,36 +614,54 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
           </div>
 
           {/* Start Date */}
-<div>
-  <label className="block text-sm font-medium">Tanggal Mulai *</label>
-  <Input
-    type="date"
-    name="startDate"
-    value={formData.startDate}
-    onChange={handleInputChange}
-    required
-    min={new Date().toISOString().split('T')[0]}
-    className="mt-1"
-    disabled={isLoading}
-  />
-</div>
+          <div>
+            <label className="block text-sm font-medium">Tanggal Mulai *</label>
+            <Input
+              type="date"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleInputChange}
+              required
+              min={new Date().toISOString().split('T')[0]}
+              className="mt-1"
+              disabled={isLoading}
+              onKeyDown={(e) => {
+              if (e.key !== 'Tab' && e.key !== 'Shift') {
+                e.preventDefault();
+              }
+          }}
+              onInput={(e) => {
+              e.preventDefault();
+          }}
+              style={{ caretColor: 'transparent' }}
+            />
+          </div>
 
-{/* End Date */}
-<div>
-  <label className="block text-sm font-medium">
-    Tanggal Selesai *
-  </label>
-  <Input
-    type="date"
-    name="endDate"
-    value={formData.endDate}
-    onChange={handleInputChange}
-    required
-    min={formData.startDate || new Date().toISOString().split('T')[0]}
-    className="mt-1"
-    disabled={isLoading}
-  />
-</div>
+          {/* End Date */}
+          <div>
+            <label className="block text-sm font-medium">
+              Tanggal Selesai *
+            </label>
+            <Input
+              type="date"
+              name="endDate"
+              value={formData.endDate}
+              onChange={handleInputChange}
+              required
+              min={formData.startDate || new Date().toISOString().split('T')[0]}
+              className="mt-1"
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key !== 'Tab' && e.key !== 'Shift') {
+                  e.preventDefault();
+                }
+              }}
+              onInput={(e) => {
+                e.preventDefault();
+              }}
+              style={{ caretColor: 'transparent' }}
+            />
+          </div>
 
           {/* Status */}
           <div>
