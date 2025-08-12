@@ -1,4 +1,3 @@
-// hooks/useActivities.js
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -9,11 +8,38 @@ interface FittingCancelConfirmation {
   isCanceling: boolean; 
 }
 
+interface Activity {
+  id: number;
+  type: 'rental' | 'fitting';
+  date: string;
+  ownerName: string;
+  products: string[];
+  parentProductIds?: number[];
+  status: string;
+  totalPrice: number | null;
+  rentalCode?: string;
+  startDate?: string;
+  endDate?: string;
+  additionalInfo?: string;
+  hasReview?: boolean;
+  duration?: number;
+  note?: string;
+  fittingDateTime?: string;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalActivities: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export const useActivities = (page = 1, limit = 10) => {
-  const [activities, setActivities] = useState([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1,
     totalPages: 1,
     totalActivities: 0,
@@ -21,7 +47,7 @@ export const useActivities = (page = 1, limit = 10) => {
     hasPrevPage: false
   });
 
-const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<FittingCancelConfirmation>({
+  const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<FittingCancelConfirmation>({
     isOpen: false,
     fittingId: null,
     ownerName: '',
@@ -43,7 +69,7 @@ const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<Fitti
       
       setActivities(data.activities);
       setPagination(data.pagination);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       console.error('Error fetching activities:', err);
     } finally {
@@ -65,7 +91,7 @@ const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<Fitti
     fetchActivities(1);
   };
 
-  const updateActivityStatus = (activityId, type, newStatus) => {
+  const updateActivityStatus = (activityId: number, type: string, newStatus: string) => {
     setActivities(currentActivities =>
       currentActivities.map(activity =>
         (activity.id === activityId && activity.type === type)
@@ -137,10 +163,10 @@ const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<Fitti
   };
 };
 
-export const useActivityDetail = (type, id) => {
-  const [activity, setActivity] = useState(null);
+export const useActivityDetail = (type: string, id: string) => {
+  const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchActivityDetail = async () => {
@@ -158,7 +184,7 @@ export const useActivityDetail = (type, id) => {
 
         const data = await response.json();
         setActivity(data.activity);
-      } catch (err) {
+      } catch (err: any) {
         setError(err.message);
         console.error('Error fetching activity detail:', err);
       } finally {

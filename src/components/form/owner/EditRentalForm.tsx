@@ -737,6 +737,15 @@ const EditRentalForm = ({
               required
               className="mt-1"
               disabled={isLoading}
+               onKeyDown={(e) => {
+                if (e.key !== 'Tab' && e.key !== 'Shift') {
+                  e.preventDefault();
+                }
+              }}
+              onInput={(e) => {
+                e.preventDefault();
+              }}
+              style={{ caretColor: 'transparent' }}
             />
           </div>
 
@@ -754,6 +763,15 @@ const EditRentalForm = ({
               min={formData.startDate || new Date().toISOString().split('T')[0]}
               className="mt-1"
               disabled={isLoading}
+               onKeyDown={(e) => {
+                if (e.key !== 'Tab' && e.key !== 'Shift') {
+                  e.preventDefault();
+                }
+              }}
+              onInput={(e) => {
+                e.preventDefault();
+              }}
+              style={{ caretColor: 'transparent' }}
             />
           </div>
 

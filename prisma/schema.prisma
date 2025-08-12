@@ -33,6 +33,7 @@ model User {
   ScheduleBlock   ScheduleBlock[]
   WeeklySlot      WeeklySlot[]
   Wishlist        Wishlist[]
+  Reviews         Review[]  
 }
 
 model Products {
@@ -46,6 +47,7 @@ model Products {
   owner           User              @relation(fields: [ownerId], references: [id])
   VariantProducts VariantProducts[]
   Wishlist        Wishlist[]
+  Reviews         Review[]  
 }
 
 model VariantProducts {
@@ -88,15 +90,36 @@ model Rental {
   updatedAt      DateTime     @updatedAt
   ownerId        Int
   additionalInfo String?
+  hasReview      Boolean @default(false) 
   owner          User         @relation("OwnerRental", fields: [ownerId], references: [id])
   user           User         @relation("UserRental", fields: [userId], references: [id])
   rentalItems    RentalItem[]
   Return         Return[]
   Tracking       Tracking[]
+  Reviews        Review[]
 
   @@index([status])
   @@index([startDate])
 }
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int      
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int
+  rentalId  Int      
+  productId Int      
+  user      User     @relation(fields: [userId], references: [id])
+  rental    Rental   @relation(fields: [rentalId], references: [id])
+  product   Products @relation(fields: [productId], references: [id])
+  
+  @@index([productId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
 
 model RentalItem {
   id               Int             @id @default(autoincrement())
