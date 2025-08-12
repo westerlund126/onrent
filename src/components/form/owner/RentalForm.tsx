@@ -404,6 +404,7 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     );
   };
 
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogOverlay className="bg-black fixed inset-0 z-50 backdrop-blur-sm backdrop-contrast-50" />
@@ -648,6 +649,15 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               min={new Date().toISOString().split('T')[0]}
               className="mt-1"
               disabled={isLoading}
+              onKeyDown={(e) => {
+              if (e.key !== 'Tab' && e.key !== 'Shift') {
+                e.preventDefault();
+              }
+          }}
+              onInput={(e) => {
+              e.preventDefault();
+          }}
+              style={{ caretColor: 'transparent' }}
             />
           </div>
 
@@ -665,6 +675,15 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
               min={formData.startDate || new Date().toISOString().split('T')[0]}
               className="mt-1"
               disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key !== 'Tab' && e.key !== 'Shift') {
+                  e.preventDefault();
+                }
+              }}
+              onInput={(e) => {
+                e.preventDefault();
+              }}
+              style={{ caretColor: 'transparent' }}
             />
           </div>
 

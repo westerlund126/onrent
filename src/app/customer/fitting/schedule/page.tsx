@@ -397,7 +397,6 @@ const availableTimes = useMemo(() => {
                     </div>
                   )}
 
-                  {/* Date Selection */}
                   <div className="space-y-2">
   <Label htmlFor="date" className="text-sm font-semibold text-gray-700">
     Pilih Tanggal *
@@ -501,9 +500,7 @@ const availableTimes = useMemo(() => {
             </Card>
           </div>
           
-          {/* Right Side - Details (largely unchanged, just uses store data) */}
           <div className="space-y-6 lg:col-span-2">
-             {/* Owner Details */}
              {ownerData && (
                <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
                  <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
@@ -557,7 +554,6 @@ const availableTimes = useMemo(() => {
                </Card>
              )}
             
-             {/* Product Details */}
              {pageType === 'product' && productData && (
                 <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
                     <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
@@ -570,7 +566,6 @@ const availableTimes = useMemo(() => {
                       <div className="space-y-4">
                        {productData.images && productData.images.length > 0 && (
   <div className="flex flex-col gap-4">
-    {/* Main Image */}
     <div className="aspect-square overflow-hidden rounded-xl bg-muted">
       <Image
         src={productData.images[selectedImageIndex]}
@@ -581,7 +576,6 @@ const availableTimes = useMemo(() => {
       />
     </div>
 
-    {/* Thumbnail Gallery */}
     {productData.images.length > 1 && (
       <div className="flex gap-2 overflow-x-auto py-1">
         {productData.images.map((image, index) => (

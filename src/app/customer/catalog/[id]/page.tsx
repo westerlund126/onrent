@@ -222,7 +222,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6 md:space-y-8">
-        {/* Back Button */}
         <Button
           variant="outline"
           onClick={handleBack}
@@ -235,7 +234,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
         <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
           <CardContent className="p-3 sm:p-4 md:p-6 lg:p-8">
             <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-2 lg:gap-12">
-              {/* Image Section */}
               <div className="space-y-3 md:space-y-4">
                 <div className="group relative aspect-square overflow-hidden rounded-2xl bg-muted shadow-xl cursor-pointer">
                   {product.images && product.images.length > 0 ? (
@@ -269,7 +267,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   )}
                 </div>
 
-                {/* Image Thumbnails */}
                 {product.images && product.images.length > 1 && (
                   <div className="flex space-x-2 md:space-x-3 overflow-x-auto px-2 py-2 scrollbar-hide">
                     {product.images.map((image, index) => (
@@ -296,7 +293,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                 )}
               </div>
 
-              {/* Product Details Section */}
               <div className="space-y-4 md:space-y-6 lg:space-y-8">
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
@@ -338,7 +334,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </div>
                 </div>
 
-                {/* Size Selection */}
                 {uniqueSizes.length > 0 && (
                   <div className="space-y-3 md:space-y-4">
                     <h3 className="text-sm md:text-base lg:text-lg font-semibold">Ukuran</h3>
@@ -372,7 +367,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </div>
                 )}
 
-                {/* Color Selection */}
                 {uniqueColors.length > 0 && (
                   <div className="space-y-3 md:space-y-4">
                     <h3 className="text-sm md:text-base lg:text-lg font-semibold">Warna</h3>
@@ -409,7 +403,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="space-y-3 md:space-y-4 pt-4 md:pt-6 lg:pt-8">
                   <Button
                     onClick={handleBookingSchedule}
@@ -441,7 +434,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </Button>
                 </div>
 
-                {/* Owner Card */}
                 <Card className="bg-gradient-to-r from-orange-50/90 via-orange-100/80 to-amber-50/90 border-2 border-orange-200/60 rounded-xl md:rounded-2xl shadow-lg overflow-hidden">
                   <CardContent className="p-3 md:p-4 lg:p-6">
                     <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 lg:gap-5">
@@ -491,7 +483,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
 
                 <Separator className="my-4 md:my-6 lg:my-8" />
 
-                {/* Accordion */}
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="variant-details">
                     <AccordionTrigger className="text-sm md:text-base lg:text-lg font-semibold hover:text-orange-600 transition-colors">
@@ -546,7 +537,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
           </CardContent>
         </Card>
 
-        {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div>
             <h2 className="mb-4 md:mb-6 lg:mb-8 text-xl md:text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
@@ -561,7 +551,6 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
         )}
       </div>
 
-      {/* Full Screen Image Modal */}
       {isImageModalOpen && product.images && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div ref={modalRef} className="relative flex h-full w-full max-w-4xl items-center justify-center">

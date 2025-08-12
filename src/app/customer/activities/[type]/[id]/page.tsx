@@ -294,23 +294,46 @@ const CustomerActivityDetailPage = () => {
       })()
     : null;
 
-const getFittingSchedule = () => {
-    if (!isFitting) return null;
-    const fitting = activity as FittingDetail;    
-    
-    return {
-      dateTime: fitting.fittingSlot.dateTime, // Keep the original ISO string
-      duration: fitting.fittingSlot.duration,
-    };
+const formatDateTime = (isoString: string) => {
+  const date = new Date(isoString);
+  const dateStr = date.toISOString().split('T')[0];
+  const timeStr = date.toTimeString().split(' ')[0].slice(0, 5);
+  return `${dateStr} ${timeStr}`;
 };
-  const fittingSchedule = getFittingSchedule();
+
+const formatDateTimeIntl = (isoString: string) => {
+  const date = new Date(isoString);
+  const dateFormatter = new Intl.DateTimeFormat('en-CA');
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
+  });
+  
+  return `${dateFormatter.format(date)} ${timeFormatter.format(date)}`;
+};
+
+const formatDateTimeSimple = (isoString: string) => {
+  return isoString.replace('T', ' ').replace('.000Z', '').slice(0, 16);
+};
+
+const getFittingSchedule = () => {
+  if (!isFitting) return null;
+  const fitting = activity as FittingDetail;
+  
+  return {
+    dateTime: formatDateTime(fitting.fittingSlot.dateTime), 
+    duration: fitting.fittingSlot.duration,
+  };
+};
+
+const fittingSchedule = getFittingSchedule();
 
   const fittingHasProducts = isFitting && (activity as FittingDetail).FittingProduct?.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
         <div className="mb-6">
           <div className="mb-4 flex items-center gap-4">
             <Button
@@ -424,11 +447,8 @@ const getFittingSchedule = () => {
           </div>
         </div>
 
-        {/* Main content grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left column */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Items/Products Card - Show for rentals and fittings with products */}
             {(isRental || fittingHasProducts) && (
               <Card>
                 <CardHeader>
@@ -528,7 +548,7 @@ const getFittingSchedule = () => {
               </Card>
             )}
 
-            {/* Regular fitting without products */}
+            
             {isFitting && !fittingHasProducts && (
               <Card>
                 <CardHeader>
@@ -577,7 +597,7 @@ const getFittingSchedule = () => {
     </Card>
   )}
 
-            {/* Transaction Summary - Only for rentals */}
+            
             {isRental && (
               <Card>
                 <CardHeader>
@@ -602,9 +622,8 @@ const getFittingSchedule = () => {
             )}
           </div>
 
-          {/* Right column */}
+          
           <div className="space-y-6">
-            {/* Owner Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -634,7 +653,7 @@ const getFittingSchedule = () => {
               </CardContent>
             </Card>
 
-            {/* Schedule Information Card */}
+          
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -664,7 +683,7 @@ const getFittingSchedule = () => {
                     <div>
                       <span className="text-sm text-gray-600">Tanggal & Waktu</span>
                       <p className="font-medium">
-                        {fittingSchedule.dateTime}, {fittingSchedule.duration} menit
+                        {fittingSchedule.dateTime}
                       </p>
                     </div>
                     <div>
@@ -688,7 +707,6 @@ const getFittingSchedule = () => {
           </div>
         </div>
 
-        {/* Transaction History Timeline - Only for rentals */}
         {isRental && (
           <Card className="mt-6">
             <CardHeader>

@@ -104,7 +104,6 @@ const OwnerBusinessProfile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
-        {/* --- Top Row --- */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-stretch">
           <MainProfileCard
             profileData={profileData}
@@ -121,7 +120,6 @@ const OwnerBusinessProfile = () => {
           />
         </div>
 
-        {/* --- Bottom Row --- */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-stretch">
           <WorkingHoursCard
             workingHours={workingHours}
