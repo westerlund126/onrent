@@ -26,7 +26,6 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
-    // Fetch rentals with variant products and reviews
     const rentals = await prisma.rental.findMany({
       where: {
         userId: user.id
@@ -50,7 +49,7 @@ export async function GET(request) {
                 price: true,
                 products: {
                   select: {
-                    id: true,  // Parent product ID
+                    id: true,  
                     name: true,
                     category: true,
                   },
@@ -59,7 +58,6 @@ export async function GET(request) {
             },
           }
         },
-        // Include reviews to check if rental has been reviewed
         Reviews: {
           select: {
             id: true
@@ -111,7 +109,6 @@ export async function GET(request) {
       take: limit
     });
 
-    // Process rental activities
     const rentalActivities = rentals.map(rental => {
       const totalPrice = rental.rentalItems.reduce((total, item) => {
         return total + (item.variantProduct?.price || 0);
@@ -127,7 +124,6 @@ export async function GET(request) {
         return `${productName}${size ? ` (${size}` : ''}${color ? `, ${color})` : size ? ')' : ''}`;
       }).filter(Boolean);
 
-      // Get unique PARENT product IDs from variant products
       const parentProductIds = [...new Set(
         rental.rentalItems
           .map(item => item.variantProduct?.products?.id)
@@ -137,7 +133,6 @@ export async function GET(request) {
       const ownerName = rental.owner.businessName || 
         `${rental.owner.first_name} ${rental.owner.last_name || ''}`.trim();
 
-      // Check if rental has been reviewed
       const hasReview = rental.Reviews.length > 0;
 
       return {
@@ -146,18 +141,17 @@ export async function GET(request) {
         date: rental.createdAt.toISOString(),
         ownerName,
         products,
-        parentProductIds, // ADDED: Parent product IDs for reviews
+        parentProductIds, 
         status: rental.status,
         totalPrice,
         rentalCode: rental.rentalCode,
         startDate: rental.startDate,
         endDate: rental.endDate,
         additionalInfo: rental.additionalInfo,
-        hasReview // ADDED: Review status flag
+        hasReview 
       };
     });
 
-    // Process fitting activities
     const fittingActivities = fittings.map(fitting => {
       const products = fitting.FittingProduct.map(fp =>
         `${fp.variantProduct.products.name} (${fp.variantProduct.size}${fp.variantProduct.color ? `, ${fp.variantProduct.color}` : ''})`
@@ -173,15 +167,14 @@ export async function GET(request) {
         ownerName,
         products,
         status: fitting.status,
-        totalPrice: null, // Fittings don't have price
+        totalPrice: null, 
         duration: fitting.duration,
         note: fitting.note,
         fittingDateTime: fitting.fittingSlot.dateTime,
-        hasReview: false // Fittings don't have reviews
+        hasReview: false 
       };
     });
 
-    // Combine and sort activities
     const allActivities = [...rentalActivities, ...fittingActivities]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

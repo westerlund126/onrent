@@ -1,151 +1,40 @@
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-
-interface FittingCancelConfirmation {
-  isOpen: boolean;
-  fittingId: number | null;
-  ownerName: string;
-  isCanceling: boolean; 
-}
-
-interface Activity {
-  id: number;
-  type: 'rental' | 'fitting';
-  date: string;
-  ownerName: string;
-  products: string[];
-  parentProductIds?: number[];
-  status: string;
-  totalPrice: number | null;
-  rentalCode?: string;
-  startDate?: string;
-  endDate?: string;
-  additionalInfo?: string;
-  hasReview?: boolean;
-  duration?: number;
-  note?: string;
-  fittingDateTime?: string;
-}
-
-interface Pagination {
-  currentPage: number;
-  totalPages: number;
-  totalActivities: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
+// hooks/useActivities.ts (Updated to use Zustand)
+import { useEffect } from 'react';
+import { useActivitiesStore } from 'stores/useActivitiesStore';
 
 export const useActivities = (page = 1, limit = 10) => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<Pagination>({
-    currentPage: 1,
-    totalPages: 1,
-    totalActivities: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
-
-  const [fittingCancelConfirmation, setFittingCancelConfirmation] = useState<FittingCancelConfirmation>({
-    isOpen: false,
-    fittingId: null,
-    ownerName: '',
-    isCanceling: false,
-  });
-
-  const fetchActivities = async (currentPage = page) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/activities?page=${currentPage}&limit=${limit}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities');
-      }
-
-      const data = await response.json();
-      
-      setActivities(data.activities);
-      setPagination(data.pagination);
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error fetching activities:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    activities,
+    loading,
+    error,
+    pagination,
+    fittingCancelConfirmation,
+    fetchActivities,
+    refreshActivities,
+    updateActivityStatus,
+    openFittingCancelConfirmation,
+    cancelFittingCancellation,
+    confirmCancelFitting,
+    submitReview
+  } = useActivitiesStore();
 
   useEffect(() => {
-    fetchActivities();
-  }, [page, limit]);
+    fetchActivities(page, limit);
+  }, [page, limit, fetchActivities]);
 
   const loadMore = () => {
     if (pagination.hasNextPage) {
-      fetchActivities(pagination.currentPage + 1);
+      fetchActivities(pagination.currentPage + 1, limit);
     }
   };
 
   const refresh = () => {
-    fetchActivities(1);
+    refreshActivities();
   };
 
-  const updateActivityStatus = (activityId: number, type: string, newStatus: string) => {
-    setActivities(currentActivities =>
-      currentActivities.map(activity =>
-        (activity.id === activityId && activity.type === type)
-          ? { ...activity, status: newStatus }
-          : activity
-      )
-    );
-  };
-
-  const openFittingCancelConfirmation = (fittingId: number, ownerName: string) => {
-    setFittingCancelConfirmation({
-      isOpen: true,
-      fittingId,
-      ownerName,
-      isCanceling: false,
-    });
-  };
-
-   const cancelFittingCancellation = () => {
-    setFittingCancelConfirmation({
-      isOpen: false,
-      fittingId: null,
-      ownerName: '',
-      isCanceling: false,
-    });
-  };
-  
   const handleConfirmCancelFitting = async () => {
-    if (!fittingCancelConfirmation.fittingId) return;
-
-    setFittingCancelConfirmation(prev => ({ ...prev, isCanceling: true }));
-
-    try {
-      const response = await fetch(`/api/fitting/schedule/${fittingCancelConfirmation.fittingId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELED' }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal membatalkan fitting.');
-      }
-
-      updateActivityStatus(fittingCancelConfirmation.fittingId, 'fitting', 'CANCELED');
-      toast.success('Jadwal fitting berhasil dibatalkan.');
-      cancelFittingCancellation(); 
-    } catch (err: any) {
-      console.error('Cancellation error:', err);
-      toast.error(err.message);
-      setFittingCancelConfirmation(prev => ({ ...prev, isCanceling: false }));
-    }
+    await confirmCancelFitting();
   };
-
 
   return {
     activities,
@@ -160,40 +49,42 @@ export const useActivities = (page = 1, limit = 10) => {
     openFittingCancelConfirmation,
     cancelFittingCancellation,
     handleConfirmCancelFitting,
+    submitReview, 
+  };
+};
+
+export const useProductReviews = (productId: number) => {
+  const {
+    reviews,
+    reviewsLoading,
+    reviewsError,
+    fetchProductReviews
+  } = useActivitiesStore();
+
+  useEffect(() => {
+    if (productId) {
+      fetchProductReviews(productId);
+    }
+  }, [productId, fetchProductReviews]);
+
+  return {
+    reviews: reviews[productId] || [],
+    loading: reviewsLoading[productId] || false,
+    error: reviewsError[productId] || null,
+    refetch: () => fetchProductReviews(productId)
   };
 };
 
 export const useActivityDetail = (type: string, id: string) => {
-  const [activity, setActivity] = useState<Activity | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchActivityDetail = async () => {
-      if (!type || !id) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/activities/${type}/${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch activity detail');
-        }
-
-        const data = await response.json();
-        setActivity(data.activity);
-      } catch (err: any) {
-        setError(err.message);
-        console.error('Error fetching activity detail:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchActivityDetail();
-  }, [type, id]);
-
-  return { activity, loading, error };
+  const { activities } = useActivitiesStore();
+  
+  const activityFromStore = activities.find(
+    activity => activity.type === type && activity.id.toString() === id
+  );
+  
+  return {
+    activity: activityFromStore,
+    loading: false, 
+    error: null
+  };
 };

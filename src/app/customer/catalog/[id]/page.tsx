@@ -3,14 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Heart, Share2, Package, Info, Sparkles, User, MessageCircle, ArrowLeft, X, ZoomIn } from 'lucide-react';
+import { Heart, Share2, Package, Info, Sparkles, User, MessageCircle, ArrowLeft, X, ZoomIn, Star, StarHalf } from 'lucide-react';
 import { Product, ProductVariant } from 'types/product';
 import { formatCurrency, CATEGORY_LABELS, CategoryType } from 'utils/product';
 import ProductCard from 'components/card/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   Accordion,
   AccordionContent,
@@ -19,6 +20,8 @@ import {
 } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import { useWishlist } from 'hooks/useWishlist';
+import { useProductReviews } from 'hooks/useActivities';
+import { formatDateTime } from 'utils/rental';
 
 interface ProductDetailProps {}
 
@@ -34,8 +37,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const { isInWishlist, toggleWishlist, loading: wishlistLoading } = useWishlist(productId);
+  const { reviews, loading: reviewsLoading, error: reviewsError, refetch: refetchReviews } = useProductReviews(parseInt(productId));
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Reviews statistics
+  const [reviewStats, setReviewStats] = useState<{
+    averageRating: number;
+    totalReviews: number;
+    ratingDistribution: Record<number, number>;
+  }>({
+    averageRating: 0,
+    totalReviews: 0,
+    ratingDistribution: {}
+  });
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -75,9 +92,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
       }
     };
 
+    const fetchReviewStats = async () => {
+      try {
+        const response = await fetch(`/api/products/${productId}/reviews?page=1&limit=1`);
+        if (response.ok) {
+          const data = await response.json();
+          setReviewStats(data.statistics);
+        }
+      } catch (err) {
+        console.error('Failed to fetch review stats:', err);
+      }
+    };
+
     if (productId) {
       fetchProduct();
       fetchRelatedProducts();
+      fetchReviewStats();
     }
   }, [productId]);
 
@@ -186,6 +216,37 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
       className: "text-green-700",
     });
   };
+
+  // Review helper functions
+  const renderStars = (rating: number, size: 'sm' | 'lg' = 'sm') => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+    const sizeClass = size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <Star key={i} className={`${sizeClass} text-yellow-400 fill-yellow-400`} />
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <StarHalf key="half" className={`${sizeClass} text-yellow-400 fill-yellow-400`} />
+      );
+    }
+
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <Star key={`empty-${i}`} className={`${sizeClass} text-gray-300`} />
+      );
+    }
+
+    return stars;
+  };
+
+  const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
   if (loading) {
     return (
@@ -304,6 +365,22 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                       <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent break-words">
                         {product.name}
                       </h1>
+                      
+                      {/* Rating Section */}
+                      {reviewStats.totalReviews > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center">
+                            {renderStars(reviewStats.averageRating)}
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">
+                            {reviewStats.averageRating.toFixed(1)}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            ({reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''})
+                          </span>
+                        </div>
+                      )}
+                      
                       <p className="mt-2 md:mt-3 text-xl sm:text-2xl md:text-3xl font-bold text-primary-600">
                         {selectedVariant ? formatCurrency(selectedVariant.price) : 'Select variant'}
                       </p>
@@ -522,6 +599,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   </AccordionItem>
 
                   {product.description && (
+                   // Continuation of the accordion description section
                     <AccordionItem value="description">
                       <AccordionTrigger className="text-sm md:text-base lg:text-lg font-semibold hover:text-orange-600 transition-colors">
                         Deskripsi
@@ -531,12 +609,109 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                       </AccordionContent>
                     </AccordionItem>
                   )}
+
+                  {/* Reviews Section */}
+                  {reviewStats.totalReviews > 0 && (
+                    <AccordionItem value="reviews">
+                      <AccordionTrigger className="text-sm md:text-base lg:text-lg font-semibold hover:text-orange-600 transition-colors">
+                        Reviews ({reviewStats.totalReviews})
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-6">
+                          {/* Rating Overview */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Overall Rating */}
+                            <div className="text-center">
+                              <div className="text-4xl font-bold text-primary-600 mb-2">
+                                {reviewStats.averageRating.toFixed(1)}
+                              </div>
+                              <div className="flex items-center justify-center mb-2">
+                                {renderStars(reviewStats.averageRating, 'lg')}
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                Based on {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+
+                            {/* Rating Distribution */}
+                            <div className="space-y-2">
+                              {[5, 4, 3, 2, 1].map((rating) => {
+                                const count = reviewStats.ratingDistribution[rating] || 0;
+                                const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0;
+                                
+                                return (
+                                  <div key={rating} className="flex items-center gap-2 text-sm">
+                                    <span className="w-3 text-gray-600">{rating}</span>
+                                    <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                    <div className="flex-1">
+                                      <Progress value={percentage} className="h-2" />
+                                    </div>
+                                    <span className="w-8 text-xs text-gray-500">{count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Individual Reviews */}
+                          {reviewsLoading ? (
+                            <div className="flex justify-center py-8">
+                              <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-orange-500"></div>
+                            </div>
+                          ) : reviews.length > 0 ? (
+                            <div className="space-y-4">
+                              {displayedReviews.map((review) => (
+                                <Card key={review.id} className="border border-gray-200">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <h5 className="font-medium text-sm truncate">
+                                            {review.user.first_name} {review.user.last_name || ''}
+                                          </h5>
+                                          <div className="flex items-center">
+                                            {renderStars(review.rating)}
+                                          </div>
+                                        </div>
+                                        <p className="text-sm text-gray-700 mb-2 break-words">
+                                          {review.comment}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {formatDateTime(review.createdAt)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+
+                              {/* Show More/Less Button */}
+                              {reviews.length > 3 && (
+                                <div className="text-center">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setShowAllReviews(!showAllReviews)}
+                                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                                  >
+                                    {showAllReviews ? 'Show Less' : `Show All ${reviews.length} Reviews`}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-center text-gray-500 py-4">No reviews yet</p>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
                 </Accordion>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Related Products Section - same as before */}
         {relatedProducts.length > 0 && (
           <div>
             <h2 className="mb-4 md:mb-6 lg:mb-8 text-xl md:text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
@@ -551,6 +726,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
         )}
       </div>
 
+      {/* Image Modal - same as before */}
       {isImageModalOpen && product.images && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div ref={modalRef} className="relative flex h-full w-full max-w-4xl items-center justify-center">
