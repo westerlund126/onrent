@@ -235,10 +235,33 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
+    if ((name === 'startDate' || name === 'endDate') && value.length === 10 && !isNaN(new Date(value).getTime())) {
+      const inputDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (name === 'startDate' && inputDate < today) {
+        const correctedValue = today.toISOString().split('T')[0];
+        setFormData(prev => ({ ...prev, startDate: correctedValue }));
+        toast.warning("Tanggal mulai diubah ke hari ini karena tidak boleh di masa lalu");
+        return; 
+      }
+
+      if (name === 'endDate' && formData.startDate) {
+        const startDate = new Date(formData.startDate);
+        if (inputDate <= startDate) {
+          const nextDay = new Date(startDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const correctedValue = nextDay.toISOString().split('T')[0];
+          setFormData(prev => ({ ...prev, endDate: correctedValue }));
+          toast.warning("Tanggal selesai diubah ke hari setelah tanggal mulai");
+          return; 
+      }
+    }
 
     if (name === 'endDate' && formData.startDate) {
       const isValid = new Date(value) >= new Date(formData.startDate);
@@ -249,7 +272,8 @@ const RentalForm = ({ isOpen, onClose, onSuccess }: RentalFormProps) => {
 
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (submitError) setSubmitError('');
-  };
+    };
+  }
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
