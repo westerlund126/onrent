@@ -6,10 +6,12 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = parseInt(params.id);
+    // Await the params since it's now a Promise
+    const { id } = await params;
+    const productId = parseInt(id);
 
     if (isNaN(productId)) {
       return NextResponse.json(
@@ -49,16 +51,16 @@ export async function GET(
       where: { productId: productId }
     });
 
-    // Calculate average rating
-    const avgRating = await prisma.review.aggregate({
+    // Calculate average rating - fix the type issue
+    const avgRatingResult = await prisma.review.aggregate({
       where: { productId: productId },
       _avg: {
         rating: true
       }
     });
 
-    // Get rating distribution
-    const ratingDistribution = await prisma.review.groupBy({
+    // Get rating distribution - fix the type issue
+    const ratingDistributionRaw = await prisma.review.groupBy({
       by: ['rating'],
       where: { productId: productId },
       _count: {
@@ -67,6 +69,12 @@ export async function GET(
     });
 
     const totalPages = Math.ceil(totalReviews / limit);
+
+    // Create rating distribution object with proper typing
+    const ratingDistributionMap: Record<number, number> = {};
+    ratingDistribution.forEach(item => {
+      ratingDistributionMap[item.rating] = item._count.rating;
+    });
 
     return NextResponse.json({
       reviews,
@@ -78,12 +86,9 @@ export async function GET(
         hasPrevPage: page > 1
       },
       statistics: {
-        averageRating: avgRating._avg.rating || 0,
+        averageRating: avgRatingResult._avg.rating || 0,
         totalReviews,
-        ratingDistribution: ratingDistribution.reduce((acc, item) => {
-          acc[item.rating] = item._count.rating;
-          return acc;
-        }, {} as Record<number, number>)
+        ratingDistribution: ratingDistributionMap
       }
     });
 
