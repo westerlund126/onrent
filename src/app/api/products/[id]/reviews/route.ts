@@ -9,7 +9,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await the params since it's now a Promise
     const { id } = await params;
     const productId = parseInt(id);
 
@@ -72,7 +71,7 @@ export async function GET(
 
     // Create rating distribution object with proper typing
     const ratingDistributionMap: Record<number, number> = {};
-    ratingDistribution.forEach(item => {
+    ratingDistributionRaw.forEach(item => {
       ratingDistributionMap[item.rating] = item._count.rating;
     });
 
