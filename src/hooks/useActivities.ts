@@ -1,7 +1,5 @@
-// hooks/useActivities.ts (Updated to use Zustand)
 import { useEffect } from 'react';
 import { useActivitiesStore } from 'stores/useActivitiesStore';
-
 export const useActivities = (page = 1, limit = 10) => {
   const {
     activities,
@@ -17,25 +15,20 @@ export const useActivities = (page = 1, limit = 10) => {
     confirmCancelFitting,
     submitReview
   } = useActivitiesStore();
-
   useEffect(() => {
     fetchActivities(page, limit);
   }, [page, limit, fetchActivities]);
-
   const loadMore = () => {
     if (pagination.hasNextPage) {
       fetchActivities(pagination.currentPage + 1, limit);
     }
   };
-
   const refresh = () => {
     refreshActivities();
   };
-
   const handleConfirmCancelFitting = async () => {
     await confirmCancelFitting();
   };
-
   return {
     activities,
     loading,
@@ -49,10 +42,9 @@ export const useActivities = (page = 1, limit = 10) => {
     openFittingCancelConfirmation,
     cancelFittingCancellation,
     handleConfirmCancelFitting,
-    submitReview, 
+    submitReview,
   };
 };
-
 export const useProductReviews = (productId: number) => {
   const {
     reviews,
@@ -60,13 +52,11 @@ export const useProductReviews = (productId: number) => {
     reviewsError,
     fetchProductReviews
   } = useActivitiesStore();
-
   useEffect(() => {
     if (productId) {
       fetchProductReviews(productId);
     }
   }, [productId, fetchProductReviews]);
-
   return {
     reviews: reviews[productId] || [],
     loading: reviewsLoading[productId] || false,
@@ -74,17 +64,16 @@ export const useProductReviews = (productId: number) => {
     refetch: () => fetchProductReviews(productId)
   };
 };
-
 export const useActivityDetail = (type: string, id: string) => {
   const { activities } = useActivitiesStore();
-  
+ 
   const activityFromStore = activities.find(
     activity => activity.type === type && activity.id.toString() === id
   );
-  
+ 
   return {
     activity: activityFromStore,
-    loading: false, 
+    loading: false,
     error: null
   };
 };
