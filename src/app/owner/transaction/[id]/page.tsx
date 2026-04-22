@@ -49,7 +49,6 @@ import Image from 'next/image';
 import { useRentalStore } from 'stores/useRentalStore';
 import { toast } from 'sonner';
 
-// Type definitions can be moved to a central types file
 type TrackingEvent = {
   id: number;
   status: 'RENTAL_ONGOING' | 'RETURN_PENDING' | 'RETURNED' | 'COMPLETED';

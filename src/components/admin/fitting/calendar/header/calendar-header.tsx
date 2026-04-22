@@ -43,18 +43,6 @@ export function CalendarHeader({ view, schedule }: IProps) {
 
             <Button
               asChild
-              aria-label="View by week"
-              size="icon"
-              variant={view === 'week' ? 'default' : 'outline'}
-              className="-ml-px rounded-none [&_svg]:size-5"
-            >
-              <Link href="/owner/fitting/schedule/week-view">
-                <Columns strokeWidth={1.8} />
-              </Link>
-            </Button>
-
-            <Button
-              asChild
               aria-label="View by month"
               size="icon"
               variant={view === 'month' ? 'default' : 'outline'}

@@ -9,7 +9,6 @@ import { id } from 'date-fns/locale';
 const prisma = new PrismaClient();
 const emailService = new EmailService();
 
-// Helper function to format dates in Indonesian
 const formatFittingDate = (date: Date) => {
   return format(date, "EEEE, d MMMM yyyy 'pukul' HH:mm", { locale: id });
 };
@@ -36,6 +35,7 @@ export async function POST(request: NextRequest) {
       note,
       variantIds = [],
       tfProofUrl,
+      phoneNumber,
     } = await request.json();
 
     if (!fittingSlotId) {
@@ -45,11 +45,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (phoneNumber && phoneNumber !== user.phone_numbers) {
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { phone_numbers: phoneNumber },
+  });
+}
+
     const variantIdsNumeric: number[] = Array.from(
       new Set(
         variantIds.map((id: any) => parseInt(id)).filter((id) => !isNaN(id))
       ),
     );
+
 
     const fittingSlot = await prisma.fittingSlot.findUnique({
       where: { id: parseInt(fittingSlotId) },
@@ -233,7 +241,6 @@ export async function POST(request: NextRequest) {
             completeSchedule.fittingSlot.owner.last_name || ''
           }`.trim();
 
-        // Send email to owner
         await emailService.notifyOwnerNewFitting({
           ownerEmail: completeSchedule.fittingSlot.owner.email,
           ownerName,
@@ -290,6 +297,8 @@ export async function GET(request: NextRequest) {
     const ownerIdParam = searchParams.get('ownerId');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
+    const status = searchParams.get('status');
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     let whereClause: any = {};
 
@@ -322,10 +331,17 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    if (!includeInactive && !status) {
+      whereClause.isActive = true;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
     const schedules = await prisma.fittingSchedule.findMany({
       where: {
         ...whereClause,
-        isActive: true,
       },
       include: {
         user: {

@@ -1,3 +1,4 @@
+// components/owner/profile/WorkingHoursCard.jsx
 'use client';
 
 import React from 'react';
@@ -15,14 +16,15 @@ interface WorkingHours {
 
 interface WorkingHoursCardProps {
   workingHours: WorkingHours;
+  className?: string;
 }
 
-const WorkingHoursCard: React.FC<WorkingHoursCardProps> = ({ workingHours }) => {
+const WorkingHoursCard: React.FC<WorkingHoursCardProps> = ({ workingHours, className }) => {
   const formatTime = (hour: number) => hour.toString().padStart(2, '0') + ':00';
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
   return (
-    <Card className="border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl">
+    <Card className={`h-full flex flex-col border-0 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:shadow-xl ${className}`}>
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center text-lg text-gray-800">
           <div className="mr-3 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 p-2">
@@ -31,7 +33,8 @@ const WorkingHoursCard: React.FC<WorkingHoursCardProps> = ({ workingHours }) => 
           Jam Operasional
         </CardTitle>
       </CardHeader>
-      <CardContent className="relative z-10">
+      {/* MODIFIED: Added flex-grow, flex, flex-col, and justify-center */}
+      <CardContent className="flex-grow flex flex-col justify-center relative z-10">
         <div className="space-y-3">
           {Object.entries(workingHours).map(([dayIndex, range]) => (
             <div

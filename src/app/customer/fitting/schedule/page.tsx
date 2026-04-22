@@ -160,9 +160,6 @@ const availableDateStrings = useMemo(() => {
 const parseSlot = (slot: any): any => {
 	try {
 	  const isBooked = !!slot.fittingSchedule;
-	  console.log(
-		`🎯 Slot ${slot.id}: dateTime=${slot.dateTime}, isBooked=${isBooked}`,
-	  );
 	  let dateTime: Date;
 	  if (typeof slot.dateTime === 'string') {
 		const cleanDateString = slot.dateTime.replace('Z', '');
@@ -258,7 +255,6 @@ const availableTimes = useMemo(() => {
     }
   };
 
-  // --- Loading State ---
   const isLoading = 
     loadingStates.owner || 
     loadingStates.product || 
@@ -276,7 +272,7 @@ const availableTimes = useMemo(() => {
     );
   }
 
-  // --- Render JSX ---
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -314,7 +310,7 @@ const availableTimes = useMemo(() => {
                         type="text"
                         placeholder="Masukkan nama lengkap"
                         value={formData.customerName}
-                        onChange={(e) => updateFormField('customerName', e.target.value)}
+                        readOnly
                         className="h-12 border-gray-200 pl-10"
                         required
                       />
@@ -401,7 +397,6 @@ const availableTimes = useMemo(() => {
                     </div>
                   )}
 
-                  {/* Date Selection */}
                   <div className="space-y-2">
   <Label htmlFor="date" className="text-sm font-semibold text-gray-700">
     Pilih Tanggal *
@@ -467,7 +462,7 @@ const availableTimes = useMemo(() => {
                   disabled={isSubmitting}
                 />
                 <p className="text-xs text-gray-500">
-                  Unggah bukti transfer jika diperlukan oleh penyedia jasa.
+                  Lakukan pembayaran sebesar Rp 100.000 pada nomor rekening yang ada pada detail penyedia, dan unggah bukti transfernya disini.
                 </p>
               </div>
 
@@ -505,9 +500,7 @@ const availableTimes = useMemo(() => {
             </Card>
           </div>
           
-          {/* Right Side - Details (largely unchanged, just uses store data) */}
           <div className="space-y-6 lg:col-span-2">
-             {/* Owner Details */}
              {ownerData && (
                <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
                  <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
@@ -561,7 +554,6 @@ const availableTimes = useMemo(() => {
                </Card>
              )}
             
-             {/* Product Details */}
              {pageType === 'product' && productData && (
                 <Card className="border-0 bg-white/80 shadow-lg backdrop-blur-sm">
                     <CardHeader className="rounded-t-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
@@ -574,7 +566,6 @@ const availableTimes = useMemo(() => {
                       <div className="space-y-4">
                        {productData.images && productData.images.length > 0 && (
   <div className="flex flex-col gap-4">
-    {/* Main Image */}
     <div className="aspect-square overflow-hidden rounded-xl bg-muted">
       <Image
         src={productData.images[selectedImageIndex]}
@@ -585,7 +576,6 @@ const availableTimes = useMemo(() => {
       />
     </div>
 
-    {/* Thumbnail Gallery */}
     {productData.images.length > 1 && (
       <div className="flex gap-2 overflow-x-auto py-1">
         {productData.images.map((image, index) => (
@@ -662,7 +652,7 @@ const availableTimes = useMemo(() => {
                     'Datang tepat waktu sesuai jadwal yang dipilih',
                     'Kenakan pakaian yang mudah diganti',
                     'Bawa perlengkapan tambahan jika diperlukan',
-                    'Fitting berlangsung sekitar 30-45 menit',
+                    'Fitting berlangsung sekitar 60 menit',
                     'Hubungi penyedia jika ada perubahan jadwal',
                   ].map((guideline, index) => (
                     <div key={index} className="flex items-start gap-2">

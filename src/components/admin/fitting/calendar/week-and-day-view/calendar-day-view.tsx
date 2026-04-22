@@ -1,15 +1,15 @@
 // calendar-day-view.tsx
 
-import { Calendar1, Clock, User, XCircle } from 'lucide-react'; 
+import { Calendar1, Clock, User, XCircle } from 'lucide-react';
 import {
   areIntervalsOverlapping,
   format,
   startOfDay,
   endOfDay,
-} from 'date-fns'; 
+} from 'date-fns';
 import { useFittingStore } from 'stores/useFittingStore';
 import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
-import { useScheduleStore } from 'stores/useScheduleStore'; 
+import { useScheduleStore } from 'stores/useScheduleStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { EventBlock } from 'components/admin/fitting/calendar/week-and-day-view/event-block';
@@ -24,17 +24,22 @@ import {
   transformFittingScheduleToCalendarEvent,
 } from 'utils/helpers';
 import type { ICalendarEvent, IFittingSchedule } from 'types/fitting';
-import { useMemo, useEffect } from 'react'; 
+import { useMemo, useEffect } from 'react';
 
-interface IProps {
-  singleDaySchedule: IFittingSchedule[];
-}
+// REMOVED: No longer need the singleDaySchedule prop
+// interface IProps {
+//   singleDaySchedule: IFittingSchedule[];
+// }
 
-export function CalendarDayView({ singleDaySchedule }: IProps) {
-  const selectedDate = useFittingStore((state) => state.selectedDate);
-  const setSelectedDate = useFittingStore((state) => state.setSelectedDate);
+export function CalendarDayView() { // REMOVED: The prop is gone
+  const {
+    selectedDate,
+    setSelectedDate,
+    fittingSchedules, // ADDED: Get schedules directly from the store
+    fetchFittingSchedules, // ADDED: Get the fetch function
+  } = useFittingStore();
+
   const workingHours = useWorkingHoursStore((state) => state.workingHours);
-
   const { scheduleBlocks, fetchScheduleBlocks } = useScheduleStore();
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -45,13 +50,16 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
     if (selectedDate) {
       const from = startOfDay(selectedDate).toISOString();
       const to = endOfDay(selectedDate).toISOString();
+      // Fetch both schedule blocks and fitting schedules
       fetchScheduleBlocks(from, to);
+      fetchFittingSchedules(from, to, true); // ADDED: Fetch all schedules for the day, including inactive
     }
-  }, [selectedDate, fetchScheduleBlocks]);
+  }, [selectedDate, fetchScheduleBlocks, fetchFittingSchedules]); // ADDED: Dependency
 
-  // Process fitting schedules into calendar events
+  // Process fitting schedules from the store into calendar events
   const fittingEvents = useMemo(() => {
-    return singleDaySchedule.map((schedule) => {
+    // UPDATED: Use fittingSchedules from the store, not the prop
+    return fittingSchedules.map((schedule) => {
       const firstName = schedule.user?.first_name || '';
       const lastName = schedule.user?.last_name || '';
       const customerName =
@@ -63,7 +71,7 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
         color: getStatusColor(schedule.status),
       });
     });
-  }, [singleDaySchedule]);
+  }, [fittingSchedules]); // UPDATED: Dependency
 
   const blockEvents = useMemo(() => {
     if (!Array.isArray(scheduleBlocks)) return [];
@@ -240,12 +248,12 @@ export function CalendarDayView({ singleDaySchedule }: IProps) {
               </span>
 
               <p className="text-sm font-semibold text-foreground">
-                Happening now
+                Sedang berlangsung
               </p>
             </div>
           ) : (
             <p className="p-4 text-center text-sm italic text-muted-foreground">
-              No appointments or consultations at the moment
+              Tidak ada jadwal yang tersedia untuk hari ini.
             </p>
           )}
 

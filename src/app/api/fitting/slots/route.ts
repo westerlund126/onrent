@@ -1,4 +1,4 @@
-// app/api/fitting/slots/route.ts
+// app/api/fitting/slots/route.ts - CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -28,54 +28,81 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const availableOnly = searchParams.get('availableOnly') === 'true';
 
-    const ownerId =
-      caller.role === 'OWNER' ? caller.id : parseInt(ownerIdParam!);
+    let ownerId: number;
 
-    if (!ownerId) {
-      return NextResponse.json(
-        { error: 'Owner ID is required' },
-        { status: 400 },
-      );
+    if (caller.role === 'OWNER') {
+      ownerId = caller.id;
+    } else {
+      if (!ownerIdParam) {
+        return NextResponse.json(
+          { error: 'Owner ID is required for customer requests' },
+          { status: 400 }
+        );
+      }
+      const parsedOwnerId = parseInt(ownerIdParam);
+      if (isNaN(parsedOwnerId)) {
+        return NextResponse.json(
+          { error: 'Invalid Owner ID - must be a number' },
+          { status: 400 }
+        );
+      }
+      ownerId = parsedOwnerId;
     }
 
-    let slotWhereClause: any = { ownerId };
-    let blockWhereClause: any = { ownerId };
+    // 🔍 DEBUG: Verify ownerId parsing
+    console.log('🔍 Owner ID Verification:', {
+      ownerIdParam,
+      ownerIdParamType: typeof ownerIdParam,
+      parsedOwnerId: ownerId,
+      parsedOwnerIdType: typeof ownerId,
+      callerRole: caller.role,
+    });
 
-    if (dateFrom || dateTo) {
-      slotWhereClause.dateTime = {};
-
-      const blockTimeFilter = [];
-      if (dateFrom) {
-        const parsedDateFrom = new Date(dateFrom);
-        if (isNaN(parsedDateFrom.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid dateFrom' },
-            { status: 400 },
-          );
-        }
-        slotWhereClause.dateTime.gte = parsedDateFrom.toISOString();
-        blockTimeFilter.push({ endTime: { gt: parsedDateFrom } });
-      }
-
-      if (dateTo) {
-        const parsedDateTo = new Date(dateTo);
-        if (isNaN(parsedDateTo.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid dateTo' },
-            { status: 400 },
-          );
-        }
-        slotWhereClause.dateTime.lte = parsedDateTo.toISOString();
-        blockTimeFilter.push({ startTime: { lt: parsedDateTo } });
-      }
-      blockWhereClause.AND = blockTimeFilter;
-    }
-
+    // =================== THE FIX: SIMPLIFIED APPROACH ===================
+    
+    // 1. Build the slot where clause (this part was correct)
+    const slotWhereClause: any = {
+      ownerId,
+    };
     if (availableOnly) {
       slotWhereClause.isBooked = false;
     }
 
-    const [slots, scheduleBlocks] = await Promise.all([
+    // Add date filters to slots if provided
+    if (dateFrom && dateTo) {
+      const parsedDateFrom = new Date(dateFrom);
+      const parsedDateTo = new Date(dateTo);
+
+      if (isNaN(parsedDateFrom.getTime()) || isNaN(parsedDateTo.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid date format' },
+          { status: 400 },
+        );
+      }
+
+      slotWhereClause.dateTime = {
+        gte: parsedDateFrom,
+        lte: parsedDateTo,
+      };
+    }
+
+    // 2. For schedule blocks: Fetch ALL blocks for this owner
+    // We'll do the date filtering in memory after fetching
+    const scheduleBlockWhereClause = {
+      ownerId, // Only filter by owner - get ALL blocks for this owner
+    };
+
+    // 🔍 DEBUG: Log the where clauses
+    console.log('🔍 API Where Clauses:', {
+      ownerId,
+      callerRole: caller.role,
+      slotWhereClause: JSON.stringify(slotWhereClause, null, 2),
+      scheduleBlockWhereClause: JSON.stringify(scheduleBlockWhereClause, null, 2),
+      dateRange: dateFrom && dateTo ? { from: dateFrom, to: dateTo } : 'No date range'
+    });
+
+    // 3. Fetch both slots and ALL schedule blocks for the owner
+    const [slots, allScheduleBlocks] = await Promise.all([
       prisma.fittingSlot.findMany({
         where: slotWhereClause,
         include: {
@@ -108,32 +135,102 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.scheduleBlock.findMany({
-        where: blockWhereClause,
+        where: scheduleBlockWhereClause, // Fetch ALL blocks for this owner
+        orderBy: {
+          startTime: 'asc',
+        },
       }),
     ]);
 
-    if (scheduleBlocks.length === 0) {
-      return NextResponse.json(slots);
+    // 🔍 DEBUG: Log what we retrieved
+    console.log('🔍 Retrieved Data:', {
+      totalSlots: slots.length,
+      totalScheduleBlocks: allScheduleBlocks.length,
+      requestedOwnerId: ownerId,
+      requestedOwnerIdType: typeof ownerId,
+      scheduleBlocks: allScheduleBlocks.map(block => ({
+        id: block.id,
+        ownerId: block.ownerId,
+        description: block.description,
+        startTime: block.startTime.toISOString(),
+        endTime: block.endTime.toISOString(),
+        startLocal: block.startTime.toLocaleString(),
+        endLocal: block.endTime.toLocaleString(),
+      })),
+      sampleSlots: slots.slice(0, 3).map(slot => ({
+        id: slot.id,
+        ownerId: slot.ownerId,
+        dateTime: slot.dateTime,
+        isBooked: slot.isBooked,
+      }))
+    });
+
+    // 🔍 DEBUG: Check for the specific 9 AM slot issue
+    const nineAmSlot = slots.find(slot => slot.dateTime instanceof Date && slot.dateTime.toISOString() === '2025-08-04T09:00:00.000Z');
+    if (nineAmSlot) {
+      console.log('🔍 FOUND 9 AM SLOT in raw results:', {
+        slot: nineAmSlot,
+        slotOwnerId: nineAmSlot.ownerId,
+        requestedOwnerId: ownerId,
+        ownerIdMatch: nineAmSlot.ownerId === ownerId
+      });
     }
 
+    // 4. Filter out slots that conflict with schedule blocks
+    const FITTING_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    
     const filteredSlots = slots.filter((slot) => {
-      const FITTING_DURATION_MS = 60 * 60 * 1000;
       const slotStartTime = new Date(slot.dateTime);
-      const slotEndTime = new Date(
-        slotStartTime.getTime() + FITTING_DURATION_MS,
-      );
+      const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
-      const isBlocked = scheduleBlocks.some(
-        (block) =>
-          slotStartTime < block.endTime && slotEndTime > block.startTime,
-      );
+      // Check if this slot conflicts with ANY schedule block
+      const conflictingBlock = allScheduleBlocks.find((block) => {
+        // A slot conflicts with a block if they overlap
+        const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+        
+        if (overlaps) {
+          console.log('🚫 BLOCKING SLOT:', {
+            slotId: slot.id,
+            slotTime: slotStartTime.toISOString(),
+            slotTimeLocal: slotStartTime.toLocaleString(),
+            blockId: block.id,
+            blockDescription: block.description,
+            blockStart: block.startTime.toISOString(),
+            blockEnd: block.endTime.toISOString(),
+            blockStartLocal: block.startTime.toLocaleString(),
+            blockEndLocal: block.endTime.toLocaleString(),
+          });
+        }
+        
+        return overlaps;
+      });
 
-      return !isBlocked;
+      const isBlocked = !!conflictingBlock;
+      return !isBlocked; // Return slots that are NOT blocked
+    });
+
+    // 🔍 DEBUG: Show filtering results
+    console.log('🔍 Filtering Results:', {
+      originalSlotCount: slots.length,
+      filteredSlotCount: filteredSlots.length,
+      blockedSlotCount: slots.length - filteredSlots.length,
+      blockedSlots: slots.filter(slot => {
+        const slotStartTime = new Date(slot.dateTime);
+        const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
+        return allScheduleBlocks.some(block => 
+          slotStartTime < block.endTime && slotEndTime > block.startTime
+        );
+      }).map(slot => ({
+        id: slot.id,
+        dateTime: slot.dateTime,
+        localTime: new Date(slot.dateTime).toLocaleString(),
+      }))
     });
 
     return NextResponse.json(filteredSlots);
+
   } catch (error: any) {
-    console.error('Error fetching fitting slots:', error);
+    console.error('💥 Error in /api/fitting/slots:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },
@@ -202,7 +299,7 @@ export async function POST(request: NextRequest) {
     const slotStartTime = slotDateTime;
     const slotEndTime = new Date(slotStartTime.getTime() + FITTING_DURATION_MS);
 
-    // DEBUG: First get ALL schedule blocks for this owner
+    // Get ALL schedule blocks for this owner (same approach as GET)
     const allBlocks = await prisma.scheduleBlock.findMany({
       where: {
         ownerId: caller.id,
@@ -229,14 +326,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Now check for conflicts with detailed logging
-    const conflictingBlocks = await prisma.scheduleBlock.findMany({
-      where: {
-        ownerId: caller.id,
-        AND: [
-          { startTime: { lt: slotEndTime } },
-          { endTime: { gt: slotStartTime } },
-        ],
-      },
+    const conflictingBlocks = allBlocks.filter(block => {
+      const overlaps = slotStartTime < block.endTime && slotEndTime > block.startTime;
+      return overlaps;
     });
 
     console.log(
@@ -314,7 +406,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(slot);
   } catch (error: any) {
-    console.error('Error creating fitting slot:', error);
+    console.error('💥 Error creating fitting slot:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 },

@@ -1,4 +1,4 @@
-// app/api/admin/rentals/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from 'lib/prisma';
 import { auth } from '@clerk/nextjs/server';
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
+  
     const admin = await prisma.user.findUnique({
       where: { clerkUserId: userId },
       select: { id: true, role: true },
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     
     const skip = (page - 1) * limit;
 
-    // Build where clause for filtering
+  
     const whereClause: any = {};
     if (status) {
       whereClause.status = status;

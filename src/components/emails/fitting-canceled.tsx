@@ -6,16 +6,13 @@ import {
   Heading,
   Hr,
   Html,
-  Img,
-  Link,
   Preview,
-  Row,
   Section,
   Text,
 } from '@react-email/components';
 import * as React from 'react';
 
-interface NewFittingOwnerEmailProps {
+interface FittingCanceledOwnerEmailProps {
   ownerName: string;
   customerName: string;
   customerEmail: string;
@@ -23,12 +20,12 @@ interface NewFittingOwnerEmailProps {
   fittingDate: string;
   fittingId: number;
   productNames: string[];
-  note?: string;
+  cancellationReason?: string;
   businessName?: string;
   dashboardUrl: string;
 }
 
-export const NewFittingOwnerEmail = ({
+export const FittingCanceledOwnerEmail = ({
   ownerName,
   customerName,
   customerEmail,
@@ -36,21 +33,17 @@ export const NewFittingOwnerEmail = ({
   fittingDate,
   fittingId,
   productNames,
-  note,
+  cancellationReason,
   businessName,
-  dashboardUrl
-}: NewFittingOwnerEmailProps) => {
-  const productList = productNames.length > 0 
-    ? productNames.join(', ') 
-    : 'Tidak ada produk spesifik dipilih';
-
+  dashboardUrl,
+}: FittingCanceledOwnerEmailProps) => {
   return (
     <Html>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="x-apple-disable-message-reformatting" />
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title>Permintaan Fitting Baru dari {customerName}</title>
+        <title>Janji Temu Fitting Dibatalkan</title>
         <style>
           {`
             @media only screen and (max-width: 600px) {
@@ -94,43 +87,30 @@ export const NewFittingOwnerEmail = ({
           `}
         </style>
       </Head>
-      <Preview>Permintaan fitting baru dari {customerName}</Preview>
+      <Preview>Pelanggan {customerName} telah membatalkan janji temu fitting mereka</Preview>
       <Body style={main}>
         <Container style={container}>
 
           {/* Hero Section */}
           <Section style={heroSection} className="hero-section">
-            <Heading style={heroTitle} className="hero-title">Permintaan Fitting Baru!</Heading>
+            <Heading style={heroTitle} className="hero-title">❌ Janji Temu Fitting Dibatalkan</Heading>
             <Text style={heroSubtitle} className="hero-subtitle">
-              Anda memiliki janji temu baru yang menunggu konfirmasi
+              Seorang pelanggan telah membatalkan janji temu fitting mereka
             </Text>
           </Section>
 
           {/* Main Content */}
           <Section style={contentSection}>
             <Text style={greetingText}>
-              Halo <strong>{ownerName || businessName || 'Pemilik Bisnis'}</strong> !
+              Halo <strong>{ownerName}</strong>,
             </Text>
 
             <Text style={introText}>
-              Anda menerima permintaan fitting baru untuk hari <strong>{fittingDate}</strong>. Berikut detail lengkapnya:
+              Kami ingin menginformasikan bahwa seorang pelanggan telah membatalkan janji temu fitting mereka. 
+              Slot waktu tersebut sekarang tersedia untuk pelanggan lain untuk melakukan booking.
             </Text>
 
-            {/* Appointment Details */}
-            <Section style={card} className="card">
-              <div style={cardHeaderWithBadge}>
-                <Text style={cardTitleText}>📅 Detail Janji Temu</Text>
-              </div>
-              
-              <table style={detailTable} className="detail-table">
-                <tr>
-                  <td style={labelCell} className="label-cell">Tanggal & Waktu</td>
-                  <td style={valueCell} className="value-cell">{fittingDate}</td>
-                </tr>
-              </table>
-            </Section>
-
-            {/* Customer Info */}
+            {/* Customer Information */}
             <Section style={card} className="card">
               <Text style={cardTitleText}>👤 Informasi Pelanggan</Text>
               
@@ -141,55 +121,98 @@ export const NewFittingOwnerEmail = ({
                 </tr>
                 <tr>
                   <td style={labelCell} className="label-cell">Email</td>
-                  <td style={valueCell} className="value-cell">
-                    <Link href={`mailto:${customerEmail}`} style={linkStyle}>
-                      {customerEmail}
-                    </Link>
-                  </td>
+                  <td style={valueCell} className="value-cell">{customerEmail}</td>
                 </tr>
                 {customerPhone && (
                   <tr>
                     <td style={labelCell} className="label-cell">Telepon</td>
-                    <td style={valueCell} className="value-cell">
-                      <Link href={`tel:${customerPhone}`} style={linkStyle}>
-                        {customerPhone}
-                      </Link>
-                    </td>
+                    <td style={valueCell} className="value-cell">{customerPhone}</td>
                   </tr>
                 )}
               </table>
             </Section>
 
-            {/* Products */}
+            {/* Appointment Details */}
             <Section style={card} className="card">
-              <Text style={cardTitleText}>👗 Produk untuk Fitting</Text>
-              <Text style={productText}>{productList}</Text>
+              <Text style={cardTitleText}>📅 Detail Janji Temu yang Dibatalkan</Text>
+              
+              <table style={detailTable} className="detail-table">
+                <tr>
+                  <td style={labelCell} className="label-cell">Tanggal & Waktu Terjadwal</td>
+                  <td style={valueCell} className="value-cell">{fittingDate}</td>
+                </tr>
+                {businessName && (
+                  <tr>
+                    <td style={labelCell} className="label-cell">Bisnis</td>
+                    <td style={valueCell} className="value-cell">{businessName}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td style={labelCell} className="label-cell">Status</td>
+                  <td style={valueCell} className="value-cell">
+                    <span style={canceledBadge}>Dibatalkan oleh Pelanggan</span>
+                  </td>
+                </tr>
+              </table>
             </Section>
 
-            {/* Notes (if exists) */}
-            {note && (
-              <Section style={card} className="card">
-                <Text style={cardTitleText}>📝 Catatan Pelanggan</Text>
-                <Text style={noteText}>{note}</Text>
+            {/* Products */}
+             <Section style={card} className="card">
+              <Text style={cardTitleText}>
+                🛍️ {productNames.length > 0 ? `Produk (${productNames.length} item${productNames.length !== 1 ? '' : ''})` : 'Jenis Fitting'}
+              </Text>
+              <div style={productList}>
+                {productNames.length > 0 ? (
+                  productNames.map((productName, index) => (
+                    <div key={index} style={productItem}>
+                      <span style={productBullet}>•</span>
+                      <span style={productNameStyle}>{productName}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={productItem}>
+                    <span style={productBullet}>•</span>
+                    <span style={productNameStyle}>Fitting Reguler</span>
+                  </div>
+                )}
+              </div>
+            </Section>
+
+            {/* Cancellation Reason (if provided) */}
+            {cancellationReason && (
+              <Section style={reasonCard} className="card">
+                <Text style={cardTitleText}>📝 Alasan Pembatalan</Text>
+                <Text style={reasonText}>{cancellationReason}</Text>
               </Section>
             )}
+
+            {/* Impact Notice */}
+            <Section style={noticeCard} className="card">
+              <Text style={cardTitleText}>ℹ️ Apa yang terjadi selanjutnya?</Text>
+              <ul style={noticeList}>
+                <li style={noticeItem}>Slot fitting sekarang tersedia untuk booking baru</li>
+                <li style={noticeItem}>Tidak ada tindakan lebih lanjut yang diperlukan dari Anda</li>
+                <li style={noticeItem}>Anda dapat melihat semua janji temu di dashboard</li>
+                <li style={noticeItem}>Pertimbangkan untuk menghubungi pelanggan jika Anda ingin menawarkan tanggal alternatif</li>
+              </ul>
+            </Section>
 
             {/* Action Button */}
             <Section style={buttonSection}>
               <Button style={primaryButton} className="primary-button" href={dashboardUrl}>
-                Lihat di Dashboard
+                Lihat Dashboard
               </Button>
             </Section>
 
             <Text style={footerActionText}>
-              Silakan masuk ke dashboard Anda untuk mengonfirmasi atau menolak janji temu ini.
+              Terima kasih telah menyediakan layanan fitting melalui OnRent!
             </Text>
           </Section>
 
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              Tetap semangat dalam mengembangkan bisnis! 🟧
+              Tetap semangat! Masih banyak pelanggan yang menunggu untuk mencoba produk Anda. 🟧
             </Text>
             <Hr style={divider} />
             <Text style={footerText}>
@@ -224,7 +247,7 @@ const container: React.CSSProperties = {
 };
 
 const heroSection: React.CSSProperties = {
-  background: 'linear-gradient(to right, #f59e0b, #f97316)',
+  background: 'linear-gradient(to right, #ef4444, #dc2626)',
   borderRadius: '16px',
   padding: '40px 20px',
   textAlign: 'center',
@@ -277,13 +300,20 @@ const card: React.CSSProperties = {
   margin: '0 0 20px',
 };
 
-const cardHeaderWithBadge: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px',
-  flexWrap: 'wrap',
-  gap: '10px',
+const reasonCard: React.CSSProperties = {
+  backgroundColor: '#fef3c7',
+  border: '1px solid #fbbf24',
+  borderRadius: '12px',
+  padding: '20px',
+  margin: '0 0 20px',
+};
+
+const noticeCard: React.CSSProperties = {
+  backgroundColor: '#eff6ff',
+  border: '1px solid #3b82f6',
+  borderRadius: '12px',
+  padding: '20px',
+  margin: '0 0 20px',
 };
 
 const cardTitleText: React.CSSProperties = {
@@ -319,7 +349,40 @@ const valueCell: React.CSSProperties = {
   verticalAlign: 'top',
 };
 
-const productText: React.CSSProperties = {
+const canceledBadge: React.CSSProperties = {
+  backgroundColor: '#fee2e2',
+  color: '#991b1b',
+  padding: '4px 12px',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: 'bold',
+};
+
+const productList: React.CSSProperties = {
+  margin: '0',
+};
+
+const productItem: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  margin: '8px 0',
+};
+
+const productBullet: React.CSSProperties = {
+  color: '#f59e0b',
+  fontSize: '16px',
+  marginRight: '10px',
+  fontWeight: 'bold',
+};
+
+const productNameStyle: React.CSSProperties = {
+  color: '#374151',
+  fontSize: '14px',
+  lineHeight: '1.5',
+};
+
+
+const reasonText: React.CSSProperties = {
   color: '#374151',
   fontSize: '14px',
   lineHeight: '1.6',
@@ -328,18 +391,19 @@ const productText: React.CSSProperties = {
   backgroundColor: '#ffffff',
   borderRadius: '8px',
   border: '1px solid #d1d5db',
+  fontStyle: 'italic',
 };
 
-const noteText: React.CSSProperties = {
+const noticeList: React.CSSProperties = {
+  paddingLeft: '20px',
+  margin: '10px 0 0',
+};
+
+const noticeItem: React.CSSProperties = {
   color: '#374151',
   fontSize: '14px',
   lineHeight: '1.6',
-  margin: '0',
-  padding: '15px',
-  backgroundColor: '#fffbeb',
-  borderRadius: '8px',
-  border: '1px solid #fbbf24',
-  fontStyle: 'italic',
+  margin: '8px 0',
 };
 
 const buttonSection: React.CSSProperties = {
@@ -348,7 +412,7 @@ const buttonSection: React.CSSProperties = {
 };
 
 const primaryButton: React.CSSProperties = {
-  background: 'linear-gradient(to right, #f59e0b, #f97316)',
+  background: 'linear-gradient(to right, #ef4444, #dc2626)',
   borderRadius: '25px',
   color: '#ffffff',
   fontSize: '16px',
@@ -392,22 +456,9 @@ const copyrightText: React.CSSProperties = {
   margin: '15px 0 5px',
 };
 
-const taglineText: React.CSSProperties = {
-  color: '#9ca3af',
-  fontSize: '12px',
-  lineHeight: '1.5',
-  margin: '0',
-  fontStyle: 'italic',
-};
-
 const divider: React.CSSProperties = {
   borderTop: '1px solid #e5e7eb',
   margin: '20px 0',
 };
 
-const linkStyle: React.CSSProperties = {
-  color: '#f97316',
-  textDecoration: 'underline',
-};
-
-export default NewFittingOwnerEmail;
+export default FittingCanceledOwnerEmail;

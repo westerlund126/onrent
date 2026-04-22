@@ -19,15 +19,19 @@ export const HeroSection = () => {
             <span> Pakaian dengan desain terbaru! </span>
           </Badge>
 
-          <div className="max-w-screen-md mx-auto text-center text-4xl md:text-6xl font-bold">
-            <h1>
-              On-Rent
-            </h1>
+          <div className="max-w-screen-md mx-auto text-center">
+            <Image
+              src={"/img/logo-1.png"}
+              alt="On-Rent Logo"
+              width={400}
+              height={200}
+              className="mx-auto w-48 md:w-80 h-auto"
+              priority
+            />
           </div>
 
-          <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground">
-            {`Tampil memukau di setiap acara tanpa boros! Sewa gaun, kebaya, hingga tuxedo terbaik dengan mudah di aplikasi kami. 
-            Cukup klik, pilih, dan langsung bergaya. Yuk, cari tahu dan temukan OOTD pestamu!`}
+          <p className="max-w-screen-sm mx-auto text-xl text-muted-foreground md:text-lg">
+            {`Tampil memukau di setiap acara tanpa boros! Sewa gaun, kebaya, hingga tuxedo terbaik dengan mudah.`}
           </p>
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">

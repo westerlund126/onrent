@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
-  const { userId } = await auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,21 +41,26 @@ export async function GET(request) {
         rentalItems: {
           include: {
             variantProduct: {
-                select: {
-                  id: true,
-                  sku: true,
-                  size: true,
-                  color: true,
-                  price: true,
-                  products: {
-                    select: {
-                      id: true,
-                      name: true,
-                      category: true,
-                    },
+              select: {
+                id: true,
+                sku: true,
+                size: true,
+                color: true,
+                price: true,
+                products: {
+                  select: {
+                    id: true,  
+                    name: true,
+                    category: true,
                   },
                 },
               },
+            },
+          }
+        },
+        Reviews: {
+          select: {
+            id: true
           }
         }
       },
@@ -66,6 +71,7 @@ export async function GET(request) {
       take: limit
     });
 
+    // Fetch fittings
     const fittings = await prisma.fittingSchedule.findMany({
       where: {
         userId: user.id
@@ -83,18 +89,18 @@ export async function GET(request) {
           }
         },
         FittingProduct: {
-  include: {
-    variantProduct: {
-      include: {
-        products: {
-          select: {
-            name: true
+          include: {
+            variantProduct: {
+              include: {
+                products: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
           }
         }
-      }
-    }
-  }
-}
       },
       orderBy: {
         createdAt: 'desc'
@@ -103,25 +109,31 @@ export async function GET(request) {
       take: limit
     });
 
-    // Transform rentals to activity format
     const rentalActivities = rentals.map(rental => {
-      // Calculate total price from rental items
       const totalPrice = rental.rentalItems.reduce((total, item) => {
         return total + (item.variantProduct?.price || 0);
       }, 0);
+      
+      const products = rental.rentalItems.map(item => {
+        const productName = item.variantProduct?.products?.name;
+        const size = item.variantProduct?.size;
+        const color = item.variantProduct?.color;
+      
+        if (!productName) return null;
+        
+        return `${productName}${size ? ` (${size}` : ''}${color ? `, ${color})` : size ? ')' : ''}`;
+      }).filter(Boolean);
 
-  const products = rental.rentalItems.map(item => {
-    const productName = item.variantProduct?.products?.name;
-    const size = item.variantProduct?.size;
-    const color = item.variantProduct?.color;
-    
-    if (!productName) return null;
-    
-    return `${productName}${size ? ` (${size}` : ''}${color ? `, ${color})` : size ? ')' : ''}`;
-  }).filter(Boolean);
+      const parentProductIds = [...new Set(
+        rental.rentalItems
+          .map(item => item.variantProduct?.products?.id)
+          .filter(id => id !== undefined)
+      )];
 
       const ownerName = rental.owner.businessName || 
         `${rental.owner.first_name} ${rental.owner.last_name || ''}`.trim();
+
+      const hasReview = rental.Reviews.length > 0;
 
       return {
         id: rental.id,
@@ -129,19 +141,22 @@ export async function GET(request) {
         date: rental.createdAt.toISOString(),
         ownerName,
         products,
+        parentProductIds, 
         status: rental.status,
         totalPrice,
         rentalCode: rental.rentalCode,
         startDate: rental.startDate,
         endDate: rental.endDate,
-        additionalInfo: rental.additionalInfo
+        additionalInfo: rental.additionalInfo,
+        hasReview 
       };
     });
 
     const fittingActivities = fittings.map(fitting => {
       const products = fitting.FittingProduct.map(fp =>
-  `${fp.variantProduct.products.name} (${fp.variantProduct.size}${fp.variantProduct.color ? `, ${fp.variantProduct.color}` : ''})`
-);
+        `${fp.variantProduct.products.name} (${fp.variantProduct.size}${fp.variantProduct.color ? `, ${fp.variantProduct.color}` : ''})`
+      );
+      
       const ownerName = fitting.fittingSlot.owner.businessName || 
         `${fitting.fittingSlot.owner.first_name} ${fitting.fittingSlot.owner.last_name || ''}`.trim();
 
@@ -152,15 +167,16 @@ export async function GET(request) {
         ownerName,
         products,
         status: fitting.status,
-        totalPrice: null, // Fittings don't have price
+        totalPrice: null, 
         duration: fitting.duration,
         note: fitting.note,
-        fittingDateTime: fitting.fittingSlot.dateTime
+        fittingDateTime: fitting.fittingSlot.dateTime,
+        hasReview: false 
       };
     });
 
     const allActivities = [...rentalActivities, ...fittingActivities]
-.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const totalRentals = await prisma.rental.count({
       where: { userId: user.id }

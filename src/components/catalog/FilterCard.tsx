@@ -89,7 +89,7 @@ useEffect(() => {
           className="flex items-center space-x-2 flex-1 hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
         >
           <FiAlignJustify className="w-5 h-5 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Filters</span>
+          <span className="text-sm font-medium text-gray-700">Filter</span>
           {activeFilterCount > 0 && (
             <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-red-500 rounded-full">
               {activeFilterCount}
@@ -102,7 +102,7 @@ useEffect(() => {
               onClick={clearAllFilters}
               className="text-xs text-gray-500 hover:text-gray-700 underline px-2 py-1 rounded hover:bg-gray-50 transition-colors"
             >
-              Clear All
+              Hapus Semua
             </button>
           )}
           <button
@@ -120,13 +120,13 @@ useEffect(() => {
     <div className="filter-card">
       <Card extra="w-full p-4 sm:p-6">
         <div className="hidden md:flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Filters</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Filter</h2>
           {hasActiveFilters && (
             <button
               onClick={clearAllFilters}
               className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
-              Clear All
+              Hapus Semua
             </button>
           )}
         </div>
@@ -142,7 +142,7 @@ useEffect(() => {
         </div>
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="mb-2 text-sm font-medium text-gray-600">Category</h3>
+          <h3 className="mb-2 text-sm font-medium text-gray-600">Kategori</h3>
           <ul className="space-y-1 sm:space-y-2">
             {availableCategories.map((cat) => (
               <li
@@ -162,7 +162,7 @@ useEffect(() => {
 
         {availableSizes.length > 0 && (
           <div className="mb-4 sm:mb-6">
-            <h3 className="mb-2 text-sm font-medium text-gray-600">Size</h3>
+            <h3 className="mb-2 text-sm font-medium text-gray-600">Ukuran</h3>
             <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2 sm:gap-3">
               {availableSizes.map((size) => (
                 <button
@@ -182,7 +182,7 @@ useEffect(() => {
 
         {availableColors.length > 0 && (
           <div className="mb-4 sm:mb-6">
-            <h3 className="mb-2 text-sm font-medium text-gray-600">Colors</h3>
+            <h3 className="mb-2 text-sm font-medium text-gray-600">Warna</h3>
             <div className="grid grid-cols-8 sm:flex sm:flex-wrap gap-2 sm:gap-3">
               {availableColors.map((color) => (
                 <div
@@ -205,7 +205,7 @@ useEffect(() => {
         )}
 
         <div className="mb-4 sm:mb-0">
-          <h3 className="mb-2 text-sm font-medium text-gray-600">Price Range</h3>
+          <h3 className="mb-2 text-sm font-medium text-gray-600">Harga</h3>
           <ul className="space-y-1 sm:space-y-2">
             {priceRanges.map((priceRange) => (
               <li
@@ -225,7 +225,7 @@ useEffect(() => {
 
         {hasActiveFilters && (
           <div className="mt-4 sm:mt-6 pt-4 border-t border-gray-200">
-            <h4 className="text-sm font-medium text-gray-600 mb-2">Active Filters:</h4>
+            <h4 className="text-sm font-medium text-gray-600 mb-2">Filter Aktif:</h4>
             <div className="flex flex-wrap gap-2">
               {selectedCategory && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 capitalize">
@@ -251,7 +251,7 @@ useEffect(() => {
               )}
               {selectedColor && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                  Color: {selectedColor}
+                  Warna: {selectedColor}
                   <button
                     onClick={() => onFilterChange({ selectedColor: null })}
                     className="ml-1 text-gray-500 hover:text-gray-700"
@@ -262,7 +262,7 @@ useEffect(() => {
               )}
               {selectedPriceRange && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                  Price: {formatPrice(selectedPriceRange.min)} - {selectedPriceRange.max === Infinity ? '∞' : formatPrice(selectedPriceRange.max)}
+                  Harga: {formatPrice(selectedPriceRange.min)} - {selectedPriceRange.max === Infinity ? '∞' : formatPrice(selectedPriceRange.max)}
                   <button
                     onClick={() => onFilterChange({ selectedPriceRange: null })}
                     className="ml-1 text-gray-500 hover:text-gray-700"
@@ -280,7 +280,7 @@ useEffect(() => {
             onClick={() => setIsFilterOpen(false)}
             className="w-full bg-gray-800 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors"
           >
-            Apply Filters
+            Filter Diterapkan:
             {activeFilterCount > 0 && ` (${activeFilterCount})`}
           </button>
         </div>
