@@ -81,12 +81,10 @@ const AddressAutocomplete: React.FC<{
     const newValue = e.target.value;
     onChange(newValue);
 
-    // Clear existing debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    // Debounce the API call
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(newValue);
     }, 300);
@@ -127,7 +125,6 @@ const AddressAutocomplete: React.FC<{
   };
 
   const handleBlur = () => {
-    // Delay hiding suggestions to allow for clicks
     setTimeout(() => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
@@ -140,7 +137,6 @@ const AddressAutocomplete: React.FC<{
     }
   };
 
-  // Format suggestion for display
   const formatSuggestion = (suggestion: AddressSuggestion) => {
     const parts = suggestion.display_name.split(',');
     const main = parts.slice(0, 2).join(',').trim();
@@ -148,7 +144,6 @@ const AddressAutocomplete: React.FC<{
     return { main, secondary };
   };
 
-  // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -291,7 +286,7 @@ const BusinessInfoCard: React.FC<BusinessInfoCardProps> = ({
                 <AddressAutocomplete
                   value={profileData.businessAddress}
                   onChange={(value) => handleInputChange('businessAddress', value)}
-                  placeholder="Mulai ketik alamat lengkap bisnis..."
+                  placeholder="Ketik alamat lengkap bisnis..."
                   className="border-gray-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
               ) : (
