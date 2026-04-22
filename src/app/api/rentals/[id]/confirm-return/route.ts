@@ -29,7 +29,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
     }
 
-    // Get rental with minimal data for validation
     const rental = await prisma.rental.findFirst({
       where: {
         id: rentalId,
@@ -59,7 +58,7 @@ export async function PATCH(
 
     if (!rental) {
       return NextResponse.json(
-        { error: 'Rental not found or access denied' },
+        { error: 'Rental not found or access denied/unauthorized' },
         { status: 404 },
       );
     }
