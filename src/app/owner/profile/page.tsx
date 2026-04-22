@@ -6,7 +6,6 @@ import { useWorkingHoursStore } from 'stores/useWorkingHoursStore';
 import MainProfileCard from 'components/owner/profile/MainProfileCard';
 import BusinessInfoCard from 'components/owner/profile/BusinessInfoCard';
 import WorkingHoursCard from 'components/owner/profile/WorkingHoursCard';
-<<<<<<< HEAD
 import MapCard from 'components/owner/profile/MapCard';
 import { toast } from 'sonner';
 
